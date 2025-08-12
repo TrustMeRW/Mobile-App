@@ -21,7 +21,7 @@ const resetOnboarding = async () => {
 
 export default function IndexScreen() {
   const { isLoading, isAuthenticated } = useAuthContext();
-  const [debugInfo, setDebugInfo] = useState('');
+
 
   useEffect(() => {
     const handleInitialNavigation = async () => {
@@ -32,15 +32,6 @@ export default function IndexScreen() {
         console.log('Auth state is still loading...');
         return;
       }
-
-      // Debug info
-      const debugData = {
-        isLoading,
-        isAuthenticated,
-        timestamp: new Date().toISOString()
-      };
-      setDebugInfo(JSON.stringify(debugData, null, 2));
-      console.log('Auth state:', debugData);
 
       // If user is authenticated, redirect to tabs
       if (isAuthenticated) {
@@ -77,34 +68,10 @@ export default function IndexScreen() {
     handleInitialNavigation();
   }, [isLoading, isAuthenticated]);
 
-  // For debugging - shows the current auth state
-  if (__DEV__) {
-    return (
-      <View style={styles.debugContainer}>
-        <Text style={styles.debugText}>Auth State Debug:</Text>
-        <Text style={styles.debugText}>Loading: {isLoading ? 'Yes' : 'No'}</Text>
-        <Text style={styles.debugText}>Authenticated: {isAuthenticated ? 'Yes' : 'No'}</Text>
-        <Text style={styles.debugText}>
-          Onboarding seen: {AsyncStorage.getItem(ONBOARDING_KEY).then(val => val || 'No')}
-        </Text>
-        <Text style={styles.debugText}>{debugInfo}</Text>
-      </View>
-    );
-  }
-
   // In production, show nothing or a splash screen
   return null;
 }
 
 const styles = StyleSheet.create({
-  debugContainer: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#f5f5f5',
-  },
-  debugText: {
-    fontSize: 14,
-    marginBottom: 8,
-    color: '#333',
-  },
+
 });

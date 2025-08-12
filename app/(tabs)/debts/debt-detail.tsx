@@ -10,7 +10,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Colors, Typography, Spacing } from '@/constants/theme';
 import { apiClient } from '@/services/api';
 
-type ExtendedDebt = {
+interface ExtendedDebt {
   id: string;
   amount: string;
   amountPaid: string;
@@ -28,7 +28,9 @@ type ExtendedDebt = {
   };
   createdAt: string;
   updatedAt: string;
+  initiationType: 'REQUESTED' | 'OFFERED';
 };
+
 import { useAuthContext } from '@/contexts/AuthContext';
 import Toast from 'react-native-toast-message';
 import { MotiView } from 'moti';
@@ -166,6 +168,7 @@ export default function DebtDetailScreen() {
           issuer: debtData.issuer,
           createdAt: debtData.createdAt,
           updatedAt: debtData.updatedAt,
+          initiationType: debtData.initiationType,
         };
         
         setDebt(transformedDebt);
@@ -299,16 +302,22 @@ export default function DebtDetailScreen() {
     );
   }
 
-  const { requester, issuer, amount, amountPaid, status, paymentDate, createdAt } = debt;
+  const { requester, issuer, amount, amountPaid, status, paymentDate, createdAt, initiationType } = debt;
   const isRequester = user?.id === requester.id;
   const isIssuer = user?.id === issuer.id;
-  
+
   // Determine available actions based on user role and debt status
   const canPay = isRequester && (status === 'ACTIVE' || status === 'OVERDUE');
-  const canApprove = !isRequester && status === 'PENDING';
-  const canReject = (isRequester || isIssuer) && status === 'PENDING';
   const canConfirm = isIssuer && status === 'PAID_PENDING_CONFIRMATION';
-  const canViewActions = canPay || canApprove || canReject || canConfirm;
+
+  // Logic for who can approve or reject a PENDING debt:
+  // - If the debt was REQUESTED, the ISSUER must approve/reject.
+  // - If the debt was OFFERED, the REQUESTER must approve/reject.
+  const canApproveOrReject = status === 'PENDING' && 
+    ((initiationType === 'REQUESTED' && isIssuer) || 
+     (initiationType === 'OFFERED' && isRequester));
+
+  const canViewActions = canPay || canApproveOrReject || canConfirm;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -453,8 +462,8 @@ export default function DebtDetailScreen() {
                 </View>
               )}
 
-              {/* Approve Debt */}
-              {canApprove && (
+              {/* Approve/Reject Debt */}
+              {canApproveOrReject && (
                 <View style={styles.actionSection}>
                   <Text style={styles.actionSectionTitle}>Approve Debt</Text>
                   <Input
@@ -512,19 +521,7 @@ export default function DebtDetailScreen() {
                 </View>
               )}
 
-              {/* Reject Action (when not in approve flow) */}
-              {canReject && !canApprove && (
-                <View style={styles.actionSection}>
-                  <Text style={styles.actionSectionTitle}>Debt Actions</Text>
-                  <Button
-                    title="Reject Debt"
-                    onPress={handleReject}
-                    variant="outline"
-                    loading={rejectDebtMutation.isPending}
-                    style={styles.actionButton}
-                  />
-                </View>
-              )}
+
             </Card>
           )}
 

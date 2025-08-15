@@ -1,20 +1,22 @@
 import { Tabs } from 'expo-router';
-import { Colors } from '@/constants/theme';
-import { Home, CreditCard, User } from 'lucide-react-native';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Home, CreditCard, User, BadgeDollarSign } from 'lucide-react-native';
+import { AnimatedTabBarIcon } from '@/components/AnimatedTabBarIcon';
 import { NotificationBell } from '@/components/NotificationBell';
 import { View } from 'react-native';
 
 export default function TabLayout() {
+  const { colors } = useTheme();
   return (
     <Tabs
       screenOptions={{
-        headerShown: true,
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.gray[400],
+        headerShown: false,
+        tabBarActiveTintColor: colors.primary,
+        tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: {
-          backgroundColor: Colors.white,
+          backgroundColor: colors.card,
           borderTopWidth: 1,
-          borderTopColor: Colors.gray[200],
+          borderTopColor: colors.border,
           paddingBottom: 8,
           paddingTop: 8,
           height: 80,
@@ -29,8 +31,13 @@ export default function TabLayout() {
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ size, color }) => (
-            <Home size={size} color={color} />
+          tabBarIcon: ({ size, color, focused }) => (
+            <AnimatedTabBarIcon
+              icon={Home}
+              size={size}
+              color={color}
+              isFocused={focused}
+            />
           ),
           headerRight: () => (
             <View style={{ marginRight: 15 }}>
@@ -43,8 +50,28 @@ export default function TabLayout() {
         name="debts"
         options={{
           title: 'Debts',
-          tabBarIcon: ({ size, color }) => (
-            <CreditCard size={size} color={color} />
+          tabBarIcon: ({ size, color, focused }) => (
+            <AnimatedTabBarIcon
+              icon={CreditCard}
+              size={size}
+              color={color}
+              isFocused={focused}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="subscriptions"
+        options={{
+          href: "/(tabs)/subscriptions",
+          title: 'Subscriptions',
+          tabBarIcon: ({ size, color, focused }) => (
+            <AnimatedTabBarIcon
+              icon={BadgeDollarSign}
+              size={size}
+              color={color}
+              isFocused={focused}
+            />
           ),
         }}
       />
@@ -52,8 +79,13 @@ export default function TabLayout() {
         name="profile"
         options={{
           title: 'Profile',
-          tabBarIcon: ({ size, color }) => (
-            <User size={size} color={color} />
+          tabBarIcon: ({ size, color, focused }) => (
+            <AnimatedTabBarIcon
+              icon={User}
+              size={size}
+              color={color}
+              isFocused={focused}
+            />
           ),
         }}
       />

@@ -1,6 +1,18 @@
 import React, { useState } from 'react';
-import { View, TextInput, Text, StyleSheet, TextInputProps } from 'react-native';
-import { Colors, Typography, BorderRadius, Spacing } from '@/constants/theme';
+import {
+  View,
+  TextInput,
+  Text,
+  StyleSheet,
+  TextInputProps,
+} from 'react-native';
+import {
+  lightColors as Colors,
+  Typography,
+  BorderRadius,
+  Spacing,
+} from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface InputProps extends TextInputProps {
   label?: string;
@@ -18,11 +30,13 @@ export const Input: React.FC<InputProps> = ({
   ...props
 }) => {
   const [isFocused, setIsFocused] = useState(false);
+  const { theme, colors } = useTheme();
+  const isDark = theme === 'dark';
 
   return (
     <View style={styles.container}>
       {label && (
-        <Text style={styles.label}>
+        <Text style={[styles.label, isDark && { color: colors.text }]}>
           {label}
           {required && <Text style={styles.required}> *</Text>}
         </Text>
@@ -30,17 +44,32 @@ export const Input: React.FC<InputProps> = ({
       <TextInput
         style={[
           styles.input,
+          isDark && {
+            backgroundColor: colors.card,
+            borderColor: isFocused ? colors.primary : colors.border,
+            color: colors.text,
+          },
           isFocused && styles.inputFocused,
           error && styles.inputError,
           style,
         ]}
         onFocus={() => setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        placeholderTextColor={Colors.gray[400]}
+        placeholderTextColor={isDark ? colors.textSecondary : Colors.gray[400]}
         {...props}
       />
-      {error && <Text style={styles.errorText}>{error}</Text>}
-      {helperText && !error && <Text style={styles.helperText}>{helperText}</Text>}
+      {error && (
+        <Text style={[styles.errorText, isDark && { color: colors.error }]}>
+          {error}
+        </Text>
+      )}
+      {helperText && !error && (
+        <Text
+          style={[styles.helperText, isDark && { color: colors.textSecondary }]}
+        >
+          {helperText}
+        </Text>
+      )}
     </View>
   );
 };

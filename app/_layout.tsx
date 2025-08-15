@@ -3,6 +3,7 @@ import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from '@/contexts/AuthContext';
+import { ThemeProvider } from '@/contexts/ThemeContext';
 import { NotificationBell } from '@/components/NotificationBell';
 import Toast from 'react-native-toast-message';
 import { useFonts, DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
@@ -48,8 +49,9 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
-          <NotificationProvider>
-            <Stack screenOptions={{ headerShown: false }}>
+          <ThemeProvider>
+            <NotificationProvider>
+              <Stack screenOptions={{ headerShown: false }}>
               <Stack.Screen name="(auth)" />
               <Stack.Screen 
                 name="(tabs)" 
@@ -58,7 +60,6 @@ export default function RootLayout() {
                 }}
               />
               <Stack.Screen name="onboarding" />
-              <Stack.Screen name="index" options={{ headerShown: false }} />
               <Stack.Screen 
                 name="notifications" 
                 options={{
@@ -69,9 +70,10 @@ export default function RootLayout() {
               />
               <Stack.Screen name="+not-found" />
             </Stack>
-            <Toast />
-            <StatusBar style="auto" />
-          </NotificationProvider>
+              <Toast />
+              <StatusBar style="auto" />
+            </NotificationProvider>
+          </ThemeProvider>
         </AuthProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>

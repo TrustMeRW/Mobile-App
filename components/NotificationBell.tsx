@@ -3,7 +3,7 @@ import { TouchableOpacity, StyleSheet, View, Text } from 'react-native';
 import { Bell, BellRing } from 'lucide-react-native';
 import { MotiView } from 'moti';
 import { useNotificationContext } from '@/services/notifications';
-import { Colors } from '@/constants/theme';
+import { lightColors as Colors } from '@/constants/theme';
 import { useRouter } from 'expo-router';
 
 export const NotificationBell: React.FC = () => {

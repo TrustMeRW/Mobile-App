@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } fr
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useNavigation } from 'expo-router';
 import { useNotifications, Notification as NotificationType } from '@/services/notifications';
-import { Colors, Typography, Spacing } from '@/constants/theme';
+import { lightColors as Colors, Typography, Spacing } from '@/constants/theme';
 import { Bell, BellOff, Check, ArrowLeft } from 'lucide-react-native';
 import { MotiView } from 'moti';
 import { formatDistanceToNow } from 'date-fns';

@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, StyleSheet } from 'react-native';
 import { MotiView } from 'moti';
-import { Colors } from '@/constants/theme';
+import { lightColors as Colors } from '@/constants/theme';
 
 interface LoadingSpinnerProps {
   size?: number;

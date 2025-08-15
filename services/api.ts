@@ -1,4 +1,5 @@
 import * as SecureStore from 'expo-secure-store';
+import { router } from 'expo-router';
 
 // Base response types
 export interface ApiResponse<T = any> {
@@ -90,6 +91,16 @@ class ApiClient {
                            responseData?.error || 
                            `HTTP error! status: ${response.status}`;
         console.error('[API] Request failed:', errorMessage);
+        // Handle missing/invalid JWT token
+        if (
+          errorMessage.toLowerCase().includes('jwt') ||
+          errorMessage.toLowerCase().includes('token') ||
+          errorMessage.toLowerCase().includes('unauthorized')
+        ) {
+          // Optionally clear the token here if needed
+          // await SecureStore.deleteItemAsync('access_token');
+          router.replace('/(auth)/login');
+        }
         throw new Error(errorMessage);
       }
 
@@ -204,6 +215,10 @@ class ApiClient {
 
   async approveDebt(id: string, pin: string) {
     return this.post<ApiResponse<Debt>>(`/debt/${id}/approve`, { pin });
+  }
+
+  async createDebt(debtData: { amount: string, dueDate: Date, debtorId: string, creditorId: string }) {
+    return this.post<Debt>('/debts', debtData);
   }
 
   // Debt queries
@@ -409,6 +424,20 @@ class ApiClient {
 
   async deleteNotification(id: string) {
     return this.delete<ApiResponse<any>>(`/notifications/${id}`);
+  }
+
+  // Trustability API
+  async getUsersWithCalculatedTrustability(params?: {
+    minTrustability?: number;
+    maxTrustability?: number;
+    search?: string;
+    limit?: number;
+    page?: number;
+  }) {
+    return this.get<PaginatedResponse<User & { trustability: number }>>(
+      '/users/trustability/calculated',
+      params
+    );
   }
 }
 

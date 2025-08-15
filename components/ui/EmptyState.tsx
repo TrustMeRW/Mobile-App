@@ -1,7 +1,7 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { MotiView } from 'moti';
-import { Colors, Typography, Spacing } from '@/constants/theme';
+import { lightColors as Colors, Typography, Spacing } from '@/constants/theme';
 import { Button } from './Button';
 
 interface EmptyStateProps {

@@ -1,10 +1,10 @@
 import React, { useState, useRef } from 'react';
 import { View, Text, StyleSheet, FlatList, Dimensions, TouchableOpacity } from 'react-native';
+import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useTheme } from '@/contexts/ThemeContext';
 import { MotiView } from 'moti';
-import { Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Button } from '@/components/ui/Button';
 
 const { width } = Dimensions.get('window');
@@ -12,39 +12,34 @@ const { width } = Dimensions.get('window');
 const onboardingData = [
   {
     id: '1',
-    title: 'Track Your Debts',
-    description: 'Keep track of money you owe and money owed to you in one simple app.',
-    icon: '💰',
+    icon: '👋',
+    title: 'Welcome to TrustMe',
+    description: 'The simple way to track shared expenses and IOUs with friends.',
   },
   {
     id: '2',
-    title: 'Secure & Trustworthy',
-    description: 'Built with security in mind. Your financial data is safe and encrypted.',
-    icon: '🔒',
+    icon: '💸',
+    title: 'Settle Up Easily',
+    description: 'Keep a running balance and settle up whenever you want.',
   },
   {
     id: '3',
-    title: 'Stay Connected',
-    description: 'Get notified when debts are due and when payments are received.',
     icon: '🔔',
-  },
-  {
-    id: '4',
-    title: 'Ready to Start?',
-    description: 'Join thousands of users who trust us with their financial relationships.',
-    icon: '🚀',
+    title: 'Stay Notified',
+    description: 'Get reminders for upcoming and overdue payments.',
   },
 ];
 
 export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const flatListRef = useRef<FlatList>(null);
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+  const router = useRouter();
 
   const handleNext = () => {
     if (currentIndex < onboardingData.length - 1) {
-      const nextIndex = currentIndex + 1;
-      setCurrentIndex(nextIndex);
-      flatListRef.current?.scrollToIndex({ index: nextIndex, animated: true });
+      flatListRef.current?.scrollToIndex({ index: currentIndex + 1 });
     }
   };
 
@@ -58,7 +53,7 @@ export default function OnboardingScreen() {
     router.replace('/(auth)/login');
   };
 
-  const renderOnboardingItem = ({ item, index }: { item: any; index: number }) => (
+  const renderOnboardingItem = ({ item }: { item: any }) => (
     <View style={styles.slide}>
       <MotiView
         from={{ opacity: 0, scale: 0.5 }}
@@ -86,7 +81,7 @@ export default function OnboardingScreen() {
         <MotiView
           key={index}
           animate={{
-            backgroundColor: index === currentIndex ? Colors.primary : Colors.gray[300],
+            backgroundColor: index === currentIndex ? colors.primary : colors.textSecondary,
             scale: index === currentIndex ? 1.2 : 1,
           }}
           transition={{ type: 'timing', duration: 300 }}
@@ -125,86 +120,79 @@ export default function OnboardingScreen() {
           <Button
             title="Get Started"
             onPress={handleGetStarted}
-            style={styles.button}
           />
         ) : (
           <Button
             title="Next"
             onPress={handleNext}
-            style={styles.button}
           />
         )}
       </View>
     </SafeAreaView>
   );
-}
+};
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: colors.background,
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'flex-end',
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
+    paddingHorizontal: 20,
+    paddingTop: 10,
   },
   skipText: {
-    fontSize: Typography.fontSize.md,
-    color: Colors.gray[500],
-    fontFamily: 'DMSans-Medium',
+    fontSize: 16,
+    color: colors.textSecondary,
   },
   slide: {
     width,
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.xl,
+    paddingHorizontal: 30,
   },
   iconContainer: {
     width: 120,
     height: 120,
     borderRadius: 60,
-    backgroundColor: Colors.gray[50],
+    backgroundColor: colors.card,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.xl,
+    marginBottom: 40,
   },
   icon: {
     fontSize: 60,
   },
   title: {
-    fontSize: Typography.fontSize.xxxl,
-    fontFamily: 'DMSans-Bold',
-    color: Colors.dark,
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: colors.text,
     textAlign: 'center',
-    marginBottom: Spacing.md,
+    marginBottom: 15,
   },
   description: {
-    fontSize: Typography.fontSize.lg,
-    fontFamily: 'DMSans-Regular',
-    color: Colors.gray[600],
+    fontSize: 18,
+    color: colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 24,
+    lineHeight: 26,
   },
   dotsContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginVertical: Spacing.xl,
+    marginBottom: 40,
   },
   dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    marginHorizontal: 4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginHorizontal: 5,
   },
   buttonContainer: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.lg,
-  },
-  button: {
-    width: '100%',
+    paddingHorizontal: 30,
+    paddingBottom: 40,
   },
 });

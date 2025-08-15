@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
 import { BlurView } from 'expo-blur';
 import { MotiView } from 'moti';
 import { Button } from './Button';
-import { Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
+import { lightColors as Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
 
 interface ConfirmationModalProps {
   visible: boolean;

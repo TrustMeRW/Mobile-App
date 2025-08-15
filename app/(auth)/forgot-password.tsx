@@ -4,15 +4,18 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
-import { Colors, Typography, Spacing } from '@/constants/theme';
+import { lightColors as Colors, Typography, Spacing } from '@/constants/theme';
 import { apiClient } from '@/services/api';
 import Toast from 'react-native-toast-message';
 import { MotiView } from 'moti';
 import { ChevronLeft } from 'lucide-react-native';
+import { useTheme } from '@/contexts/ThemeContext';
 
 export default function ForgotPasswordScreen() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
+  const { theme, colors } = useTheme();
+  const isDark = theme === 'dark';
 
   const handleSendReset = async () => {
     if (!email) {
@@ -45,12 +48,22 @@ export default function ForgotPasswordScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView
+      style={[
+        styles.container,
+        isDark && { backgroundColor: colors.background },
+      ]}
+    >
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ChevronLeft color={Colors.dark} size={24} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <ChevronLeft color={isDark ? colors.text : Colors.dark} size={24} />
         </TouchableOpacity>
-        <Text style={styles.title}>Reset PIN</Text>
+        <Text style={[styles.title, isDark && { color: colors.text }]}>
+          Reset PIN
+        </Text>
       </View>
 
       <MotiView
@@ -59,8 +72,11 @@ export default function ForgotPasswordScreen() {
         transition={{ type: 'timing', duration: 600 }}
         style={styles.content}
       >
-        <Text style={styles.subtitle}>
-          Enter your email address and we'll send you instructions to reset your PIN.
+        <Text
+          style={[styles.subtitle, isDark && { color: colors.textSecondary }]}
+        >
+          Enter your email address and we'll send you instructions to reset your
+          PIN.
         </Text>
 
         <Input

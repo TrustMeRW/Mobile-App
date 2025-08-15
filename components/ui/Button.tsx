@@ -1,6 +1,6 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator } from 'react-native';
-import { Colors, Typography, BorderRadius, Spacing } from '@/constants/theme';
+import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator, StyleProp } from 'react-native';
+import { lightColors as Colors, Typography, BorderRadius, Spacing } from '@/constants/theme';
 
 interface ButtonProps {
   title: string;
@@ -9,8 +9,8 @@ interface ButtonProps {
   size?: 'sm' | 'md' | 'lg';
   disabled?: boolean;
   loading?: boolean;
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
 }
 
 export const Button: React.FC<ButtonProps> = ({

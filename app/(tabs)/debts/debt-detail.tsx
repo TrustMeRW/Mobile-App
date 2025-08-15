@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Alert,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -7,15 +14,34 @@ import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { Colors, Typography, Spacing } from '@/constants/theme';
+import { lightColors as Colors, Typography, Spacing } from '@/constants/theme';
 import { apiClient } from '@/services/api';
+import { useAuthContext } from '@/contexts/AuthContext';
+import Toast from 'react-native-toast-message';
+import { MotiView } from 'moti';
+import {
+  ChevronLeft,
+  DollarSign,
+  Calendar,
+  User,
+  CircleCheck as CheckCircle,
+  Circle as XCircle,
+  CreditCard,
+} from 'lucide-react-native';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface ExtendedDebt {
   id: string;
   amount: string;
   amountPaid: string;
   paymentDate: string;
-  status: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'PAID_PENDING_CONFIRMATION' | 'OVERDUE' | 'REJECTED';
+  status:
+    | 'PENDING'
+    | 'ACTIVE'
+    | 'COMPLETED'
+    | 'PAID_PENDING_CONFIRMATION'
+    | 'OVERDUE'
+    | 'REJECTED';
   requester: {
     id: string;
     firstName: string;
@@ -29,18 +55,50 @@ interface ExtendedDebt {
   createdAt: string;
   updatedAt: string;
   initiationType: 'REQUESTED' | 'OFFERED';
-};
+}
 
-import { useAuthContext } from '@/contexts/AuthContext';
-import Toast from 'react-native-toast-message';
-import { MotiView } from 'moti';
-import { ChevronLeft, DollarSign, Calendar, User, CircleCheck as CheckCircle, Circle as XCircle, CreditCard } from 'lucide-react-native';
+function getStatusBadgeStyle(status: string, colors: any) {
+  switch (status) {
+    case 'ACTIVE':
+      return { backgroundColor: colors.success + '20' };
+    case 'PENDING':
+      return { backgroundColor: colors.warning + '20' };
+    case 'OVERDUE':
+      return { backgroundColor: colors.error + '20' };
+    case 'COMPLETED':
+      return { backgroundColor: colors.info + '20' };
+    case 'PAID_PENDING_CONFIRMATION':
+      return { backgroundColor: colors.primary + '20' };
+    default:
+      return { backgroundColor: colors.card };
+  }
+}
+
+function getStatusTextStyle(status: string, colors: any) {
+  switch (status) {
+    case 'ACTIVE':
+      return { color: colors.success };
+    case 'PENDING':
+      return { color: colors.warning };
+    case 'OVERDUE':
+      return { color: colors.error };
+    case 'COMPLETED':
+      return { color: colors.info };
+    case 'PAID_PENDING_CONFIRMATION':
+      return { color: colors.primary };
+    default:
+      return { color: colors.textSecondary };
+  }
+}
 
 export default function DebtDetailScreen() {
   // All hooks must be called unconditionally at the top level
   const params = useLocalSearchParams();
   const id = params.id as string;
   const { user } = useAuthContext();
+  const { theme, colors } = useTheme();
+  const isDark = theme === 'dark';
+  const styles = getStyles(colors, isDark);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('MOBILE_MONEY');
   const [pinForApproval, setPinForApproval] = useState('');
@@ -52,7 +110,11 @@ export default function DebtDetailScreen() {
   // Mutations must be called at the top level
   const payDebtMutation = useMutation({
     mutationFn: (data: { amount: string; paymentMethod: string }) => {
-      return apiClient.payDebt(id as string, parseFloat(data.amount), data.paymentMethod);
+      return apiClient.payDebt(
+        id as string,
+        parseFloat(data.amount),
+        data.paymentMethod
+      );
     },
     onSuccess: () => {
       Toast.show({
@@ -64,7 +126,8 @@ export default function DebtDetailScreen() {
       queryClient.invalidateQueries({ queryKey: ['debts'] });
     },
     onError: (err: any) => {
-      const errorMessage = err?.response?.data?.message || 'An error occurred during payment.';
+      const errorMessage =
+        err?.response?.data?.message || 'An error occurred during payment.';
       Toast.show({
         type: 'error',
         text1: 'Payment Failed',
@@ -74,7 +137,8 @@ export default function DebtDetailScreen() {
   });
 
   const approveDebtMutation = useMutation({
-    mutationFn: (data: { debtId: string; pin: string }) => apiClient.approveDebt(data.debtId, data.pin),
+    mutationFn: (data: { debtId: string; pin: string }) =>
+      apiClient.approveDebt(data.debtId, data.pin),
     onSuccess: () => {
       Toast.show({
         type: 'success',
@@ -85,7 +149,9 @@ export default function DebtDetailScreen() {
       queryClient.invalidateQueries({ queryKey: ['debts'] });
     },
     onError: (err: any) => {
-      const errorMessage = err?.response?.data?.message || 'An error occurred while approving the debt.';
+      const errorMessage =
+        err?.response?.data?.message ||
+        'An error occurred while approving the debt.';
       Toast.show({
         type: 'error',
         text1: 'Approval Failed',
@@ -107,7 +173,9 @@ export default function DebtDetailScreen() {
       router.back();
     },
     onError: (err: any) => {
-      const errorMessage = err?.response?.data?.message || 'An error occurred while rejecting the debt.';
+      const errorMessage =
+        err?.response?.data?.message ||
+        'An error occurred while rejecting the debt.';
       Toast.show({
         type: 'error',
         text1: 'Rejection Failed',
@@ -117,7 +185,8 @@ export default function DebtDetailScreen() {
   });
 
   const confirmPaidMutation = useMutation({
-    mutationFn: (data: { debtId: string; pin: string }) => apiClient.confirmDebtPayment(data.debtId, data.pin),
+    mutationFn: (data: { debtId: string; pin: string }) =>
+      apiClient.confirmDebtPayment(data.debtId, data.pin),
     onSuccess: () => {
       Toast.show({
         type: 'success',
@@ -128,7 +197,9 @@ export default function DebtDetailScreen() {
       queryClient.invalidateQueries({ queryKey: ['debts'] });
     },
     onError: (err: any) => {
-      const errorMessage = err?.response?.data?.message || 'An error occurred while confirming payment.';
+      const errorMessage =
+        err?.response?.data?.message ||
+        'An error occurred while confirming payment.';
       Toast.show({
         type: 'error',
         text1: 'Confirmation Failed',
@@ -136,7 +207,7 @@ export default function DebtDetailScreen() {
       });
     },
   });
-  
+
   // Check if we have a valid ID before enabling the query
   const hasValidId = !!id;
 
@@ -152,11 +223,11 @@ export default function DebtDetailScreen() {
       try {
         setIsLoadingDebt(true);
         const debtData = await apiClient.getDebtById(id);
-        
+
         if (!debtData) {
           throw new Error('Failed to load debt details');
         }
-        
+
         // Transform to ExtendedDebt format
         const transformedDebt: ExtendedDebt = {
           id: debtData.id,
@@ -170,12 +241,13 @@ export default function DebtDetailScreen() {
           updatedAt: debtData.updatedAt,
           initiationType: debtData.initiationType,
         };
-        
+
         setDebt(transformedDebt);
         setError(null);
       } catch (err) {
         console.error('Error fetching debt details:', err);
-        const errorMessage = err instanceof Error ? err.message : 'Failed to load debt details';
+        const errorMessage =
+          err instanceof Error ? err.message : 'Failed to load debt details';
         setError(new Error(errorMessage));
         Toast.show({
           type: 'error',
@@ -205,9 +277,9 @@ export default function DebtDetailScreen() {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>Debt not found</Text>
-        <Button 
-          title="Back to Debts" 
-          onPress={() => router.back()} 
+        <Button
+          title="Back to Debts"
+          onPress={() => router.back()}
           style={styles.backButton}
         />
       </View>
@@ -225,7 +297,8 @@ export default function DebtDetailScreen() {
     }
 
     const amount = parseFloat(paymentAmount);
-    const remainingAmount = parseFloat(debt.amount) - parseFloat(debt.amountPaid || '0');
+    const remainingAmount =
+      parseFloat(debt.amount) - parseFloat(debt.amountPaid || '0');
     if (amount > remainingAmount) {
       Toast.show({
         type: 'error',
@@ -260,10 +333,10 @@ export default function DebtDetailScreen() {
       'Are you sure you want to reject this debt? This action cannot be undone.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Reject', 
+        {
+          text: 'Reject',
           style: 'destructive',
-          onPress: () => rejectDebtMutation.mutate(id as string) 
+          onPress: () => rejectDebtMutation.mutate(id as string),
         },
       ]
     );
@@ -275,12 +348,13 @@ export default function DebtDetailScreen() {
       'Are you sure you want to confirm this payment? This will mark the debt as paid.',
       [
         { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Confirm', 
-          onPress: () => confirmPaidMutation.mutate({
-            debtId: id,
-            pin: pinForApproval,
-          }) 
+        {
+          text: 'Confirm',
+          onPress: () =>
+            confirmPaidMutation.mutate({
+              debtId: id,
+              pin: pinForApproval,
+            }),
         },
       ]
     );
@@ -302,7 +376,16 @@ export default function DebtDetailScreen() {
     );
   }
 
-  const { requester, issuer, amount, amountPaid, status, paymentDate, createdAt, initiationType } = debt;
+  const {
+    requester,
+    issuer,
+    amount,
+    amountPaid,
+    status,
+    paymentDate,
+    createdAt,
+    initiationType,
+  } = debt;
   const isRequester = user?.id === requester.id;
   const isIssuer = user?.id === issuer.id;
 
@@ -313,17 +396,21 @@ export default function DebtDetailScreen() {
   // Logic for who can approve or reject a PENDING debt:
   // - If the debt was REQUESTED, the ISSUER must approve/reject.
   // - If the debt was OFFERED, the REQUESTER must approve/reject.
-  const canApproveOrReject = status === 'PENDING' && 
-    ((initiationType === 'REQUESTED' && isIssuer) || 
-     (initiationType === 'OFFERED' && isRequester));
+  const canApproveOrReject =
+    status === 'PENDING' &&
+    ((initiationType === 'REQUESTED' && isIssuer) ||
+      (initiationType === 'OFFERED' && isRequester));
 
   const canViewActions = canPay || canApproveOrReject || canConfirm;
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
-          <ChevronLeft color={Colors.dark} size={24} />
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          <ChevronLeft color={colors.text} size={24} />
         </TouchableOpacity>
         <Text style={styles.title}>Debt Details</Text>
       </View>
@@ -337,11 +424,23 @@ export default function DebtDetailScreen() {
           <Card style={styles.amountCard}>
             <View style={styles.amountHeader}>
               <DollarSign color={Colors.primary} size={32} />
-              <Text style={styles.amount}>{debt.amount.toLocaleString()}RWF</Text>
+              <Text style={styles.amount}>
+                {debt.amount.toLocaleString()}RWF
+              </Text>
             </View>
-            
-            <View style={[styles.statusBadge, getStatusBadgeStyle(debt.status)]}>
-              <Text style={[styles.statusText, getStatusTextStyle(debt.status)]}>
+
+            <View
+              style={[
+                styles.statusBadge,
+                getStatusBadgeStyle(debt.status, colors),
+              ]}
+            >
+              <Text
+                style={[
+                  styles.statusText,
+                  getStatusTextStyle(debt.status, colors),
+                ]}
+              >
                 {debt.status}
               </Text>
             </View>
@@ -350,15 +449,22 @@ export default function DebtDetailScreen() {
               <View style={styles.progressSection}>
                 <Text style={styles.progressLabel}>Payment Progress</Text>
                 <View style={styles.progressBar}>
-                  <View 
+                  <View
                     style={[
                       styles.progressFill,
-                      { width: `${(parseFloat(debt.amountPaid || '0') / parseFloat(debt.amount)) * 100}%` }
-                    ]} 
+                      {
+                        width: `${
+                          (parseFloat(debt.amountPaid || '0') /
+                            parseFloat(debt.amount)) *
+                          100
+                        }%`,
+                      },
+                    ]}
                   />
                 </View>
                 <Text style={styles.progressText}>
-                  {parseFloat(debt.amountPaid || '0').toLocaleString()}RWF of {parseFloat(debt.amount).toLocaleString()}RWF
+                  {parseFloat(debt.amountPaid || '0').toLocaleString()}RWF of{' '}
+                  {parseFloat(debt.amount).toLocaleString()}RWF
                 </Text>
               </View>
             )}
@@ -366,7 +472,7 @@ export default function DebtDetailScreen() {
 
           <Card style={styles.detailsCard}>
             <Text style={styles.sectionTitle}>Details</Text>
-            
+
             <View style={styles.detailItem}>
               <User color={Colors.gray[500]} size={20} />
               <View style={styles.detailContent}>
@@ -374,19 +480,28 @@ export default function DebtDetailScreen() {
                   {isRequester ? 'Lender' : 'Borrower'}
                 </Text>
                 <Text style={styles.detailValue}>
-                  {isRequester 
+                  {isRequester
                     ? `${debt.issuer.firstName} ${debt.issuer.lastName}`
-                    : `${debt.requester.firstName} ${debt.requester.lastName}`
-                  }
+                    : `${debt.requester.firstName} ${debt.requester.lastName}`}
                 </Text>
               </View>
             </View>
-            
+
             <View style={styles.detailItem}>
               <View style={styles.detailContent}>
                 <Text style={styles.detailLabel}>Status</Text>
-                <View style={[styles.statusBadge, getStatusBadgeStyle(status)]}>
-                  <Text style={[styles.statusText, getStatusTextStyle(status)]}>
+                <View
+                  style={[
+                    styles.statusBadge,
+                    getStatusBadgeStyle(status, colors),
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.statusText,
+                      getStatusTextStyle(status, colors),
+                    ]}
+                  >
                     {status.replace(/_/g, ' ')}
                   </Text>
                 </View>
@@ -416,7 +531,7 @@ export default function DebtDetailScreen() {
           {canViewActions && (
             <Card style={styles.actionCard}>
               <Text style={styles.sectionTitle}>Actions</Text>
-              
+
               {/* Pay Debt Form */}
               {canPay && (
                 <View style={styles.actionSection}>
@@ -426,29 +541,38 @@ export default function DebtDetailScreen() {
                     value={paymentAmount}
                     onChangeText={setPaymentAmount}
                     keyboardType="numeric"
-                    placeholder={`Max: ${(parseFloat(debt.amount) - parseFloat(debt.amountPaid || '0')).toLocaleString()} RWF`}
+                    placeholder={`Max: ${(
+                      parseFloat(debt.amount) -
+                      parseFloat(debt.amountPaid || '0')
+                    ).toLocaleString()} RWF`}
                   />
 
                   <View style={styles.paymentMethods}>
                     <Text style={styles.methodLabel}>Payment Method</Text>
                     <View style={styles.paymentMethodOptions}>
-                      {['MOBILE_MONEY', 'BANK_TRANSFER', 'CASH'].map((method) => (
-                        <TouchableOpacity
-                          key={method}
-                          onPress={() => setPaymentMethod(method)}
-                          style={[
-                            styles.methodButton,
-                            paymentMethod === method && styles.methodButtonActive,
-                          ]}
-                        >
-                          <Text style={[
-                            styles.methodText,
-                            paymentMethod === method && styles.methodTextActive,
-                          ]}>
-                            {method.replace('_', ' ')}
-                          </Text>
-                        </TouchableOpacity>
-                      ))}
+                      {['MOBILE_MONEY', 'BANK_TRANSFER', 'CASH'].map(
+                        (method) => (
+                          <TouchableOpacity
+                            key={method}
+                            onPress={() => setPaymentMethod(method)}
+                            style={[
+                              styles.methodButton,
+                              paymentMethod === method &&
+                                styles.methodButtonActive,
+                            ]}
+                          >
+                            <Text
+                              style={[
+                                styles.methodText,
+                                paymentMethod === method &&
+                                  styles.methodTextActive,
+                              ]}
+                            >
+                              {method.replace('_', ' ')}
+                            </Text>
+                          </TouchableOpacity>
+                        )
+                      )}
                     </View>
                   </View>
 
@@ -477,23 +601,23 @@ export default function DebtDetailScreen() {
                   />
                   <View style={styles.buttonGroup}>
                     <View style={{ flex: 1, marginRight: 4 }}>
-                    <Button
-                      title="Approve"
-                      onPress={handleApprove}
-                      loading={approveDebtMutation.isPending}
-                      style={styles.actionButton}
-                      disabled={!pinForApproval || pinForApproval.length < 4}
-                    />
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 4 }}>
-                    <Button
-                      title="Reject"
-                      onPress={handleReject}
-                      variant="outline"
-                      loading={rejectDebtMutation.isPending}
-                      style={styles.actionButton}
-                    />
-                  </View>
+                      <Button
+                        title="Approve"
+                        onPress={handleApprove}
+                        loading={approveDebtMutation.isPending}
+                        style={styles.actionButton}
+                        disabled={!pinForApproval || pinForApproval.length < 4}
+                      />
+                    </View>
+                    <View style={{ flex: 1, marginLeft: 4 }}>
+                      <Button
+                        title="Reject"
+                        onPress={handleReject}
+                        variant="outline"
+                        loading={rejectDebtMutation.isPending}
+                        style={styles.actionButton}
+                      />
+                    </View>
                   </View>
                 </View>
               )}
@@ -520,288 +644,260 @@ export default function DebtDetailScreen() {
                   />
                 </View>
               )}
-
-
             </Card>
           )}
-
-
         </MotiView>
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-const getStatusBadgeStyle = (status: string) => {
-  switch (status) {
-    case 'ACTIVE':
-      return { backgroundColor: Colors.success + '20' };
-    case 'PENDING':
-      return { backgroundColor: Colors.warning + '20' };
-    case 'OVERDUE':
-      return { backgroundColor: Colors.error + '20' };
-    case 'COMPLETED':
-      return { backgroundColor: Colors.info + '20' };
-    case 'PAID_PENDING_CONFIRMATION':
-      return { backgroundColor: Colors.primary + '20' };
-    default:
-      return { backgroundColor: Colors.gray[100] };
-  }
-};
-
-const getStatusTextStyle = (status: string) => {
-  switch (status) {
-    case 'ACTIVE':
-      return { color: Colors.success };
-    case 'PENDING':
-      return { color: Colors.warning };
-    case 'OVERDUE':
-      return { color: Colors.error };
-    case 'COMPLETED':
-      return { color: Colors.info };
-    case 'PAID_PENDING_CONFIRMATION':
-      return { color: Colors.primary };
-    default:
-      return { color: Colors.gray[600] };
-  }
-};
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: Colors.gray[50],
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.lg,
-  },
-  loadingText: {
-    marginTop: Spacing.md,
-    fontSize: Typography.fontSize.md,
-    fontFamily: 'DMSans-Regular',
-    color: Colors.gray[600],
-  },
-  errorContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.lg,
-  },
-  errorText: {
-    fontSize: Typography.fontSize.xl,
-    fontFamily: 'DMSans-Bold',
-    color: Colors.error,
-    marginBottom: Spacing.lg,
-    textAlign: 'center',
-  },
-  backButton: {
-    marginTop: Spacing.lg,
-    width: '80%',
-  },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    backgroundColor: Colors.white,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[200],
-  },
-  title: {
-    fontSize: Typography.fontSize.xl,
-    fontFamily: 'DMSans-Bold',
-    color: Colors.dark,
-    marginLeft: Spacing.md,
-    flex: 1,
-  },
-  content: {
-    flex: 1,
-    padding: Spacing.lg,
-  },
-  amountCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: Spacing.lg,
-    marginBottom: Spacing.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-    alignItems: 'center',
-  },
-  amountHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: Spacing.md,
-  },
-  amount: {
-    fontSize: 36,
-    fontFamily: 'DMSans-Bold',
-    color: Colors.dark,
-    marginLeft: Spacing.sm,
-  },
-  statusBadge: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    borderRadius: 16,
-    marginTop: Spacing.sm,
-  },
-  statusText: {
-    fontSize: Typography.fontSize.sm,
-    fontFamily: 'DMSans-SemiBold',
-    textTransform: 'uppercase',
-  },
-  progressSection: {
-    width: '100%',
-    marginTop: Spacing.lg,
-  },
-  progressLabel: {
-    fontSize: Typography.fontSize.sm,
-    fontFamily: 'DMSans-Medium',
-    color: Colors.gray[600],
-    marginBottom: Spacing.sm,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: Colors.gray[200],
-    borderRadius: 4,
-    overflow: 'hidden',
-    marginBottom: Spacing.sm,
-  },
-  progressFill: {
-    height: '100%',
-    backgroundColor: Colors.primary,
-    borderRadius: 4,
-  },
-  progressText: {
-    fontSize: Typography.fontSize.sm,
-    fontFamily: 'DMSans-Regular',
-    color: Colors.gray[600],
-    textAlign: 'center',
-  },
-  detailsCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: Spacing.lg,
-    marginBottom: Spacing.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: Typography.fontSize.lg,
-    fontFamily: 'DMSans-SemiBold',
-    color: Colors.dark,
-    marginBottom: Spacing.md,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingVertical: Spacing.md,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.gray[100],
-  },
-  detailContent: {
-    marginLeft: Spacing.md,
-    flex: 1,
-  },
-  detailLabel: {
-    fontSize: Typography.fontSize.sm,
-    fontFamily: 'DMSans-Medium',
-    color: Colors.gray[600],
-  },
-  detailValue: {
-    fontSize: Typography.fontSize.md,
-    fontFamily: 'DMSans-Regular',
-    color: Colors.dark,
-    marginLeft: 'auto',
-  },
-  actionCard: {
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: Spacing.lg,
-    marginBottom: Spacing.lg,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  paymentMethods: {
-    marginBottom: Spacing.lg,
-  },
-  methodLabel: {
-    fontSize: Typography.fontSize.md,
-    fontFamily: 'DMSans-Medium',
-    color: Colors.dark,
-    marginBottom: Spacing.sm,
-  },
-  methodButton: {
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: Colors.gray[300],
-    marginBottom: Spacing.sm,
-  },
-  methodButtonActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  methodText: {
-    fontSize: Typography.fontSize.md,
-    fontFamily: 'DMSans-Medium',
-    color: Colors.gray[600],
-    textAlign: 'center',
-  },
-  methodTextActive: {
-    color: Colors.white,
-  },
-  actionSection: {
-    marginBottom: Spacing.lg,
-    paddingTop: Spacing.sm,
-  },
-  actionSectionTitle: {
-    fontSize: Typography.fontSize.md,
-    fontFamily: 'DMSans-SemiBold',
-    marginBottom: Spacing.md,
-    color: Colors.gray[700],
-  },
-  paymentMethodOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    marginTop: Spacing.xs,
-    marginBottom: Spacing.sm,
-  },
-  buttonGroup: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: Spacing.md,
-  },
-  actionButton: {
-    marginTop: Spacing.md,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginTop: Spacing.md,
-  },
-  approveButton: {
-    flex: 1,
-  },
-  rejectButton: {
-    flex: 1,
-  },
-  confirmText: {
-    fontSize: Typography.fontSize.md,
-    fontFamily: 'DMSans-Regular',
-    color: Colors.gray[600],
-    marginBottom: Spacing.md,
-    textAlign: 'center',
-  },
-});
+const getStyles = (colors: any, isDark: boolean) =>
+  StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: colors.background,
+    },
+    loadingContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: Spacing.lg,
+      backgroundColor: colors.background,
+    },
+    loadingText: {
+      marginTop: Spacing.md,
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+    },
+    errorContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: Spacing.lg,
+      backgroundColor: colors.background,
+    },
+    errorText: {
+      fontSize: Typography.fontSize.xl,
+      fontFamily: 'DMSans-Bold',
+      color: colors.error,
+      marginBottom: Spacing.lg,
+      textAlign: 'center',
+    },
+    backButton: {
+      marginRight: Spacing.md,
+      padding: 4,
+    },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.md,
+      backgroundColor: colors.card,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    title: {
+      fontSize: Typography.fontSize.xl,
+      fontFamily: 'DMSans-Bold',
+      color: colors.text,
+      marginLeft: Spacing.md,
+      flex: 1,
+    },
+    content: {
+      flex: 1,
+      padding: Spacing.lg,
+    },
+    amountCard: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: Spacing.lg,
+      marginBottom: Spacing.lg,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+      alignItems: 'center',
+      borderColor: colors.border,
+      borderWidth: 1,
+    },
+    amountHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: Spacing.md,
+    },
+    amount: {
+      fontSize: 36,
+      fontFamily: 'DMSans-Bold',
+      color: colors.text,
+      marginLeft: Spacing.sm,
+    },
+    statusBadge: {
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.sm,
+      borderRadius: 16,
+      marginTop: Spacing.sm,
+    },
+    statusText: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-SemiBold',
+      textTransform: 'uppercase',
+    },
+    progressSection: {
+      width: '100%',
+      marginTop: Spacing.lg,
+    },
+    progressLabel: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Medium',
+      color: colors.textSecondary,
+      marginBottom: Spacing.sm,
+    },
+    progressBar: {
+      height: 8,
+      backgroundColor: colors.border,
+      borderRadius: 4,
+      overflow: 'hidden',
+      marginBottom: Spacing.sm,
+    },
+    progressFill: {
+      height: '100%',
+      backgroundColor: colors.primary,
+      borderRadius: 4,
+    },
+    progressText: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    detailsCard: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: Spacing.lg,
+      marginBottom: Spacing.lg,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+      borderColor: colors.border,
+      borderWidth: 1,
+    },
+    sectionTitle: {
+      fontSize: Typography.fontSize.lg,
+      fontFamily: 'DMSans-SemiBold',
+      color: colors.text,
+      marginBottom: Spacing.md,
+    },
+    detailItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: Spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    detailContent: {
+      marginLeft: Spacing.md,
+      flex: 1,
+    },
+    detailLabel: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Medium',
+      color: colors.textSecondary,
+    },
+    detailValue: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Regular',
+      color: colors.text,
+      marginLeft: 'auto',
+    },
+    actionCard: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: Spacing.lg,
+      marginBottom: Spacing.lg,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+      borderColor: colors.border,
+      borderWidth: 1,
+    },
+    paymentMethods: {
+      marginBottom: Spacing.lg,
+    },
+    methodLabel: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Medium',
+      color: colors.text,
+      marginBottom: Spacing.sm,
+    },
+    methodButton: {
+      paddingVertical: Spacing.md,
+      paddingHorizontal: Spacing.lg,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+      marginBottom: Spacing.sm,
+      backgroundColor: colors.background,
+    },
+    methodButtonActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    methodText: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Medium',
+      color: colors.textSecondary,
+      textAlign: 'center',
+    },
+    methodTextActive: {
+      color: colors.white,
+    },
+    actionSection: {
+      marginBottom: Spacing.lg,
+      paddingTop: Spacing.sm,
+    },
+    actionSectionTitle: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-SemiBold',
+      marginBottom: Spacing.md,
+      color: colors.text,
+    },
+    paymentMethodOptions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      marginTop: Spacing.xs,
+      marginBottom: Spacing.sm,
+    },
+    buttonGroup: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: Spacing.md,
+    },
+    actionButton: {
+      marginTop: Spacing.md,
+    },
+    actionButtons: {
+      flexDirection: 'row',
+      gap: Spacing.md,
+      marginTop: Spacing.md,
+    },
+    approveButton: {
+      flex: 1,
+    },
+    rejectButton: {
+      flex: 1,
+    },
+    confirmText: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+      marginBottom: Spacing.md,
+      textAlign: 'center',
+    },
+  });

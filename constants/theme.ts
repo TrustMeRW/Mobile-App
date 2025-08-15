@@ -1,5 +1,37 @@
-export const Colors = {
+export const lightColors = {
   primary: '#449546',
+  background: '#F3F4F6',
+  card: '#FFFFFF',
+  text: '#111827',
+  textSecondary: '#6B7280',
+  border: '#E5E7EB',
+  dark: '#081C15',
+  white: '#FFFFFF',
+  gray: {
+    50: '#F9FAFB',
+    100: '#F3F4F6',
+    200: '#E5E7EB',
+    300: '#D1D5DB',
+    400: '#9CA3AF',
+    500: '#6B7280',
+    600: '#4B5563',
+    700: '#374151',
+    800: '#1F2937',
+    900: '#111827',
+  },
+  success: '#10B981',
+  warning: '#F59E0B',
+  error: '#EF4444',
+  info: '#3B82F6',
+};
+
+export const darkColors = {
+  primary: '#449546',
+  background: '#111827',
+  card: '#1F2937',
+  text: '#F9FAFB',
+  textSecondary: '#9CA3AF',
+  border: '#374151',
   dark: '#081C15',
   white: '#FFFFFF',
   gray: {

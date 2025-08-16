@@ -98,10 +98,18 @@ export default function AddDebtScreen() {
       const { amount, dueDate, debtorId, creditorId } = newDebt;
       if (debtType === 'request') {
         // current user is creditor, selected user is debtor
-        return apiClient.requestDebt(debtorId, Number(amount), dueDate.toISOString());
+        return apiClient.requestDebt(
+          debtorId,
+          Number(amount),
+          dueDate.toISOString()
+        );
       } else {
         // current user is debtor, selected user is creditor
-        return apiClient.offerDebt(creditorId, Number(amount), dueDate.toISOString());
+        return apiClient.offerDebt(
+          creditorId,
+          Number(amount),
+          dueDate.toISOString()
+        );
       }
     },
     onSuccess: () => {

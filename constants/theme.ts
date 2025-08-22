@@ -1,7 +1,9 @@
 export const lightColors = {
-  primary: '#449546',
+  primary: '#0044FF',
+  primaryLight: '#E6F0FF',
   background: '#F3F4F6',
   card: '#FFFFFF',
+  surface: '#FFFFFF',
   text: '#111827',
   textSecondary: '#6B7280',
   border: '#E5E7EB',
@@ -26,9 +28,11 @@ export const lightColors = {
 };
 
 export const darkColors = {
-  primary: '#449546',
+  primary: '#0044FF',
+  primaryLight: '#1E3A8A',
   background: '#111827',
   card: '#1F2937',
+  surface: '#1F2937',
   text: '#F9FAFB',
   textSecondary: '#9CA3AF',
   border: '#374151',

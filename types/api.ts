@@ -5,6 +5,7 @@ export interface User {
   nationalId: string;
   email: string;
   phoneNumber: string;
+  userType: 'CLIENT' | 'SELLER';
   province: string;
   district: string;
   sector: string;
@@ -12,6 +13,41 @@ export interface User {
   village: string;
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
   isTrustable: boolean;
+  userSubscription?: UserSubscription;
+  trustabilityPercentage?: number;
+  totalDebts?: number;
+  paidDebts?: number;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserSubscription {
+  id: string;
+  planId: string;
+  planName: string;
+  status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
+  startDate: string;
+  endDate: string;
+  amount: string;
+  features: {
+    maxTrustabilityChecks: number;
+    maxDebtsAllowed: number;
+    maxDevices: number;
+  };
+}
+
+export interface SubscriptionPlan {
+  id: string;
+  name: string;
+  description: string;
+  amount: string;
+  durationInDays: number;
+  status: 'ACTIVE' | 'INACTIVE';
+  features: {
+    maxTrustabilityChecks: number;
+    maxDebtsAllowed: number;
+    maxDevices: number;
+  };
   createdAt: string;
   updatedAt: string;
 }

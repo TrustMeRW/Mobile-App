@@ -16,6 +16,7 @@ import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuthContext } from '@/contexts/AuthContext';
 import { lightColors, Typography, Spacing } from '@/constants/theme';
 import { apiClient, type Debt, type User } from '@/services/api';
 import { MotiView } from 'moti';
@@ -37,6 +38,7 @@ const statusFilters = [
 
 export default function DebtsScreen() {
   const { colors } = useTheme();
+  const { user: currentUser } = useAuthContext();
   const styles = getStyles(colors);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<
@@ -268,13 +270,15 @@ export default function DebtsScreen() {
           </Card>
         )}
       </ScrollView>
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => router.push('/(tabs)/debts/add-debt')}
-        activeOpacity={0.8}
-      >
-        <Plus color={colors.white} size={28} />
-      </TouchableOpacity>
+             {currentUser?.userType === 'SELLER' && (
+        <TouchableOpacity
+          style={styles.fab}
+          onPress={() => router.push('/(tabs)/debts/add-debt')}
+          activeOpacity={0.8}
+        >
+          <Plus color={colors.white} size={28} />
+        </TouchableOpacity>
+      )}
     </SafeAreaView>
   );
 }

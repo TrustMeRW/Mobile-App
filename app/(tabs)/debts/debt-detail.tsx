@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -27,6 +28,7 @@ import {
   CircleCheck as CheckCircle,
   Circle as XCircle,
   CreditCard,
+  X,
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -100,28 +102,58 @@ export default function DebtDetailScreen() {
   const isDark = theme === 'dark';
   const styles = getStyles(colors, isDark);
   const [paymentAmount, setPaymentAmount] = useState('');
-  const [paymentMethod, setPaymentMethod] = useState('MOBILE_MONEY');
   const [pinForApproval, setPinForApproval] = useState('');
   const [isLoadingDebt, setIsLoadingDebt] = useState(true);
   const [debt, setDebt] = useState<ExtendedDebt | null>(null);
   const [error, setError] = useState<Error | null>(null);
+  const [showPaymentInstructions, setShowPaymentInstructions] = useState(false);
   const queryClient = useQueryClient();
+
+  // Helper function to transform debt data
+  const transformDebtData = (debtData: any): ExtendedDebt => ({
+    id: debtData.id,
+    amount: debtData.amount,
+    amountPaid: debtData.amountPaid || '0',
+    paymentDate: debtData.paymentDate || '',
+    status: debtData.status,
+    requester: debtData.requester,
+    issuer: debtData.issuer,
+    createdAt: debtData.createdAt,
+    updatedAt: debtData.updatedAt,
+    initiationType: debtData.initiationType,
+  });
+
+  // Helper function to refetch debt data
+  const refetchDebtData = async () => {
+    try {
+      const debtData = await apiClient.getDebtById(id);
+      if (debtData) {
+        setDebt(transformDebtData(debtData));
+      }
+    } catch (error) {
+      console.error('Error refetching debt:', error);
+    }
+  };
 
   // Mutations must be called at the top level
   const payDebtMutation = useMutation({
-    mutationFn: (data: { amount: string; paymentMethod: string }) => {
+    mutationFn: (data: { amount: string }) => {
       return apiClient.payDebt(
         id as string,
-        parseFloat(data.amount),
-        data.paymentMethod
+        parseFloat(data.amount)// Default payment method
       );
     },
-    onSuccess: () => {
+    onSuccess: async () => {
       Toast.show({
         type: 'success',
-        text1: 'Payment Successful',
-        text2: 'Your payment has been recorded.',
+        text1: 'Payment Submitted',
+        text2: 'Your payment has been submitted successfully.',
       });
+      // Manually refetch debt data
+      await refetchDebtData();
+      // Show payment instructions modal
+      setShowPaymentInstructions(true);
+      // Refetch debt data
       queryClient.invalidateQueries({ queryKey: ['debt', id] });
       queryClient.invalidateQueries({ queryKey: ['debts'] });
     },
@@ -139,12 +171,14 @@ export default function DebtDetailScreen() {
   const approveDebtMutation = useMutation({
     mutationFn: (data: { debtId: string; pin: string }) =>
       apiClient.approveDebt(data.debtId, data.pin),
-    onSuccess: () => {
+    onSuccess: async () => {
       Toast.show({
         type: 'success',
         text1: 'Debt Approved',
         text2: 'You have successfully approved the debt.',
       });
+      // Manually refetch debt data
+      await refetchDebtData();
       queryClient.invalidateQueries({ queryKey: ['debt', id] });
       queryClient.invalidateQueries({ queryKey: ['debts'] });
     },
@@ -162,12 +196,14 @@ export default function DebtDetailScreen() {
 
   const rejectDebtMutation = useMutation({
     mutationFn: apiClient.rejectDebt,
-    onSuccess: () => {
+    onSuccess: async () => {
       Toast.show({
         type: 'success',
         text1: 'Debt Rejected',
         text2: 'You have successfully rejected the debt.',
       });
+      // Manually refetch debt data before navigating back
+      await refetchDebtData();
       queryClient.invalidateQueries({ queryKey: ['debt', id] });
       queryClient.invalidateQueries({ queryKey: ['debts'] });
       router.back();
@@ -187,12 +223,14 @@ export default function DebtDetailScreen() {
   const confirmPaidMutation = useMutation({
     mutationFn: (data: { debtId: string; pin: string }) =>
       apiClient.confirmDebtPayment(data.debtId, data.pin),
-    onSuccess: () => {
+    onSuccess: async () => {
       Toast.show({
         type: 'success',
         text1: 'Payment Confirmed',
         text2: 'You have successfully confirmed the payment.',
       });
+      // Manually refetch debt data
+      await refetchDebtData();
       queryClient.invalidateQueries({ queryKey: ['debt', id] });
       queryClient.invalidateQueries({ queryKey: ['debts'] });
     },
@@ -229,18 +267,7 @@ export default function DebtDetailScreen() {
         }
 
         // Transform to ExtendedDebt format
-        const transformedDebt: ExtendedDebt = {
-          id: debtData.id,
-          amount: debtData.amount,
-          amountPaid: debtData.amountPaid || '0',
-          paymentDate: debtData.paymentDate || '',
-          status: debtData.status,
-          requester: debtData.requester,
-          issuer: debtData.issuer,
-          createdAt: debtData.createdAt,
-          updatedAt: debtData.updatedAt,
-          initiationType: debtData.initiationType,
-        };
+        const transformedDebt: ExtendedDebt = transformDebtData(debtData);
 
         setDebt(transformedDebt);
         setError(null);
@@ -308,7 +335,7 @@ export default function DebtDetailScreen() {
       return;
     }
 
-    payDebtMutation.mutate({ amount: paymentAmount, paymentMethod });
+    payDebtMutation.mutate({ amount: paymentAmount });
   };
 
   const handleApprove = () => {
@@ -547,35 +574,6 @@ export default function DebtDetailScreen() {
                     ).toLocaleString()} RWF`}
                   />
 
-                  <View style={styles.paymentMethods}>
-                    <Text style={styles.methodLabel}>Payment Method</Text>
-                    <View style={styles.paymentMethodOptions}>
-                      {['MOBILE_MONEY', 'BANK_TRANSFER', 'CASH'].map(
-                        (method) => (
-                          <TouchableOpacity
-                            key={method}
-                            onPress={() => setPaymentMethod(method)}
-                            style={[
-                              styles.methodButton,
-                              paymentMethod === method &&
-                                styles.methodButtonActive,
-                            ]}
-                          >
-                            <Text
-                              style={[
-                                styles.methodText,
-                                paymentMethod === method &&
-                                  styles.methodTextActive,
-                              ]}
-                            >
-                              {method.replace('_', ' ')}
-                            </Text>
-                          </TouchableOpacity>
-                        )
-                      )}
-                    </View>
-                  </View>
-
                   <Button
                     title="Submit Payment"
                     onPress={handlePayment}
@@ -648,6 +646,62 @@ export default function DebtDetailScreen() {
           )}
         </MotiView>
       </ScrollView>
+
+      {/* Payment Instructions Modal */}
+      <Modal
+        visible={showPaymentInstructions}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowPaymentInstructions(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Payment Instructions</Text>
+              <TouchableOpacity
+                onPress={() => setShowPaymentInstructions(false)}
+                style={styles.closeButton}
+              >
+                <X color={colors.textSecondary} size={24} />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.modalBody}>
+              <Text style={styles.instructionTitle}>
+                You will soon be prompted to approve the transaction
+              </Text>
+              
+              <Text style={styles.instructionText}>
+                If you don't receive a prompt, use these USSD codes to proceed with the payment:
+              </Text>
+              
+              <View style={styles.ussdSection}>
+                <View style={styles.ussdItem}>
+                  <Text style={styles.operatorLabel}>MTN</Text>
+                  <Text style={styles.ussdCode}>*182*7*1#</Text>
+                </View>
+                
+                <View style={styles.ussdItem}>
+                  <Text style={styles.operatorLabel}>Airtel</Text>
+                  <Text style={styles.ussdCode}>*182*6*1#</Text>
+                </View>
+              </View>
+              
+              <Text style={styles.noteText}>
+                Note: Follow the prompts on your phone to complete the payment
+              </Text>
+            </View>
+            
+            <View style={styles.modalFooter}>
+              <Button
+                title="OK"
+                onPress={() => setShowPaymentInstructions(false)}
+                style={styles.okButton}
+              />
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
@@ -827,37 +881,6 @@ const getStyles = (colors: any, isDark: boolean) =>
       borderColor: colors.border,
       borderWidth: 1,
     },
-    paymentMethods: {
-      marginBottom: Spacing.lg,
-    },
-    methodLabel: {
-      fontSize: Typography.fontSize.md,
-      fontFamily: 'DMSans-Medium',
-      color: colors.text,
-      marginBottom: Spacing.sm,
-    },
-    methodButton: {
-      paddingVertical: Spacing.md,
-      paddingHorizontal: Spacing.lg,
-      borderRadius: 8,
-      borderWidth: 1,
-      borderColor: colors.border,
-      marginBottom: Spacing.sm,
-      backgroundColor: colors.background,
-    },
-    methodButtonActive: {
-      backgroundColor: colors.primary,
-      borderColor: colors.primary,
-    },
-    methodText: {
-      fontSize: Typography.fontSize.md,
-      fontFamily: 'DMSans-Medium',
-      color: colors.textSecondary,
-      textAlign: 'center',
-    },
-    methodTextActive: {
-      color: colors.white,
-    },
     actionSection: {
       marginBottom: Spacing.lg,
       paddingTop: Spacing.sm,
@@ -868,12 +891,6 @@ const getStyles = (colors: any, isDark: boolean) =>
       marginBottom: Spacing.md,
       color: colors.text,
     },
-    paymentMethodOptions: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      marginTop: Spacing.xs,
-      marginBottom: Spacing.sm,
-    },
     buttonGroup: {
       flexDirection: 'row',
       justifyContent: 'space-between',
@@ -882,22 +899,93 @@ const getStyles = (colors: any, isDark: boolean) =>
     actionButton: {
       marginTop: Spacing.md,
     },
-    actionButtons: {
+    modalOverlay: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      backgroundColor: 'rgba(0,0,0,0.5)',
+    },
+    modalContent: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: Spacing.lg,
+      width: '80%',
+      alignItems: 'center',
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.2,
+      shadowRadius: 6,
+      elevation: 5,
+    },
+    modalHeader: {
       flexDirection: 'row',
-      gap: Spacing.md,
-      marginTop: Spacing.md,
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      width: '100%',
+      marginBottom: Spacing.md,
     },
-    approveButton: {
-      flex: 1,
+    modalTitle: {
+      fontSize: Typography.fontSize.xl,
+      fontFamily: 'DMSans-Bold',
+      color: colors.text,
     },
-    rejectButton: {
-      flex: 1,
+    closeButton: {
+      padding: 4,
     },
-    confirmText: {
+    modalBody: {
+      width: '100%',
+      marginBottom: Spacing.lg,
+    },
+    instructionTitle: {
+      fontSize: Typography.fontSize.lg,
+      fontFamily: 'DMSans-SemiBold',
+      color: colors.text,
+      marginBottom: Spacing.sm,
+      textAlign: 'center',
+    },
+    instructionText: {
       fontSize: Typography.fontSize.md,
       fontFamily: 'DMSans-Regular',
       color: colors.textSecondary,
       marginBottom: Spacing.md,
       textAlign: 'center',
+    },
+    ussdSection: {
+      backgroundColor: colors.background,
+      borderRadius: 8,
+      padding: Spacing.md,
+      marginBottom: Spacing.md,
+      borderColor: colors.border,
+      borderWidth: 1,
+    },
+    ussdItem: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: Spacing.sm,
+    },
+    operatorLabel: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Medium',
+      color: colors.text,
+    },
+    ussdCode: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+    },
+    noteText: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+      marginTop: Spacing.md,
+      textAlign: 'center',
+    },
+    modalFooter: {
+      width: '100%',
+      marginTop: Spacing.md,
+    },
+    okButton: {
+      marginTop: Spacing.md,
     },
   });

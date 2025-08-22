@@ -6,9 +6,10 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
 import Toast from 'react-native-toast-message';
 import { useAuthContext } from '@/contexts/AuthContext';
@@ -31,6 +32,7 @@ import {
   Moon,
   Sun,
   Bell,
+  BadgeDollarSign,
 } from 'lucide-react-native';
 
 export default function ProfileScreen() {
@@ -38,6 +40,8 @@ export default function ProfileScreen() {
   const { theme, toggleTheme, colors } = useTheme();
   const darkMode = theme === 'dark';
   const styles = getStyles(colors);
+  const queryClient = useQueryClient();
+  const [refreshing, setRefreshing] = useState(false);
 
   const { data: notifications } = useQuery({
     queryKey: ['notifications'],
@@ -47,6 +51,29 @@ export default function ProfileScreen() {
       data: data.payload?.data || [],
     }),
   });
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    try {
+      // Refresh profile data
+      await queryClient.invalidateQueries({ queryKey: ['profile'] });
+      // Refresh notifications
+      await queryClient.invalidateQueries({ queryKey: ['notifications'] });
+      Toast.show({
+        type: 'success',
+        text1: 'Profile Updated',
+        text2: 'Your profile information has been refreshed',
+      });
+    } catch (error) {
+      Toast.show({
+        type: 'error',
+        text1: 'Refresh Failed',
+        text2: 'Failed to refresh profile data',
+      });
+    } finally {
+      setRefreshing(false);
+    }
+  };
 
   const handleLogout = async () => {
     Alert.alert('Confirm Logout', 'Are you sure you want to sign out?', [
@@ -83,13 +110,17 @@ export default function ProfileScreen() {
       icon: <Edit3 color={colors.textSecondary} size={20} />,
       title: 'Edit Profile',
       subtitle: 'Update your personal information',
-      onPress: () => {},
+      onPress: () => {
+        router.push('/edit-profile');
+      },
     },
     {
       icon: <Shield color={colors.textSecondary} size={20} />,
       title: 'Change PIN',
       subtitle: 'Update your security PIN',
-      onPress: () => {},
+      onPress: () => {
+        router.push('/change-pin');
+      },
     },
     {
       icon: <Bell color={colors.textSecondary} size={20} />,
@@ -102,6 +133,16 @@ export default function ProfileScreen() {
         router.push('/notifications');
       },
     },
+    // Only show Subscriptions for SELLER users
+    ...(user?.userType === 'SELLER' ? [{
+      icon: <BadgeDollarSign color={colors.textSecondary} size={20} />,
+      title: 'Subscriptions',
+      subtitle: 'View available subscription plans',
+      onPress: () => {
+        // Navigate to subscriptions screen
+        router.push('/subscriptions');
+      },
+    }] : []),
     {
       icon: darkMode ? (
         <Sun color={colors.textSecondary} size={20} />
@@ -116,7 +157,17 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView style={styles.content}>
+      <ScrollView 
+        style={styles.content}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
+          />
+        }
+      >
         <MotiView
           from={{ opacity: 0, translateY: 20 }}
           animate={{ opacity: 1, translateY: 0 }}

@@ -20,7 +20,7 @@ export const useAuth = () => {
       const token = await SecureStore.getItemAsync(TOKEN_KEY);
       if (token) {
         // Verify token with profile endpoint
-        const response = await fetch('http://172.20.10.3:4000/api/auth/profile', {
+        const response = await fetch('https://trustme-xxko.onrender.com/api/auth/profile', {
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json',
@@ -45,7 +45,7 @@ export const useAuth = () => {
   const login = async (identifier: string, pin: string) => {
     try {
       console.log('Attempting login with:', { identifier, pin });
-      const response = await fetch('http://172.20.10.3:4000/api/auth/login', {
+      const response = await fetch('https://trustme-xxko.onrender.com/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -88,7 +88,7 @@ export interface Debt {
   requester: User;
 }
 
-const BASE_URL = 'http://172.20.10.3:4000/api';
+const BASE_URL = 'https://trustme-xxko.onrender.com/api';
 
 class ApiClient {
   private axiosInstance: AxiosInstance;

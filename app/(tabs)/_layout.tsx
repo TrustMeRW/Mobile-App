@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Home, CreditCard, BarChart3, User } from 'lucide-react-native';
+import { Home, CreditCard, BarChart3, User, Crown } from 'lucide-react-native';
 import { AnimatedTabBarIcon } from '@/components/AnimatedTabBarIcon';
 import { NotificationBell } from '@/components/NotificationBell';
 import { View } from 'react-native';
@@ -61,12 +61,12 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="analytics"
+        name="subscriptions"
         options={{
-          title: 'Analytics',
+          title: 'Subscriptions',
           tabBarIcon: ({ size, color, focused }) => (
             <AnimatedTabBarIcon
-              icon={BarChart3}
+              icon={Crown}
               size={size}
               color={color}
               isFocused={focused}

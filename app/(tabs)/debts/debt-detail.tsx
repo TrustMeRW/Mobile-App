@@ -14,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { Input } from '@/components/ui/Input';
+import { InputPin } from '@/components/ui/InputPin';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { lightColors as Colors, Typography, Spacing } from '@/constants/theme';
 import { apiClient } from '@/services/api';
@@ -140,7 +141,7 @@ export default function DebtDetailScreen() {
     mutationFn: (data: { amount: string }) => {
       return apiClient.payDebt(
         id as string,
-        parseFloat(data.amount)// Default payment method
+        parseFloat(data.amount) // Default payment method
       );
     },
     onSuccess: async () => {
@@ -588,14 +589,10 @@ export default function DebtDetailScreen() {
               {canApproveOrReject && (
                 <View style={styles.actionSection}>
                   <Text style={styles.actionSectionTitle}>Approve Debt</Text>
-                  <Input
+                  <InputPin
                     label="Enter your PIN to approve"
                     value={pinForApproval}
-                    onChangeText={setPinForApproval}
-                    secureTextEntry
-                    keyboardType="numeric"
-                    maxLength={6}
-                    placeholder="Enter 4-6 digit PIN"
+                    onChange={setPinForApproval}
                   />
                   <View style={styles.buttonGroup}>
                     <View style={{ flex: 1, marginRight: 4 }}>
@@ -624,14 +621,10 @@ export default function DebtDetailScreen() {
               {canConfirm && (
                 <View style={styles.actionSection}>
                   <Text style={styles.actionSectionTitle}>Confirm Payment</Text>
-                  <Input
+                  <InputPin
                     label="Enter your PIN to confirm payment"
                     value={pinForApproval}
-                    onChangeText={setPinForApproval}
-                    secureTextEntry
-                    keyboardType="numeric"
-                    maxLength={6}
-                    placeholder="Enter 4-6 digit PIN"
+                    onChange={setPinForApproval}
                   />
                   <Button
                     title="Confirm Payment Received"
@@ -665,33 +658,34 @@ export default function DebtDetailScreen() {
                 <X color={colors.textSecondary} size={24} />
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.modalBody}>
               <Text style={styles.instructionTitle}>
                 You will soon be prompted to approve the transaction
               </Text>
-              
+
               <Text style={styles.instructionText}>
-                If you don't receive a prompt, use these USSD codes to proceed with the payment:
+                If you don't receive a prompt, use these USSD codes to proceed
+                with the payment:
               </Text>
-              
+
               <View style={styles.ussdSection}>
                 <View style={styles.ussdItem}>
                   <Text style={styles.operatorLabel}>MTN</Text>
                   <Text style={styles.ussdCode}>*182*7*1#</Text>
                 </View>
-                
+
                 <View style={styles.ussdItem}>
                   <Text style={styles.operatorLabel}>Airtel</Text>
                   <Text style={styles.ussdCode}>*182*6*1#</Text>
                 </View>
               </View>
-              
+
               <Text style={styles.noteText}>
                 Note: Follow the prompts on your phone to complete the payment
               </Text>
             </View>
-            
+
             <View style={styles.modalFooter}>
               <Button
                 title="OK"

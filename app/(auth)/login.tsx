@@ -106,7 +106,6 @@ export default function LoginScreen() {
           transition={{ type: 'timing', duration: 600 }}
           style={styles.content}
         >
-
           <View style={styles.header}>
             <Image
               source={

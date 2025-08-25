@@ -93,14 +93,18 @@ export default function DebtsScreen() {
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
-
   // Synchronous, derived search and filter
   const debtsToShow = sortedDebts.filter((debt) => {
-    const matchesStatus = statusFilter === 'all' || debt.status === statusFilter;
+    const matchesStatus =
+      statusFilter === 'all' || debt.status === statusFilter;
     if (!searchQuery.trim()) return matchesStatus;
     const searchLower = searchQuery.toLowerCase();
-    const requesterName = `${debt.requester?.firstName || ''} ${debt.requester?.lastName || ''}`.toLowerCase();
-    const issuerName = `${debt.issuer?.firstName || ''} ${debt.issuer?.lastName || ''}`.toLowerCase();
+    const requesterName = `${debt.requester?.firstName || ''} ${
+      debt.requester?.lastName || ''
+    }`.toLowerCase();
+    const issuerName = `${debt.issuer?.firstName || ''} ${
+      debt.issuer?.lastName || ''
+    }`.toLowerCase();
     const amountStr = debt.amount?.toString() || '';
     const matchesSearch =
       requesterName.includes(searchLower) ||
@@ -181,13 +185,12 @@ export default function DebtsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.searchContainer}>
-          <Input
-            placeholder="Search debts by name or amount..."
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            style={styles.searchInputContainer}
-          />
-
+        <Input
+          placeholder="Search debts by name or amount..."
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          style={styles.searchInputContainer}
+        />
       </View>
       <View style={styles.filterScrollWrapper}>
         <RNScrollView
@@ -303,7 +306,7 @@ const getStyles = (colors: typeof lightColors) =>
       borderWidth: 1,
       borderColor: colors.border,
       marginBottom: Spacing.md,
-      flexDirection: "row",
+      flexDirection: 'row',
       alignItems: 'center',
     },
     searchInput: {

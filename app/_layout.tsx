@@ -1,4 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import OnboardingScreen from './onboarding';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -6,10 +8,17 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { NotificationBell } from '@/components/NotificationBell';
 import Toast from 'react-native-toast-message';
-import { useFonts, DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
+import {
+  useFonts,
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_600SemiBold,
+  DMSans_700Bold,
+} from '@expo-google-fonts/dm-sans';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import * as SplashScreen from 'expo-splash-screen';
 import { View } from 'react-native';
+import CustomSplashScreen from '@/components/CustomSplashScreen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NotificationProvider } from '@/services/notifications';
 
@@ -27,22 +36,39 @@ const queryClient = new QueryClient({
 
 export default function RootLayout() {
   useFrameworkReady();
-
   const [fontsLoaded, fontError] = useFonts({
     'DMSans-Regular': DMSans_400Regular,
     'DMSans-Medium': DMSans_500Medium,
     'DMSans-SemiBold': DMSans_600SemiBold,
     'DMSans-Bold': DMSans_700Bold,
   });
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
+    async function checkOnboarding() {
+      const seen = await AsyncStorage.getItem('hasSeenOnboarding');
+      if (!seen) {
+        setShowOnboarding(true);
+      }
+      setOnboardingChecked(true);
+    }
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
+      checkOnboarding();
     }
   }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded && !fontError) {
-    return null;
+  if ((!fontsLoaded && !fontError) || !onboardingChecked) {
+    return <CustomSplashScreen />;
+  }
+
+  if (showOnboarding) {
+    return (
+      <ThemeProvider>
+        <OnboardingScreen />
+      </ThemeProvider>
+    );
   }
 
   return (
@@ -52,24 +78,24 @@ export default function RootLayout() {
           <ThemeProvider>
             <NotificationProvider>
               <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen 
-                name="(tabs)" 
-                options={{
-                  headerRight: () => <NotificationBell />,
-                }}
-              />
-              <Stack.Screen name="onboarding" />
-              <Stack.Screen 
-                name="notifications" 
-                options={{
-                  headerShown: true,
-                  title: 'Notifications',
-                  headerBackTitle: 'Back',
-                }} 
-              />
-              <Stack.Screen name="+not-found" />
-            </Stack>
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen
+                  name="(tabs)"
+                  options={{
+                    headerRight: () => <NotificationBell />,
+                  }}
+                />
+                <Stack.Screen name="onboarding" />
+                <Stack.Screen
+                  name="notifications"
+                  options={{
+                    headerShown: true,
+                    title: 'Notifications',
+                    headerBackTitle: 'Back',
+                  }}
+                />
+                <Stack.Screen name="+not-found" />
+              </Stack>
               <Toast />
               <StatusBar style="auto" />
             </NotificationProvider>

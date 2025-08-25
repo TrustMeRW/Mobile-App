@@ -18,13 +18,14 @@ import { Typography, Spacing } from '@/constants/theme';
 import Toast from 'react-native-toast-message';
 import { MotiView } from 'moti';
 import { Eye, EyeOff } from 'lucide-react-native';
+import { InputPin } from '@/components/ui/InputPin';
 
 export default function LoginScreen() {
   const { colors } = useTheme();
   const styles = getStyles(colors);
   const [identifier, setIdentifier] = useState('');
   const [pin, setPin] = useState('');
-  const [showPin, setShowPin] = useState(false);
+  // showPin is not needed with InputPin
   const [loading, setLoading] = useState(false);
   const { login, isLoading } = useAuthContext();
 
@@ -113,7 +114,7 @@ export default function LoginScreen() {
 
           <View style={styles.form}>
             <Input
-              label="Email or Phone"
+              label="National ID or Phone number"
               value={identifier}
               onChangeText={setIdentifier}
               keyboardType="default"
@@ -123,40 +124,19 @@ export default function LoginScreen() {
               returnKeyType="next"
               required
             />
-            <View style={{ position: 'relative' }}>
-              <Input
-                label="PIN"
-                value={pin}
-                onChangeText={setPin}
-                secureTextEntry={!showPin}
-                keyboardType="numeric"
-                maxLength={6}
-                required
-                style={{ paddingRight: 40 }}
-              />
-              <TouchableOpacity
-                onPress={() => setShowPin((prev) => !prev)}
-                style={{
-                  position: 'absolute',
-                  right: 0,
-                  top: 32,
-                  padding: 8,
-                  zIndex: 10,
-                }}
-                activeOpacity={0.7}
-              >
-                {showPin ? (
-                  <EyeOff size={20} color={colors.gray[500]} />
-                ) : (
-                  <Eye size={20} color={colors.gray[500]} />
-                )}
-              </TouchableOpacity>
+            <InputPin
+              label="PIN"
+              value={pin}
+              onChange={setPin}
+              length={6}
+              secure={true}
+            />
+            <View style={{ marginBottom: 12 }}>
+              <Text style={styles.forgotPassword}>
+                Forgot PIN? Please approach a TrustMe agent to get your PIN
+                reset.
+              </Text>
             </View>
-            <TouchableOpacity
-              onPress={() => router.push('/(auth)/forgot-password')}
-            >
-              <Text style={styles.forgotPassword}>Forgot PIN?</Text>
-            </TouchableOpacity>
             <Button
               title="Sign In"
               onPress={handleLogin}
@@ -165,14 +145,7 @@ export default function LoginScreen() {
             />
           </View>
 
-          <View style={styles.footer}>
-            <Text style={styles.signupText}>
-              Don't have an account?{' '}
-              <TouchableOpacity onPress={() => router.push('/(auth)/register')}>
-                <Text style={styles.signupLink}>Sign Up</Text>
-              </TouchableOpacity>
-            </Text>
-          </View>
+          {/* Registration removed as users are created by admin */}
         </MotiView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -222,7 +195,7 @@ const getStyles = (colors: any) =>
       fontSize: Typography.fontSize.sm,
       color: colors.primary,
       fontFamily: 'DMSans-Medium',
-      textAlign: 'right',
+      textAlign: 'left',
       marginBottom: Spacing.lg,
     },
     loginButton: {

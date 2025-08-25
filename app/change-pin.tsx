@@ -13,7 +13,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { ArrowLeft, Eye, EyeOff, Shield } from 'lucide-react-native';
-import { Input } from '@/components/ui/Input';
+import { InputPin } from '@/components/ui/InputPin';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -31,10 +31,10 @@ export default function ChangePinScreen() {
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
-  const [showCurrentPin, setShowCurrentPin] = useState(false);
-  const [showNewPin, setShowNewPin] = useState(false);
-  const [showConfirmPin, setShowConfirmPin] = useState(false);
-  const [pinStrength, setPinStrength] = useState<'weak' | 'medium' | 'strong'>('weak');
+  // Eye toggles removed; InputPin handles secure entry
+  const [pinStrength, setPinStrength] = useState<'weak' | 'medium' | 'strong'>(
+    'weak'
+  );
 
   // Calculate PIN strength
   const calculatePinStrength = (pin: string) => {
@@ -111,21 +111,22 @@ export default function ChangePinScreen() {
 
   // Check if form is valid
   const isFormValid = () => {
-    return currentPin.length > 0 && 
-           newPin.length >= 4 && 
-           confirmPin.length > 0 && 
-           newPin === confirmPin && 
-           newPin !== currentPin;
+    return (
+      currentPin.length > 0 &&
+      newPin.length >= 4 &&
+      confirmPin.length > 0 &&
+      newPin === confirmPin &&
+      newPin !== currentPin
+    );
   };
-
-  const toggleShowCurrentPin = () => setShowCurrentPin(!showCurrentPin);
-  const toggleShowNewPin = () => setShowNewPin(!showNewPin);
-  const toggleShowConfirmPin = () => setShowConfirmPin(!showConfirmPin);
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+        <TouchableOpacity
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
           <ArrowLeft color={colors.text} size={24} />
         </TouchableOpacity>
         <Text style={styles.title}>Change PIN</Text>
@@ -148,85 +149,64 @@ export default function ChangePinScreen() {
                 <Text style={styles.infoTitle}>Security Information</Text>
               </View>
               <Text style={styles.infoText}>
-                Your PIN is used to secure your account and confirm important actions. 
-                Make sure to choose a PIN that you can remember but others cannot easily guess.
+                Your PIN is used to secure your account and confirm important
+                actions. Make sure to choose a PIN that you can remember but
+                others cannot easily guess.
               </Text>
             </Card>
 
             <Card style={styles.formCard}>
               <Text style={styles.sectionTitle}>Current PIN</Text>
               <View style={styles.inputContainer}>
-                <Input
+                <InputPin
                   label="Enter Current PIN"
-                  placeholder="Enter your current PIN"
                   value={currentPin}
-                  onChangeText={setCurrentPin}
-                  secureTextEntry={!showCurrentPin}
-                  keyboardType="numeric"
-                  maxLength={6}
-                  style={styles.input}
+                  onChange={setCurrentPin}
                 />
-                <TouchableOpacity
-                  onPress={toggleShowCurrentPin}
-                  style={styles.eyeButton}
-                  activeOpacity={0.7}
-                >
-                  {showCurrentPin ? (
-                    <EyeOff size={20} color={colors.textSecondary} />
-                  ) : (
-                    <Eye size={20} color={colors.textSecondary} />
-                  )}
-                </TouchableOpacity>
               </View>
 
               <Text style={styles.sectionTitle}>New PIN</Text>
               <View style={styles.inputContainer}>
-                <Input
+                <InputPin
                   label="Enter New PIN"
-                  placeholder="Enter your new PIN"
                   value={newPin}
-                  onChangeText={handleNewPinChange}
-                  secureTextEntry={!showNewPin}
-                  keyboardType="numeric"
-                  maxLength={6}
-                  style={styles.input}
+                  onChange={handleNewPinChange}
                 />
-                <TouchableOpacity
-                  onPress={toggleShowNewPin}
-                  style={styles.eyeButton}
-                  activeOpacity={0.7}
-                >
-                  {showNewPin ? (
-                    <EyeOff size={20} color={colors.textSecondary} />
-                  ) : (
-                    <Eye size={20} color={colors.textSecondary} />
-                  )}
-                </TouchableOpacity>
               </View>
-              
+
               {/* PIN Strength Indicator */}
               {newPin.length > 0 && (
                 <View style={styles.strengthContainer}>
                   <Text style={styles.strengthLabel}>PIN Strength:</Text>
                   <View style={styles.strengthBar}>
-                    <View 
+                    <View
                       style={[
-                        styles.strengthFill, 
-                        { 
+                        styles.strengthFill,
+                        {
                           width: `${(newPin.length / 6) * 100}%`,
-                          backgroundColor: pinStrength === 'weak' ? colors.error : 
-                                        pinStrength === 'medium' ? colors.warning : colors.success
-                        }
-                      ]} 
+                          backgroundColor:
+                            pinStrength === 'weak'
+                              ? colors.error
+                              : pinStrength === 'medium'
+                              ? colors.warning
+                              : colors.success,
+                        },
+                      ]}
                     />
                   </View>
-                  <Text style={[
-                    styles.strengthText,
-                    { 
-                      color: pinStrength === 'weak' ? colors.error : 
-                             pinStrength === 'medium' ? colors.warning : colors.success
-                    }
-                  ]}>
+                  <Text
+                    style={[
+                      styles.strengthText,
+                      {
+                        color:
+                          pinStrength === 'weak'
+                            ? colors.error
+                            : pinStrength === 'medium'
+                            ? colors.warning
+                            : colors.success,
+                      },
+                    ]}
+                  >
                     {pinStrength.charAt(0).toUpperCase() + pinStrength.slice(1)}
                   </Text>
                 </View>
@@ -234,65 +214,89 @@ export default function ChangePinScreen() {
 
               <Text style={styles.sectionTitle}>Confirm New PIN</Text>
               <View style={styles.inputContainer}>
-                <Input
+                <InputPin
                   label="Confirm New PIN"
-                  placeholder="Confirm your new PIN"
                   value={confirmPin}
-                  onChangeText={setConfirmPin}
-                  secureTextEntry={!showConfirmPin}
-                  keyboardType="numeric"
-                  maxLength={6}
-                  style={styles.input}
+                  onChange={setConfirmPin}
                 />
-                <TouchableOpacity
-                  onPress={toggleShowConfirmPin}
-                  style={styles.eyeButton}
-                  activeOpacity={0.7}
-                >
-                  {showConfirmPin ? (
-                    <EyeOff size={20} color={colors.textSecondary} />
-                  ) : (
-                    <Eye size={20} color={colors.textSecondary} />
-                  )}
-                </TouchableOpacity>
               </View>
 
               {/* PIN Requirements */}
               <View style={styles.requirementsContainer}>
                 <Text style={styles.requirementsTitle}>PIN Requirements:</Text>
                 <View style={styles.requirementItem}>
-                  <View style={[
-                    styles.requirementDot,
-                    { backgroundColor: newPin.length >= 4 ? colors.success : colors.border }
-                  ]} />
-                  <Text style={[
-                    styles.requirementText,
-                    { color: newPin.length >= 4 ? colors.success : colors.textSecondary }
-                  ]}>
+                  <View
+                    style={[
+                      styles.requirementDot,
+                      {
+                        backgroundColor:
+                          newPin.length >= 4 ? colors.success : colors.border,
+                      },
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      styles.requirementText,
+                      {
+                        color:
+                          newPin.length >= 4
+                            ? colors.success
+                            : colors.textSecondary,
+                      },
+                    ]}
+                  >
                     At least 4 digits
                   </Text>
                 </View>
                 <View style={styles.requirementItem}>
-                  <View style={[
-                    styles.requirementDot,
-                    { backgroundColor: newPin !== currentPin ? colors.success : colors.border }
-                  ]} />
-                  <Text style={[
-                    styles.requirementText,
-                    { color: newPin !== currentPin ? colors.success : colors.textSecondary }
-                  ]}>
+                  <View
+                    style={[
+                      styles.requirementDot,
+                      {
+                        backgroundColor:
+                          newPin !== currentPin
+                            ? colors.success
+                            : colors.border,
+                      },
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      styles.requirementText,
+                      {
+                        color:
+                          newPin !== currentPin
+                            ? colors.success
+                            : colors.textSecondary,
+                      },
+                    ]}
+                  >
                     Different from current PIN
                   </Text>
                 </View>
                 <View style={styles.requirementItem}>
-                  <View style={[
-                    styles.requirementDot,
-                    { backgroundColor: newPin === confirmPin && confirmPin.length > 0 ? colors.success : colors.border }
-                  ]} />
-                  <Text style={[
-                    styles.requirementText,
-                    { color: newPin === confirmPin && confirmPin.length > 0 ? colors.success : colors.textSecondary }
-                  ]}>
+                  <View
+                    style={[
+                      styles.requirementDot,
+                      {
+                        backgroundColor:
+                          newPin === confirmPin && confirmPin.length > 0
+                            ? colors.success
+                            : colors.border,
+                      },
+                    ]}
+                  />
+                  <Text
+                    style={[
+                      styles.requirementText,
+                      {
+                        color:
+                          newPin === confirmPin && confirmPin.length > 0
+                            ? colors.success
+                            : colors.textSecondary,
+                      },
+                    ]}
+                  >
                     PINs match
                   </Text>
                 </View>

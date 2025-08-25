@@ -75,8 +75,8 @@ export default function ForgotPasswordScreen() {
         <Text
           style={[styles.subtitle, isDark && { color: colors.textSecondary }]}
         >
-          Enter your email address and we'll send you instructions to reset your
-          PIN.
+          Forgot your PIN? Please approach a TrustMe agent to get your PIN
+          reset.
         </Text>
 
         <Input

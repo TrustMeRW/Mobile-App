@@ -6,6 +6,10 @@
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "trustme",
+    "splash": {
+      "backgroundColor": "#00000000",
+      "resizeMode": "cover"
+    },
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
@@ -16,7 +20,7 @@
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/icon-android.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#0044FF"
       },
       "package": "com.trustme.app"
     },

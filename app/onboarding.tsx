@@ -12,19 +12,19 @@ const { width } = Dimensions.get('window');
 const onboardingData = [
   {
     id: '1',
-    icon: '👋',
+    icon: 'Welcome',
     title: 'Welcome to TrustMe',
     description: 'The simple way to track shared expenses and IOUs with friends.',
   },
   {
     id: '2',
-    icon: '💸',
+    icon: 'Settle',
     title: 'Settle Up Easily',
     description: 'Keep a running balance and settle up whenever you want.',
   },
   {
     id: '3',
-    icon: '🔔',
+    icon: 'Notify',
     title: 'Stay Notified',
     description: 'Get reminders for upcoming and overdue payments.',
   },

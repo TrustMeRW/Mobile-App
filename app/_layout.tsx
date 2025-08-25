@@ -1,4 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import OnboardingScreen from './onboarding';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -25,24 +27,42 @@ const queryClient = new QueryClient({
   },
 });
 
+
 export default function RootLayout() {
   useFrameworkReady();
-
   const [fontsLoaded, fontError] = useFonts({
     'DMSans-Regular': DMSans_400Regular,
     'DMSans-Medium': DMSans_500Medium,
     'DMSans-SemiBold': DMSans_600SemiBold,
     'DMSans-Bold': DMSans_700Bold,
   });
+  const [onboardingChecked, setOnboardingChecked] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
+    async function checkOnboarding() {
+      const seen = await AsyncStorage.getItem('hasSeenOnboarding');
+      if (!seen) {
+        setShowOnboarding(true);
+      }
+      setOnboardingChecked(true);
+    }
     if (fontsLoaded || fontError) {
       SplashScreen.hideAsync();
+      checkOnboarding();
     }
   }, [fontsLoaded, fontError]);
 
-  if (!fontsLoaded && !fontError) {
+  if ((!fontsLoaded && !fontError) || !onboardingChecked) {
     return null;
+  }
+
+  if (showOnboarding) {
+    return (
+      <ThemeProvider>
+        <OnboardingScreen />
+      </ThemeProvider>
+    );
   }
 
   return (

@@ -270,7 +270,6 @@ export default function DebtsScreen() {
           </Card>
         )}
       </ScrollView>
-             {currentUser?.userType === 'SELLER' && (
         <TouchableOpacity
           style={styles.fab}
           onPress={() => router.push('/(tabs)/debts/add-debt')}
@@ -278,7 +277,6 @@ export default function DebtsScreen() {
         >
           <Plus color={colors.white} size={28} />
         </TouchableOpacity>
-      )}
     </SafeAreaView>
   );
 }

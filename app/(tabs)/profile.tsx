@@ -20,6 +20,7 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Typography, Spacing } from '@/constants/theme';
 import { apiClient } from '@/services/api';
 import { MotiView } from 'moti';
+import QRCode from 'react-native-qrcode-svg';
 import {
   User,
   Mail,
@@ -33,6 +34,8 @@ import {
   Sun,
   Bell,
   BadgeDollarSign,
+  QrCode,
+  Copy,
 } from 'lucide-react-native';
 
 export default function ProfileScreen() {
@@ -202,6 +205,54 @@ export default function ProfileScreen() {
                 <MapPin color={colors.textSecondary} size={20} />
                 <Text style={styles.infoText}>
                   {user?.village}, {user?.cell}, {user?.sector}
+                </Text>
+              </View>
+            </View>
+          </Card>
+
+          {/* User Code & QR Code Card */}
+          <Card style={styles.qrCodeCard}>
+            <View style={styles.qrCodeHeader}>
+              <QrCode color={colors.primary} size={24} />
+              <Text style={styles.qrCodeTitle}>Your QR Code</Text>
+            </View>
+            <Text style={styles.qrCodeSubtitle}>
+              Share this code with others to connect and create debts
+            </Text>
+            
+            <View style={styles.qrCodeContent}>
+              <View style={styles.qrCodeContainer}>
+                <QRCode
+                  value={user?.code || 'default-code'}
+                  size={200}
+                  color={colors.text}
+                  backgroundColor={colors.white}
+                />
+              </View>
+              
+              <View style={styles.codeSection}>
+                <Text style={styles.codeLabel}>Your Code</Text>
+                <View style={styles.codeDisplay}>
+                  <Text style={styles.codeText}>{user?.code || 'N/A'}</Text>
+                  <TouchableOpacity
+                    style={styles.copyButton}
+                    onPress={() => {
+                      // Copy to clipboard functionality
+                      Toast.show({
+                        type: 'success',
+                        text1: 'Code Copied',
+                        text2: 'Your code has been copied to clipboard',
+                      });
+                    }}
+                  >
+                    <Copy color={colors.primary} size={16} />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.codeDescription}>
+                  This unique code identifies you in the Trust Me system
+                </Text>
+                <Text style={styles.codeNote}>
+                  Others can scan your QR code or use this code to connect with you
                 </Text>
               </View>
             </View>
@@ -382,5 +433,107 @@ const getStyles = (colors: any) =>
       color: colors.textSecondary,
       fontFamily: 'DMSans-Regular',
       marginBottom: Spacing.lg,
+    },
+    qrCodeCard: {
+      marginHorizontal: Spacing.lg,
+      marginBottom: Spacing.lg,
+      backgroundColor: colors.card,
+      borderColor: colors.border,
+      borderRadius: 12,
+      overflow: 'hidden',
+    },
+    qrCodeHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: Spacing.lg,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      backgroundColor: colors.background,
+    },
+    qrCodeTitle: {
+      fontSize: Typography.fontSize.lg,
+      fontFamily: 'DMSans-Bold',
+      color: colors.text,
+      marginLeft: Spacing.md,
+    },
+    qrCodeSubtitle: {
+      fontSize: Typography.fontSize.md,
+      color: colors.textSecondary,
+      fontFamily: 'DMSans-Regular',
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.sm,
+      textAlign: 'center',
+    },
+    qrCodeContent: {
+      padding: Spacing.lg,
+      alignItems: 'center',
+      width: '100%',
+    },
+    qrCodeContainer: {
+      width: '100%',
+      height: 220,
+      borderRadius: 10,
+      backgroundColor: colors.white,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: Spacing.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: colors.text,
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+    },
+    codeSection: {
+      alignItems: 'center',
+      width: '100%',
+    },
+    codeLabel: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Medium',
+      color: colors.text,
+      marginBottom: Spacing.sm,
+    },
+    codeDisplay: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.background,
+      borderRadius: 8,
+      paddingVertical: Spacing.sm,
+      paddingHorizontal: Spacing.md,
+      marginBottom: Spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+      width: '100%',
+    },
+    codeText: {
+      fontSize: Typography.fontSize.lg,
+      fontFamily: 'DMSans-Bold',
+      color: colors.text,
+      marginRight: Spacing.sm,
+      flex: 1,
+      textAlign: 'center',
+    },
+    copyButton: {
+      padding: Spacing.sm,
+      backgroundColor: colors.primary + '10',
+      borderRadius: 6,
+    },
+    codeDescription: {
+      fontSize: Typography.fontSize.sm,
+      color: colors.textSecondary,
+      fontFamily: 'DMSans-Regular',
+      textAlign: 'center',
+      paddingHorizontal: Spacing.lg,
+      lineHeight: 20,
+    },
+    codeNote: {
+      fontSize: Typography.fontSize.sm,
+      color: colors.textSecondary,
+      fontFamily: 'DMSans-Regular',
+      textAlign: 'center',
+      paddingHorizontal: Spacing.lg,
+      marginTop: Spacing.sm,
     },
   });

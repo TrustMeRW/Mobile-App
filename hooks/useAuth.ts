@@ -12,40 +12,59 @@ export const useAuth = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
   useEffect(() => {
-    checkAuthState();
-  }, []);
-
-  const checkAuthState = async () => {
-    try {
-      const token = await SecureStore.getItemAsync(TOKEN_KEY);
-      if (token) {
-        // Verify token with profile endpoint
-        const response = await fetch('http://172.20.10.3:4000/api/auth/profile', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        });
-        
-        if (response.ok) {
-          const userData = await response.json();
-          setUser(userData.payload.user);
-          setIsAuthenticated(true);
-        } else {
-          await logout();
+    let isMounted = true;
+    
+    const checkAuth = async () => {
+      try {
+        const token = await SecureStore.getItemAsync(TOKEN_KEY);
+        if (token && isMounted) {
+          // Verify token with profile endpoint
+          const response = await fetch('http://192.168.1.77:4000/api/auth/profile', {
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          });
+          
+          if (response.ok && isMounted) {
+            const userData = await response.json();
+            setUser(userData.payload.user);
+            setIsAuthenticated(true);
+          } else if (isMounted) {
+            // Clear tokens without calling logout to avoid hook issues
+            await SecureStore.deleteItemAsync(TOKEN_KEY);
+            await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+            setUser(null);
+            setIsAuthenticated(false);
+          }
+        }
+      } catch (error) {
+        console.error('Auth check failed:', error);
+        if (isMounted) {
+          // Clear tokens on error without calling logout
+          await SecureStore.deleteItemAsync(TOKEN_KEY);
+          await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+          setUser(null);
+          setIsAuthenticated(false);
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false);
         }
       }
-    } catch (error) {
-      console.error('Auth check failed:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+
+    checkAuth();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const login = async (identifier: string, pin: string) => {
     try {
       console.log('Attempting login with:', { identifier, pin });
-      const response = await fetch('http://172.20.10.3:4000/api/auth/login', {
+      const response = await fetch('http://192.168.1.77:4000/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -117,10 +136,20 @@ export const useAuth = () => {
   };
 
   const logout = async () => {
-    await SecureStore.deleteItemAsync(TOKEN_KEY);
-    await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
-    setUser(null);
-    setIsAuthenticated(false);
+    try {
+      // Clear tokens first
+      await SecureStore.deleteItemAsync(TOKEN_KEY);
+      await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
+      
+      // Update state in a safe way
+      setUser(null);
+      setIsAuthenticated(false);
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if token deletion fails, ensure state is cleared
+      setUser(null);
+      setIsAuthenticated(false);
+    }
   };
 
   const getToken = async () => {

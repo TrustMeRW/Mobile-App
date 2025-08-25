@@ -88,7 +88,7 @@ export interface Debt {
   requester: User;
 }
 
-const BASE_URL = 'http://172.20.10.3:4000/api';
+const BASE_URL = 'http://192.168.1.77:4000/api';
 
 class ApiClient {
   private axiosInstance: AxiosInstance;
@@ -259,7 +259,7 @@ class ApiClient {
       otherPartyId, 
       initiationType: 'REQUESTED',
       items,
-      paymentDate 
+      dueDate:paymentDate 
     });
     return response.data;
   }
@@ -269,7 +269,7 @@ class ApiClient {
       otherPartyId, 
       initiationType: 'OFFERED',
       items,
-      paymentDate 
+      dueDate:paymentDate 
     });
     return response.data;
   }
@@ -529,6 +529,11 @@ class ApiClient {
 
   async getUserTrustabilityAnalytics(userId: string) {
     const response = await this.axiosInstance.get<ApiResponse<any>>(`/users/${userId}/trustability-analytics`);
+    return response.data;
+  }
+
+  async getUserTrustabilityAnalyticsByCode(code: string) {
+    const response = await this.axiosInstance.get<ApiResponse<any>>(`/users/trustability-analytics/${code}`);
     return response.data;
   }
 

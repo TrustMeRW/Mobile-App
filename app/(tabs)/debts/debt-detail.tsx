@@ -47,11 +47,13 @@ interface ExtendedDebt {
     id: string;
     firstName: string;
     lastName: string;
+    phoneNumber:string;
   };
   issuer: {
     id: string;
     firstName: string;
     lastName: string;
+    phoneNumber:string;
   };
   createdAt: string;
   updatedAt: string;
@@ -588,9 +590,7 @@ export default function DebtDetailScreen() {
             )}
 
             {/* Payment Summary */}
-            {payments && payments.length > 0 && (
-              <View style={styles.paymentSummary}>
-                {(() => {
+            {payments && payments.length > 0 && (() => {
                   const confirmedPayments = payments.filter(p => p.confirmedByIssuer);
                   const pendingPayments = payments.filter(p => !p.confirmedByIssuer);
                   
@@ -632,16 +632,13 @@ export default function DebtDetailScreen() {
                     </View>
                   );
                 })()}
-              </View>
-            )}
           </Card>
 
           <Card style={styles.detailsCard}>
             <Text style={styles.sectionTitle}>Details</Text>
 
             <View style={styles.detailItem}>
-              <User color={Colors.gray[500]} size={20} />
-              <View style={styles.detailContent}>
+              <View>
                 <Text style={styles.detailLabel}>
                   {isRequester ? 'Lender' : 'Borrower'}
                 </Text>
@@ -653,8 +650,23 @@ export default function DebtDetailScreen() {
               </View>
             </View>
 
+                        <View style={styles.detailItem}>
+              <View>
+                <Text style={styles.detailLabel}>
+                  Phone number
+                </Text>
+                <Text style={styles.detailValue}>
+                  {isRequester
+                    ? `${debt.issuer.phoneNumber}`
+                    : `${debt.requester.phoneNumber}`}
+                </Text>
+              </View>
+            </View>
+
+            
+
             <View style={styles.detailItem}>
-              <View style={styles.detailContent}>
+              <View >
                 <Text style={styles.detailLabel}>Status</Text>
                 <View
                   style={[
@@ -916,31 +928,23 @@ const getStyles = (colors: any, isDark: boolean) =>
       alignItems: 'center',
       paddingHorizontal: Spacing.lg,
       paddingVertical: Spacing.md,
-      backgroundColor: colors.card,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      backgroundColor: colors.background,
     },
     title: {
-      fontSize: Typography.fontSize.xl,
+      fontSize: Typography.fontSize.md,
       fontFamily: 'DMSans-Bold',
       color: colors.text,
-      marginLeft: Spacing.md,
-      flex: 1,
     },
     content: {
       flex: 1,
-      padding: Spacing.lg,
+      paddingHorizontal: Spacing.lg,
     },
     amountCard: {
       backgroundColor: colors.card,
       borderRadius: 12,
-      padding: Spacing.lg,
       marginBottom: Spacing.lg,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
       shadowOpacity: 0.1,
       shadowRadius: 4,
-      elevation: 2,
       alignItems: 'center',
       borderColor: colors.border,
       borderWidth: 1,
@@ -951,7 +955,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       marginBottom: Spacing.md,
     },
     amount: {
-      fontSize: 36,
+      fontSize: Typography.fontSize.xl,
       fontFamily: 'DMSans-Bold',
       color: colors.text,
       marginLeft: Spacing.sm,
@@ -1026,8 +1030,6 @@ const getStyles = (colors: any, isDark: boolean) =>
       marginBottom: Spacing.md,
     },
     detailItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
       paddingVertical: Spacing.md,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
@@ -1035,6 +1037,7 @@ const getStyles = (colors: any, isDark: boolean) =>
     detailContent: {
       marginLeft: Spacing.md,
       flex: 1,
+      flexDirection:"row"
     },
     detailLabel: {
       fontSize: Typography.fontSize.sm,
@@ -1045,7 +1048,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       fontSize: Typography.fontSize.md,
       fontFamily: 'DMSans-Regular',
       color: colors.text,
-      marginLeft: 'auto',
+      width:"auto"
     },
     actionCard: {
       backgroundColor: colors.card,
@@ -1190,24 +1193,15 @@ const getStyles = (colors: any, isDark: boolean) =>
       fontFamily: 'DMSans-Regular',
       color: colors.textSecondary,
     },
-    paymentSummary: {
-      backgroundColor: colors.card,
-      borderRadius: 12,
-      padding: Spacing.lg,
-      marginTop: Spacing.lg,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2,
-      borderColor: colors.border,
-      borderWidth: 1,
+    paymentSummary: { 
     },
     summaryGrid: {
       flexDirection: 'column',
       justifyContent: 'space-between',
       marginTop: Spacing.md,
       gap: Spacing.md,
+      width: '100%',
+      flex:1
     },
     summaryItem: {
       alignItems: 'center',

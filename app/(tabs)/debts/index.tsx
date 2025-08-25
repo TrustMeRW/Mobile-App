@@ -49,10 +49,7 @@ export default function DebtsScreen() {
     | 'OVERDUE'
     | 'PAID_PENDING_CONFIRMATION'
   >('all');
-  const [searchResults, setSearchResults] = useState<DebtWithType[] | null>(
-    null
-  );
-  const [searching, setSearching] = useState(false);
+  // Remove searchResults/searching/debouncedSearchQuery state
 
   const {
     data: requestedResponse,
@@ -96,46 +93,23 @@ export default function DebtsScreen() {
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
   );
 
-  useEffect(() => {
-    let timeout: ReturnType<typeof setTimeout>;
-    if (searchQuery.trim().length > 0) {
-      setSearching(true);
-      timeout = setTimeout(() => {
-        // Local search: filter by name or amount
-        const filtered = sortedDebts.filter((debt) => {
-          const searchLower = searchQuery.toLowerCase();
-          const requesterName = `${debt.requester?.firstName || ''} ${
-            debt.requester?.lastName || ''
-          }`.toLowerCase();
-          const issuerName = `${debt.issuer?.firstName || ''} ${
-            debt.issuer?.lastName || ''
-          }`.toLowerCase();
-          const amountStr = debt.amount.toString();
-          const matchesSearch =
-            requesterName.includes(searchLower) ||
-            issuerName.includes(searchLower) ||
-            amountStr.includes(searchQuery);
-          const matchesStatus =
-            statusFilter === 'all' || debt.status === statusFilter;
-          return matchesSearch && matchesStatus;
-        });
-        setSearchResults(filtered);
-        setSearching(false);
-      }, 400);
-    } else {
-      setSearchResults(null);
-      setSearching(false);
-    }
-    return () => clearTimeout(timeout);
-  }, [searchQuery, statusFilter, sortedDebts]);
 
-  const debtsToShow =
-    searchResults !== null
-      ? searchResults
-      : sortedDebts.filter((debt) => {
-          if (statusFilter === 'all') return true;
-          return debt.status === statusFilter;
-        });
+  // Synchronous, derived search and filter
+  const debtsToShow = sortedDebts.filter((debt) => {
+    const matchesStatus = statusFilter === 'all' || debt.status === statusFilter;
+    if (!searchQuery.trim()) return matchesStatus;
+    const searchLower = searchQuery.toLowerCase();
+    const requesterName = `${debt.requester?.firstName || ''} ${debt.requester?.lastName || ''}`.toLowerCase();
+    const issuerName = `${debt.issuer?.firstName || ''} ${debt.issuer?.lastName || ''}`.toLowerCase();
+    const amountStr = debt.amount?.toString() || '';
+    const matchesSearch =
+      requesterName.includes(searchLower) ||
+      issuerName.includes(searchLower) ||
+      amountStr.includes(searchQuery);
+    return matchesSearch && matchesStatus;
+  });
+
+  // ...existing code...
 
   const renderDebtCard = (debt: DebtWithType) => {
     const amount = parseFloat(debt.amount) || 0;
@@ -207,15 +181,13 @@ export default function DebtsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.searchContainer}>
-        <View style={styles.searchInputContainer}>
-          <Search color={colors.gray[400]} size={20} />
           <Input
             placeholder="Search debts by name or amount..."
             value={searchQuery}
             onChangeText={setSearchQuery}
-            style={styles.searchInput}
+            style={styles.searchInputContainer}
           />
-        </View>
+
       </View>
       <View style={styles.filterScrollWrapper}>
         <RNScrollView
@@ -251,11 +223,7 @@ export default function DebtsScreen() {
           <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
         }
       >
-        {searching ? (
-          <View style={styles.loadingContainer}>
-            <LoadingSpinner />
-          </View>
-        ) : debtsToShow.length > 0 ? (
+        {debtsToShow.length > 0 ? (
           <View style={styles.debtsList}>
             {debtsToShow.map(renderDebtCard)}
           </View>
@@ -270,13 +238,13 @@ export default function DebtsScreen() {
           </Card>
         )}
       </ScrollView>
-        <TouchableOpacity
-          style={styles.fab}
-          onPress={() => router.push('/(tabs)/debts/add-debt')}
-          activeOpacity={0.8}
-        >
-          <Plus color={colors.white} size={28} />
-        </TouchableOpacity>
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push('/(tabs)/debts/add-debt')}
+        activeOpacity={0.8}
+      >
+        <Plus color={colors.white} size={28} />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
@@ -325,30 +293,22 @@ const getStyles = (colors: typeof lightColors) =>
     },
     searchContainer: {
       paddingHorizontal: Spacing.lg,
-      marginBottom: 0,
       marginTop: Spacing.md,
       zIndex: 2,
       backgroundColor: colors.background,
     },
     searchInputContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.card,
       borderRadius: 12,
       paddingHorizontal: Spacing.md,
       borderWidth: 1,
       borderColor: colors.border,
-      minHeight: 48,
-      marginBottom: Spacing.sm,
+      marginBottom: Spacing.md,
+      flexDirection: "row",
+      alignItems: 'center',
     },
     searchInput: {
-      flex: 1,
-      marginLeft: Spacing.sm,
       borderWidth: 0,
-      marginBottom: 0,
       fontSize: Typography.fontSize.md,
-      minHeight: 44,
-      paddingVertical: 0,
     },
     filterScrollWrapper: {
       paddingHorizontal: Spacing.lg,

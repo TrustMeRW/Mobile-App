@@ -187,13 +187,7 @@ export default function SubscriptionsScreen() {
   if (isLoading) {
     return (
       <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <ChevronLeft color={colors.text} size={24} />
-          </TouchableOpacity>
+        <View style={styles.header}> 
           <Text style={styles.title}>Subscription Plans</Text>
           <View style={{ width: 40 }} />
         </View>
@@ -208,12 +202,6 @@ export default function SubscriptionsScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.backButton}
-            onPress={() => router.back()}
-          >
-            <ChevronLeft color={colors.text} size={24} />
-          </TouchableOpacity>
           <Text style={styles.title}>Subscription Plans</Text>
           <View style={{ width: 40 }} />
         </View>
@@ -236,12 +224,6 @@ export default function SubscriptionsScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <ChevronLeft color={colors.text} size={24} />
-        </TouchableOpacity>
         <Text style={styles.title}>Subscription Plans</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -252,8 +234,6 @@ export default function SubscriptionsScreen() {
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: 'timing', duration: 600 }}
         >
-          {/* Current Subscription Section */}
-          <Text>Helo</Text>
           {hasActiveSubscription && (
             <MotiView
               from={{ opacity: 0, translateY: 20 }}
@@ -272,9 +252,9 @@ export default function SubscriptionsScreen() {
                   </Text>
                 </View>
                 
-                <Text style={styles.currentSubscriptionName}>
+               {!isFreeTrial &&  <Text style={styles.currentSubscriptionName}>
                   {profile?.subscriptionFeatures?.planName || 'Active Plan'}
-                </Text>
+                </Text>}
                 
                 <View style={styles.currentSubscriptionDetails}>
                   <View style={styles.currentSubscriptionDetail}>
@@ -492,7 +472,7 @@ export default function SubscriptionsScreen() {
             <Text style={styles.infoTitle}>Need Help?</Text>
             <Text style={styles.infoText}>
               If you have any questions about our subscription plans or need assistance, 
-              please contact our support team.
+              please contact +250788355263 or email support@trustme.rw .
             </Text>
           </View>
         </MotiView>
@@ -513,17 +493,10 @@ const getStyles = (colors: any) =>
       paddingHorizontal: Spacing.lg,
       paddingVertical: Spacing.md,
     },
-    backButton: {
-      width: 40,
-      height: 40,
-      justifyContent: 'center',
-      alignItems: 'center',
-    },
     title: {
       fontSize: Typography.fontSize.xxl,
       fontFamily: 'DMSans-Bold',
       color: colors.text,
-      textAlign: 'center',
       flex: 1,
     },
     content: {
@@ -747,12 +720,14 @@ const getStyles = (colors: any) =>
       marginBottom: Spacing.sm,
     },
     currentSubscriptionDetails: {
-      flexDirection: 'row',
+      flexDirection: 'column',
+      alignItems:'flex-start',
       justifyContent: 'space-around',
+      gap: Spacing.sm,
       marginBottom: Spacing.sm,
     },
     currentSubscriptionDetail: {
-      alignItems: 'center',
+      alignItems: 'flex-start',
     },
     currentSubscriptionLabel: {
       fontSize: Typography.fontSize.md,

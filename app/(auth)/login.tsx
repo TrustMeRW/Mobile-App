@@ -19,9 +19,10 @@ import Toast from 'react-native-toast-message';
 import { MotiView } from 'moti';
 import { Eye, EyeOff } from 'lucide-react-native';
 import { InputPin } from '@/components/ui/InputPin';
+import { Image } from 'react-native';
 
 export default function LoginScreen() {
-  const { colors } = useTheme();
+  const { colors, theme } = useTheme();
   const styles = getStyles(colors);
   const [identifier, setIdentifier] = useState('');
   const [pin, setPin] = useState('');
@@ -105,10 +106,20 @@ export default function LoginScreen() {
           transition={{ type: 'timing', duration: 600 }}
           style={styles.content}
         >
+
           <View style={styles.header}>
-            <Text style={styles.title}>Welcome Back</Text>
+            <Image
+              source={
+                theme === 'dark'
+                  ? require('@/assets/images/whitelogo.png')
+                  : require('@/assets/images/logo.png')
+              }
+              style={{ width: 150, height: 100 }}
+              resizeMode="contain"
+            />
+            {/* <Text style={styles.title}>Get Early Access</Text> */}
             <Text style={styles.subtitle}>
-              Sign in to continue managing your debts
+              Provide your credentials to access your account
             </Text>
           </View>
 

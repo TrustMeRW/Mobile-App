@@ -411,22 +411,24 @@ export default function AddDebtScreen() {
                   />
 
                   <View style={styles.itemRow}>
-                    <Input
-                      label="Quantity"
-                      placeholder="1"
-                      value={item.quantity.toString()}
-                      onChangeText={(value) => updateItem(index, 'quantity', parseInt(value) || 1)}
-                      keyboardType="numeric"
-                      style={[styles.itemInput, { flex: 0.48 }]}
-                    />
-                    <Input
-                      label="Amount (RWF)"
-                      placeholder="0"
-                      value={item.amount.toString()}
-                      onChangeText={(value) => updateItem(index, 'amount', parseFloat(value) || 0)}
-                      keyboardType="numeric"
-                      style={[styles.itemInput, { flex: 0.48 }]}
-                    />
+                    <View style={{ width: '49%' }}>
+                      <Input
+                        label="Quantity"
+                        placeholder="1"
+                        value={item.quantity.toString()}
+                        onChangeText={(value) => updateItem(index, 'quantity', parseInt(value) || 1)}
+                        keyboardType="numeric"
+                      />
+                    </View>
+                    <View style={{ width: '49%' }}>
+                      <Input
+                        label="Amount (RWF)"
+                        placeholder="0"
+                        value={item.amount.toString()}
+                        onChangeText={(value) => updateItem(index, 'amount', parseFloat(value) || 0)}
+                        keyboardType="numeric"
+                      />
+                    </View>
                   </View>
                 </View>
               ))}
@@ -444,8 +446,6 @@ export default function AddDebtScreen() {
           return (
             <UserTrustabilityDisplay
               data={scannedUserData}
-              onProceed={handleProceed}
-              onCancel={handleCancel}
             />
           );
         }
@@ -627,26 +627,6 @@ export default function AddDebtScreen() {
       </View>
 
       {/* Step Indicator */}
-      <View style={styles.stepIndicator}>
-        {[0, 1, 2, 3].map((step) => (
-          <View key={step} style={styles.stepDotContainer}>
-            <View
-              style={[
-                styles.stepDot,
-                step <= currentStep && styles.stepDotActive,
-              ]}
-            />
-            {step < 3 && (
-              <View
-                style={[
-                  styles.stepLine,
-                  step < currentStep && styles.stepLineActive,
-                ]}
-              />
-            )}
-          </View>
-        ))}
-      </View>
 
       {/* Step Title */}
       <Text style={styles.stepTitleText}>{getStepTitle()}</Text>
@@ -667,7 +647,11 @@ export default function AddDebtScreen() {
           />
         )}
         {currentStep < 3 ? (
-          <Button
+          currentStep == 2 ? <Button
+            title="Proceed"
+            onPress={handleProceed}
+            style={styles.navButton}
+          />:<Button
             title="Next"
             onPress={handleNext}
             disabled={!canProceed()}
@@ -708,8 +692,6 @@ const getStyles = (colors: any) =>
       paddingTop: Spacing.lg,
       paddingBottom: Spacing.sm,
       backgroundColor: colors.background,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
     },
     backButton: {
       marginRight: Spacing.md,
@@ -718,6 +700,7 @@ const getStyles = (colors: any) =>
       fontSize: Typography.fontSize.xl,
       fontFamily: 'DMSans-Bold',
       color: colors.text,
+      
     },
     placeholder: {
       width: 40,
@@ -761,8 +744,10 @@ const getStyles = (colors: any) =>
       color: colors.text,
       marginBottom: Spacing.sm,
       paddingHorizontal: Spacing.lg,
+      marginTop:Spacing.md
     },
     stepCard: {
+      marginTop:Spacing.md,
       marginBottom: Spacing.md,
       borderRadius: BorderRadius.md,
       overflow: 'hidden',
@@ -846,6 +831,7 @@ const getStyles = (colors: any) =>
       backgroundColor: colors.card,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
+      marginBottom:Spacing.md
     },
     itemNumber: {
       fontSize: Typography.fontSize.md,
@@ -858,9 +844,11 @@ const getStyles = (colors: any) =>
     itemInput: {
       marginBottom: Spacing.sm,
       paddingHorizontal: Spacing.sm,
+      flexGrow:1
     },
     itemRow: {
       flexDirection: 'row',
+      flexWrap: 'wrap',
       justifyContent: 'space-between',
       paddingHorizontal: Spacing.sm,
       marginBottom: Spacing.sm,
@@ -992,15 +980,13 @@ const getStyles = (colors: any) =>
       marginBottom: Spacing.xs,
     },
     manualInputContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.card,
-      borderRadius: BorderRadius.md,
-      borderWidth: 1,
-      borderColor: colors.border,
+      flexDirection: 'column',
+      gap: Spacing.xs,
+      marginBottom:Spacing.md,
+      width:"100%",
     },
     manualInput: {
-      flex: 1,
+      width:"100%",
       paddingVertical: Spacing.sm,
       paddingHorizontal: Spacing.md,
       fontSize: Typography.fontSize.md,
@@ -1008,7 +994,7 @@ const getStyles = (colors: any) =>
       color: colors.text,
     },
     manualSubmitButton: {
-      paddingVertical: Spacing.sm,
+      paddingVertical: Spacing.md,
       paddingHorizontal: Spacing.md,
       backgroundColor: colors.primary,
       borderRadius: BorderRadius.md,
@@ -1019,5 +1005,6 @@ const getStyles = (colors: any) =>
       fontSize: Typography.fontSize.md,
       fontFamily: 'DMSans-Medium',
       color: colors.white,
+      textAlign:"center"
     },
   });

@@ -80,11 +80,14 @@ export default function HomeScreen() {
     const requestedDebts = debtsRequested?.data || [];
     const offeredDebts = debtsOffered?.data || [];
     const allDebts: Debt[] = [...requestedDebts, ...offeredDebts];
+    console.log(allDebts)
+    console.log(requestedDebts)
+    console.log(offeredDebts)
 
     const totalDebtAmount = allDebts
       .filter((debt) => debt.status === 'ACTIVE')
       .reduce((sum, debt) => sum + parseFloat(debt.amount || '0'), 0);
-
+console.log(totalDebtAmount)
     const totalPaid = allDebts.reduce(
       (sum, debt) => sum + parseFloat(debt.amountPaid || '0'),
       0
@@ -165,16 +168,16 @@ export default function HomeScreen() {
               transition={{ type: 'timing', duration: 600, delay: 100 }}
               style={styles.statCard}
             >
-              <Card style={styles.primaryCard}>
+              <View style={styles.primaryCard}>
                 <View style={styles.statContent}>
-                  <DollarSign color={colors.white} size={24} />
+                  <DollarSign color={colors.primary} size={24} />
                   <Text style={styles.statValue}>
                     {(stats.totalDebtAmount).toLocaleString()}
                     RWF
                   </Text>
                   <Text style={styles.statLabelDebt}>Total Debt</Text>
                 </View>
-              </Card>
+              </View>
             </MotiView>
 
             <MotiView
@@ -183,7 +186,7 @@ export default function HomeScreen() {
               transition={{ type: 'timing', duration: 600, delay: 200 }}
               style={styles.statCard}
             >
-              <Card>
+              <View>
                 <View style={styles.statContent}>
                   <TrendingUp color={colors.success} size={24} />
                   <Text style={styles.statValue}>
@@ -191,7 +194,7 @@ export default function HomeScreen() {
                   </Text>
                   <Text style={styles.statLabel}>Total Paid</Text>
                 </View>
-              </Card>
+              </View>
             </MotiView>
 
             <MotiView
@@ -200,13 +203,13 @@ export default function HomeScreen() {
               transition={{ type: 'timing', duration: 600, delay: 300 }}
               style={styles.statCard}
             >
-              <Card>
+              <View>
                 <View style={styles.statContent}>
                   <CheckCircle color={colors.info} size={24} />
                   <Text style={styles.statValue}>{stats.activeDebts}</Text>
                   <Text style={styles.statLabel}>Active Debts</Text>
                 </View>
-              </Card>
+              </View>
             </MotiView>
 
             <MotiView
@@ -215,13 +218,13 @@ export default function HomeScreen() {
               transition={{ type: 'timing', duration: 600, delay: 400 }}
               style={styles.statCard}
             >
-              <Card>
+              <View>
                 <View style={styles.statContent}>
                   <AlertTriangle color={colors.error} size={24} />
                   <Text style={styles.statValue}>{stats.overdueDebts}</Text>
                   <Text style={styles.statLabel}>Overdue</Text>
                 </View>
-              </Card>
+              </View>
             </MotiView>
           </View>
 
@@ -230,7 +233,7 @@ export default function HomeScreen() {
             animate={{ opacity: 1, translateY: 0 }}
             transition={{ type: 'timing', duration: 600, delay: 500 }}
           >
-            <Card style={styles.recentSection}>
+            <View style={styles.recentSection}>
               <Text style={styles.sectionTitle}>Recent Activity</Text>
               {recentTransactions.length > 0 ? (
                 recentTransactions.map((debt) => (
@@ -242,7 +245,7 @@ export default function HomeScreen() {
                           : 'Debt Offer'}
                       </Text>
                       <Text style={styles.transactionAmount}>
-                        ${debt.amount.toLocaleString()}
+                        {parseInt(debt.amount).toLocaleString()} RWF
                       </Text>
                     </View>
                     <View
@@ -265,7 +268,7 @@ export default function HomeScreen() {
               ) : (
                 <Text style={styles.emptyText}>No recent activity</Text>
               )}
-            </Card>
+            </View>
           </MotiView>
         </MotiView>
       </ScrollView>
@@ -347,12 +350,26 @@ const getStyles = (colors: typeof lightColors) =>
       marginBottom: Spacing.lg,
     },
     statCard: {
+          backgroundColor: colors.card,
+    borderColor: colors.border,
       width: '48%',
       marginRight: '2%',
       marginBottom: Spacing.md,
+      height:180,
+          borderRadius: Spacing.md,
+    padding: Spacing.lg,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+    borderWidth: 1,
     },
     primaryCard: {
-      backgroundColor: colors.primary,
+      // backgroundColor: colors.primary,
     },
     statContent: {
       alignItems: 'center',
@@ -374,7 +391,6 @@ const getStyles = (colors: typeof lightColors) =>
     statLabelDebt: {
       fontSize: Typography.fontSize.sm,
       fontFamily: 'DMSans-Medium',
-      color: colors.white,
       opacity: 0.9,
       marginTop: Spacing.xs,
     },

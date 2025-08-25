@@ -7,9 +7,8 @@
     "icon": "./assets/images/icon.png",
     "scheme": "trustme",
     "splash": {
-      "image": "./assets/images/whitelogo.png",
-      "backgroundColor": "#0044FF",
-      "resizeMode": "contain"
+      "backgroundColor": "#00000000",
+      "resizeMode": "cover"
     },
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

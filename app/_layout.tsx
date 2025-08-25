@@ -8,10 +8,17 @@ import { AuthProvider } from '@/contexts/AuthContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { NotificationBell } from '@/components/NotificationBell';
 import Toast from 'react-native-toast-message';
-import { useFonts, DMSans_400Regular, DMSans_500Medium, DMSans_600SemiBold, DMSans_700Bold } from '@expo-google-fonts/dm-sans';
+import {
+  useFonts,
+  DMSans_400Regular,
+  DMSans_500Medium,
+  DMSans_600SemiBold,
+  DMSans_700Bold,
+} from '@expo-google-fonts/dm-sans';
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import * as SplashScreen from 'expo-splash-screen';
 import { View } from 'react-native';
+import CustomSplashScreen from '@/components/CustomSplashScreen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NotificationProvider } from '@/services/notifications';
 
@@ -26,7 +33,6 @@ const queryClient = new QueryClient({
     },
   },
 });
-
 
 export default function RootLayout() {
   useFrameworkReady();
@@ -54,7 +60,7 @@ export default function RootLayout() {
   }, [fontsLoaded, fontError]);
 
   if ((!fontsLoaded && !fontError) || !onboardingChecked) {
-    return null;
+    return <CustomSplashScreen />;
   }
 
   if (showOnboarding) {
@@ -72,24 +78,24 @@ export default function RootLayout() {
           <ThemeProvider>
             <NotificationProvider>
               <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="(auth)" />
-              <Stack.Screen 
-                name="(tabs)" 
-                options={{
-                  headerRight: () => <NotificationBell />,
-                }}
-              />
-              <Stack.Screen name="onboarding" />
-              <Stack.Screen 
-                name="notifications" 
-                options={{
-                  headerShown: true,
-                  title: 'Notifications',
-                  headerBackTitle: 'Back',
-                }} 
-              />
-              <Stack.Screen name="+not-found" />
-            </Stack>
+                <Stack.Screen name="(auth)" />
+                <Stack.Screen
+                  name="(tabs)"
+                  options={{
+                    headerRight: () => <NotificationBell />,
+                  }}
+                />
+                <Stack.Screen name="onboarding" />
+                <Stack.Screen
+                  name="notifications"
+                  options={{
+                    headerShown: true,
+                    title: 'Notifications',
+                    headerBackTitle: 'Back',
+                  }}
+                />
+                <Stack.Screen name="+not-found" />
+              </Stack>
               <Toast />
               <StatusBar style="auto" />
             </NotificationProvider>

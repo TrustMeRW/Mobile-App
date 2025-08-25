@@ -86,6 +86,7 @@ export interface Debt {
   updatedAt: string;
   issuer: User;
   requester: User;
+  payments:any[];items:any[]
 }
 
 const BASE_URL = 'http://192.168.1.77:4000/api';
@@ -216,7 +217,14 @@ class ApiClient {
   }
 
   async getProfile() {
-    const response = await this.axiosInstance.get<ApiResponse<{ user: any }>>('/auth/profile');
+    const response = await this.axiosInstance.get<ApiResponse<{
+      user: any;
+      currentSubscription: any;
+      subscriptionStatus: string;
+      subscriptionFeatures: any;
+      subscriptionDetails: any;
+      subscriptionSummary: any;
+    }>>('/auth/profile');
     return response.data;
   }
 
@@ -281,6 +289,11 @@ class ApiClient {
 
   async confirmDebtPayment(id: string, pin: string) {
     const response = await this.axiosInstance.post<ApiResponse<Debt>>(`/debt/${id}/confirm-paid`, { pin });
+    return response.data;
+  }
+
+  async confirmPayment(paymentId: string, pin: string) {
+    const response = await this.axiosInstance.post<ApiResponse<{ message: string }>>(`/debt/payment/${paymentId}/confirm`, { pin });
     return response.data;
   }
 
@@ -470,7 +483,9 @@ class ApiClient {
         createdAt: debtData.createdAt ?? new Date().toISOString(),
         updatedAt: debtData.updatedAt ?? new Date().toISOString(),
         issuer: debtData.issuer ?? { ...defaultUser },
-        requester: debtData.requester ?? { ...defaultUser }
+        requester: debtData.requester ?? { ...defaultUser },
+        payments: debtData.payments ?? [],
+        items: debtData.items ?? []
       };
       
       return debt;

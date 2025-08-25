@@ -19,7 +19,104 @@ import { Typography, Spacing } from '@/constants/theme';
 import { apiClient } from '@/services/api';
 import { SubscriptionPlan } from '@/types/api';
 import { MotiView } from 'moti';
-import { ChevronLeft, Check, Crown, Phone, Info } from 'lucide-react-native';
+import { ChevronLeft, Check, Crown, Phone, Info, Clock, Gift } from 'lucide-react-native';
+
+interface UserProfile {
+  user: {
+    id: string;
+    firstName: string;
+    lastName: string;
+    nationalId: string;
+    email: string;
+    phoneNumber: string;
+    province: string;
+    district: string;
+    sector: string;
+    cell: string;
+    village: string;
+    role: string;
+    code: string;
+    pin: string;
+    isTrustable: boolean;
+    status: string;
+    isActive: boolean;
+    pinFailureCount: number;
+    lastPinFailureAt: string | null;
+    accountBlockedAt: string | null;
+    updatedAt: string;
+    createdAt: string;
+  };
+  currentSubscription: {
+    id: string;
+    userId: string;
+    planId: string | null;
+    status: string;
+    startDate: string;
+    endDate: string;
+    amountPaid: string;
+    paymentMethod: string;
+    transactionId: string;
+    paymentMetadata: {
+      type: string;
+      duration: string;
+      features: {
+        maxDevices: number;
+        maxDebtsAllowed: number;
+        maxTrustabilityChecks: number;
+      };
+      planDetails: any;
+    };
+    usageTracking: {
+      debtsCreated: number;
+      lastResetDate: string;
+      monthlyPeriod: string;
+      lastDebtCreation: string;
+      remainingDebtsAllowed: number;
+      trustabilityChecksUsed: number;
+      remainingTrustabilityChecks: number;
+    };
+    lastBillingDate: string | null;
+    nextBillingDate: string | null;
+    autoRenew: boolean;
+    cancellationReason: string | null;
+    cancelledAt: string | null;
+    createdAt: string;
+    updatedAt: string;
+  };
+  subscriptionStatus: string;
+  subscriptionFeatures: {
+    maxTrustabilityChecks: number;
+    maxDebtsAllowed: number;
+    maxDevices: number;
+    planName: string;
+    planDescription: string;
+    planAmount: number;
+    planDuration: number;
+    isFreeTrial: boolean;
+    remainingChecks: number;
+    trialEndDate: string;
+    daysLeftInTrial: number;
+  };
+  subscriptionDetails: {
+    type: string;
+    startDate: string;
+    endDate: string;
+    daysRemaining: number;
+    isActive: boolean;
+    formattedEndDate: string;
+    status: string;
+  };
+  subscriptionSummary: {
+    hasActiveSubscription: boolean;
+    subscriptionType: string;
+    daysRemaining: number;
+    endDate: string;
+    status: string;
+    isFreeTrial: boolean;
+    isPaidSubscription: boolean;
+    message: string;
+  };
+}
 
 export default function SubscriptionsScreen() {
   const { colors } = useTheme();
@@ -28,7 +125,14 @@ export default function SubscriptionsScreen() {
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
-  const { data: subscriptionPlans, isLoading, error } = useQuery({
+  // Fetch user profile with subscription data
+  const { data: userProfile, isLoading: profileLoading } = useQuery({
+    queryKey: ['user-profile'],
+    queryFn: () => apiClient.getProfile(),
+    enabled: !!user,
+  });
+
+  const { data: subscriptionPlans, isLoading: plansLoading, error } = useQuery({
     queryKey: ['subscription-plans'],
     queryFn: () => apiClient.getActiveSubscriptionPlans(),
   });
@@ -45,6 +149,9 @@ export default function SubscriptionsScreen() {
         `You will shortly be prompted to pay RWF ${amount} on your telephone number ${user?.phoneNumber || 'your phone'}. If you do not get the prompt, you can press *182*7*1# and follow the instructions.`,
         [{ text: 'OK' }]
       );
+      
+      // Refresh profile data
+      queryClient.invalidateQueries({ queryKey: ['user-profile'] });
     },
     onError: (error: any) => {
       Alert.alert(
@@ -75,7 +182,7 @@ export default function SubscriptionsScreen() {
     );
   };
 
-
+  const isLoading = profileLoading || plansLoading;
 
   if (isLoading) {
     return (
@@ -122,6 +229,10 @@ export default function SubscriptionsScreen() {
     );
   }
 
+  const profile = userProfile?.payload;
+  const hasActiveSubscription = profile?.subscriptionSummary?.hasActiveSubscription;
+  const isFreeTrial = profile?.subscriptionSummary?.isFreeTrial;
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -142,7 +253,7 @@ export default function SubscriptionsScreen() {
           transition={{ type: 'timing', duration: 600 }}
         >
           {/* Current Subscription Section */}
-          {user?.userSubscription && (
+          {hasActiveSubscription && (
             <MotiView
               from={{ opacity: 0, translateY: 20 }}
               animate={{ opacity: 1, translateY: 0 }}
@@ -150,14 +261,18 @@ export default function SubscriptionsScreen() {
             >
               <Card style={styles.currentSubscriptionCard}>
                 <View style={styles.currentSubscriptionHeader}>
-                  <Crown color={colors.primary} size={24} />
+                  {isFreeTrial ? (
+                    <Gift color={colors.warning} size={24} />
+                  ) : (
+                    <Crown color={colors.primary} size={24} />
+                  )}
                   <Text style={styles.currentSubscriptionTitle}>
-                    Current Subscription
+                    {isFreeTrial ? 'Free Trial Active' : 'Current Subscription'}
                   </Text>
                 </View>
                 
                 <Text style={styles.currentSubscriptionName}>
-                  {user.userSubscription.planName}
+                  {profile?.subscriptionFeatures?.planName || 'Active Plan'}
                 </Text>
                 
                 <View style={styles.currentSubscriptionDetails}>
@@ -165,31 +280,66 @@ export default function SubscriptionsScreen() {
                     <Text style={styles.currentSubscriptionLabel}>Status:</Text>
                     <View style={[
                       styles.statusBadge,
-                      { backgroundColor: user.userSubscription.status === 'ACTIVE' ? colors.success + '20' : colors.warning + '20' }
+                      { backgroundColor: profile?.subscriptionDetails?.status === 'ACTIVE' ? colors.success + '20' : colors.warning + '20' }
                     ]}>
                       <Text style={[
                         styles.statusText,
-                        { color: user.userSubscription.status === 'ACTIVE' ? colors.success : colors.warning }
+                        { color: profile?.subscriptionDetails?.status === 'ACTIVE' ? colors.success : colors.warning }
                       ]}>
-                        {user.userSubscription.status}
+                        {profile?.subscriptionDetails?.status}
                       </Text>
                     </View>
                   </View>
                   
                   <View style={styles.currentSubscriptionDetail}>
-                    <Text style={styles.currentSubscriptionLabel}>Ends:</Text>
-                    <Text style={styles.currentSubscriptionValue}>
-                      {new Date(user.userSubscription.endDate).toLocaleDateString()}
+                    <Text style={styles.currentSubscriptionLabel}>
+                      {isFreeTrial ? 'Trial Ends:' : 'Ends:'}
+                    </Text>
+                    <Text style={[styles.currentSubscriptionValue, styles.wrappedText]}>
+                      {profile?.subscriptionDetails?.formattedEndDate || 'N/A'}
                     </Text>
                   </View>
                   
                   <View style={styles.currentSubscriptionDetail}>
-                    <Text style={styles.currentSubscriptionLabel}>Amount:</Text>
-                    <Text style={styles.currentSubscriptionValue}>
-                      RWF {user.userSubscription.amount}
+                    <Text style={styles.currentSubscriptionLabel}>
+                      {isFreeTrial ? 'Days Left:' : 'Amount:'}
+                    </Text>
+                    <Text style={[styles.currentSubscriptionValue, styles.wrappedText]}>
+                      {isFreeTrial 
+                        ? `${profile?.subscriptionDetails?.daysRemaining || 0} days`
+                        : `RWF ${profile?.subscriptionFeatures?.planAmount || 0}`
+                      }
                     </Text>
                   </View>
                 </View>
+                
+                {/* Usage Tracking */}
+                {profile?.currentSubscription?.usageTracking && (
+                  <View style={styles.usageTrackingSection}>
+                    <Text style={styles.usageTrackingTitle}>Usage This Month:</Text>
+                    <View style={styles.usageTrackingGrid}>
+                      <View style={styles.usageTrackingItem}>
+                        <Text style={styles.usageTrackingLabel}>Debts Created:</Text>
+                        <Text style={styles.usageTrackingValue}>
+                          {profile.currentSubscription.usageTracking.debtsCreated}
+                        </Text>
+                        <Text style={styles.usageTrackingRemaining}>
+                          {profile.currentSubscription.usageTracking.remainingDebtsAllowed} remaining
+                        </Text>
+                      </View>
+                      
+                      <View style={styles.usageTrackingItem}>
+                        <Text style={styles.usageTrackingLabel}>Trustability Checks:</Text>
+                        <Text style={styles.usageTrackingValue}>
+                          {profile.currentSubscription.usageTracking.trustabilityChecksUsed}
+                        </Text>
+                        <Text style={styles.usageTrackingRemaining}>
+                          {profile.currentSubscription.usageTracking.remainingTrustabilityChecks} remaining
+                        </Text>
+                      </View>
+                    </View>
+                  </View>
+                )}
                 
                 <View style={styles.currentSubscriptionFeatures}>
                   <Text style={styles.currentSubscriptionFeaturesTitle}>Your Benefits:</Text>
@@ -197,29 +347,39 @@ export default function SubscriptionsScreen() {
                     <View style={styles.currentSubscriptionFeatureItem}>
                       <Check color={colors.success} size={16} />
                       <Text style={styles.currentSubscriptionFeatureText}>
-                        {user.userSubscription.features.maxTrustabilityChecks} Trustability Checks
+                        {profile?.subscriptionFeatures?.maxTrustabilityChecks || 0} Trustability Checks
                       </Text>
                     </View>
                     <View style={styles.currentSubscriptionFeatureItem}>
                       <Check color={colors.success} size={16} />
                       <Text style={styles.currentSubscriptionFeatureText}>
-                        {user.userSubscription.features.maxDebtsAllowed} Debts Allowed
+                        {profile?.subscriptionFeatures?.maxDebtsAllowed || 0} Debts Allowed
                       </Text>
                     </View>
                     <View style={styles.currentSubscriptionFeatureItem}>
                       <Check color={colors.success} size={16} />
                       <Text style={styles.currentSubscriptionFeatureText}>
-                        {user.userSubscription.features.maxDevices} Devices
+                        {profile?.subscriptionFeatures?.maxDevices || 0} Devices
                       </Text>
                     </View>
                   </View>
                 </View>
+                
+                {/* Free Trial Specific Info */}
+                {isFreeTrial && (
+                  <View style={styles.freeTrialInfo}>
+                    <Clock color={colors.warning} size={20} />
+                    <Text style={styles.freeTrialText}>
+                      {profile?.subscriptionSummary?.message || 'Your free trial is active'}
+                    </Text>
+                  </View>
+                )}
               </Card>
             </MotiView>
           )}
 
           <Text style={styles.subtitle}>
-            {user?.userSubscription ? 'Upgrade or change your subscription plan' : 'Choose the plan that best fits your needs'}
+            {hasActiveSubscription ? 'Upgrade or change your subscription plan' : 'Choose the plan that best fits your needs'}
           </Text>
 
           {subscriptionPlans?.map((plan, index) => (
@@ -275,11 +435,14 @@ export default function SubscriptionsScreen() {
                 </View>
 
                 <Button
-                  title="Subscribe Now"
+                  title={hasActiveSubscription ? "Already Subscribed" : "Subscribe Now"}
                   onPress={() => handleSubscribe(plan.id)}
                   loading={subscribeMutation.isPending}
-                  disabled={subscribeMutation.isPending}
-                  style={styles.subscribeButton}
+                  disabled={subscribeMutation.isPending || hasActiveSubscription}
+                  style={[
+                    styles.subscribeButton,
+                    hasActiveSubscription && styles.disabledSubscribeButton
+                  ]}
                 />
 
                 {/* Payment Instructions - Only shown after successful subscription */}
@@ -589,20 +752,27 @@ const getStyles = (colors: any) =>
       flexDirection: 'row',
       justifyContent: 'space-around',
       marginBottom: Spacing.sm,
+      flexWrap: 'wrap',
+      gap: Spacing.sm,
     },
     currentSubscriptionDetail: {
       alignItems: 'center',
+      minWidth: 80,
+      flex: 1,
     },
     currentSubscriptionLabel: {
       fontSize: Typography.fontSize.md,
       fontFamily: 'DMSans-Medium',
       color: colors.textSecondary,
       marginBottom: Spacing.xs,
+      textAlign: 'center',
     },
     currentSubscriptionValue: {
       fontSize: Typography.fontSize.lg,
       fontFamily: 'DMSans-Bold',
       color: colors.primary,
+      textAlign: 'center',
+      flexWrap: 'wrap',
     },
     statusBadge: {
       paddingHorizontal: Spacing.sm,
@@ -634,5 +804,65 @@ const getStyles = (colors: any) =>
       fontFamily: 'DMSans-Regular',
       color: colors.text,
       marginLeft: Spacing.sm,
+    },
+    usageTrackingSection: {
+      marginTop: Spacing.lg,
+      paddingTop: Spacing.lg,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    usageTrackingTitle: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Medium',
+      color: colors.text,
+      marginBottom: Spacing.sm,
+    },
+    usageTrackingGrid: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      gap: Spacing.sm,
+    },
+    usageTrackingItem: {
+      alignItems: 'center',
+    },
+    usageTrackingLabel: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Medium',
+      color: colors.textSecondary,
+      marginBottom: Spacing.xs,
+    },
+    usageTrackingValue: {
+      fontSize: Typography.fontSize.lg,
+      fontFamily: 'DMSans-Bold',
+      color: colors.primary,
+      marginBottom: Spacing.xs,
+    },
+    usageTrackingRemaining: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+    },
+    freeTrialInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: Spacing.sm,
+      paddingTop: Spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    freeTrialText: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+      marginLeft: Spacing.sm,
+      lineHeight: 22,
+    },
+    wrappedText: {
+      flexWrap: 'wrap',
+      textAlign: 'center',
+    },
+    disabledSubscribeButton: {
+      opacity: 0.6,
+      backgroundColor: colors.textSecondary + '20',
     },
   });

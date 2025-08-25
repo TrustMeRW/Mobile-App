@@ -65,7 +65,6 @@ export const useAuth = () => {
     try {
       console.log('Attempting login with:', { identifier, pin });
       const response = await fetch('http://192.168.1.77:4000/api/auth/login', {
-      const response = await fetch('http://192.168.1.77:4000/api/auth/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

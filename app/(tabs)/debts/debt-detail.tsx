@@ -6,7 +6,6 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
-  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router, useLocalSearchParams } from 'expo-router';
@@ -29,7 +28,6 @@ import {
   CircleCheck as CheckCircle,
   Circle as XCircle,
   CreditCard,
-  X,
 } from 'lucide-react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -58,6 +56,21 @@ interface ExtendedDebt {
   createdAt: string;
   updatedAt: string;
   initiationType: 'REQUESTED' | 'OFFERED';
+  payments?: Array<{
+    id: string;
+    amount: string;
+    createdAt: string;
+    confirmedByIssuer: boolean;
+  }>;
+  items?: Array<{
+    id: string;
+    name: string;
+    description: string;
+    quantity: number;
+    amount: string;
+    totalAmount: string;
+    createdAt: string;
+  }>;
 }
 
 function getStatusBadgeStyle(status: string, colors: any) {
@@ -107,11 +120,13 @@ export default function DebtDetailScreen() {
   const [isLoadingDebt, setIsLoadingDebt] = useState(true);
   const [debt, setDebt] = useState<ExtendedDebt | null>(null);
   const [error, setError] = useState<Error | null>(null);
-  const [showPaymentInstructions, setShowPaymentInstructions] = useState(false);
   const queryClient = useQueryClient();
 
   // Helper function to transform debt data
-  const transformDebtData = (debtData: any): ExtendedDebt => ({
+  const transformDebtData = (debtData: any): ExtendedDebt => {
+    console.log("Going to transform the debt data")
+    console.log(debtData)
+    return {
     id: debtData.id,
     amount: debtData.amount,
     amountPaid: debtData.amountPaid || '0',
@@ -122,7 +137,9 @@ export default function DebtDetailScreen() {
     createdAt: debtData.createdAt,
     updatedAt: debtData.updatedAt,
     initiationType: debtData.initiationType,
-  });
+    payments: debtData.payments || [],
+    items: debtData.items || [],
+  }};
 
   // Helper function to refetch debt data
   const refetchDebtData = async () => {
@@ -150,10 +167,10 @@ export default function DebtDetailScreen() {
         text1: 'Payment Submitted',
         text2: 'Your payment has been submitted successfully.',
       });
+      // Clear payment amount
+      setPaymentAmount('');
       // Manually refetch debt data
       await refetchDebtData();
-      // Show payment instructions modal
-      setShowPaymentInstructions(true);
       // Refetch debt data
       queryClient.invalidateQueries({ queryKey: ['debt', id] });
       queryClient.invalidateQueries({ queryKey: ['debts'] });
@@ -203,11 +220,10 @@ export default function DebtDetailScreen() {
         text1: 'Debt Rejected',
         text2: 'You have successfully rejected the debt.',
       });
-      // Manually refetch debt data before navigating back
+      // Manually refetch debt data
       await refetchDebtData();
       queryClient.invalidateQueries({ queryKey: ['debt', id] });
       queryClient.invalidateQueries({ queryKey: ['debts'] });
-      router.back();
     },
     onError: (err: any) => {
       const errorMessage =
@@ -221,14 +237,42 @@ export default function DebtDetailScreen() {
     },
   });
 
-  const confirmPaidMutation = useMutation({
+  const confirmPaymentMutation = useMutation({
+    mutationFn: (data: { paymentId: string; pin: string }) =>
+      apiClient.confirmPayment(data.paymentId, data.pin),
+    onSuccess: async () => {
+      Toast.show({
+        type: 'success',
+        text1: 'Payment Confirmed',
+        text2: 'Payment has been confirmed successfully.',
+      });
+      // Clear PIN input for next confirmation
+      setPinForApproval('');
+      // Manually refetch debt data
+      await refetchDebtData();
+      queryClient.invalidateQueries({ queryKey: ['debt', id] });
+      queryClient.invalidateQueries({ queryKey: ['debts'] });
+    },
+    onError: (err: any) => {
+      const errorMessage =
+        err?.response?.data?.message ||
+        'An error occurred while confirming the payment.';
+      Toast.show({
+        type: 'error',
+        text1: 'Confirmation Failed',
+        text2: errorMessage,
+      });
+    },
+  });
+
+  const confirmDebtPaymentMutation = useMutation({
     mutationFn: (data: { debtId: string; pin: string }) =>
       apiClient.confirmDebtPayment(data.debtId, data.pin),
     onSuccess: async () => {
       Toast.show({
         type: 'success',
-        text1: 'Payment Confirmed',
-        text2: 'You have successfully confirmed the payment.',
+        text1: 'Debt Confirmed',
+        text2: 'Debt payment has been confirmed successfully.',
       });
       // Manually refetch debt data
       await refetchDebtData();
@@ -238,7 +282,7 @@ export default function DebtDetailScreen() {
     onError: (err: any) => {
       const errorMessage =
         err?.response?.data?.message ||
-        'An error occurred while confirming payment.';
+        'An error occurred while confirming the debt payment.';
       Toast.show({
         type: 'error',
         text1: 'Confirmation Failed',
@@ -325,13 +369,17 @@ export default function DebtDetailScreen() {
     }
 
     const amount = parseFloat(paymentAmount);
-    const remainingAmount =
-      parseFloat(debt.amount) - parseFloat(debt.amountPaid || '0');
+    // Calculate remaining amount based on confirmed payments
+    const confirmedPaymentsTotal = payments
+      ?.filter(p => p.confirmedByIssuer)
+      ?.reduce((sum, p) => sum + parseFloat(p.amount), 0) || 0;
+    const remainingAmount = parseFloat(debt.amount) - confirmedPaymentsTotal;
+    
     if (amount > remainingAmount) {
       Toast.show({
         type: 'error',
         text1: 'Amount Too High',
-        text2: 'Payment amount cannot exceed remaining debt',
+        text2: `Payment amount cannot exceed remaining debt of ${remainingAmount.toLocaleString()} RWF`,
       });
       return;
     }
@@ -371,21 +419,35 @@ export default function DebtDetailScreen() {
   };
 
   const handleConfirmPaid = () => {
-    Alert.alert(
-      'Confirm Payment',
-      'Are you sure you want to confirm this payment? This will mark the debt as paid.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          onPress: () =>
-            confirmPaidMutation.mutate({
-              debtId: id,
-              pin: pinForApproval,
-            }),
-        },
-      ]
-    );
+    if (!pinForApproval || pinForApproval.length < 4) {
+      Toast.show({
+        type: 'error',
+        text1: 'Invalid PIN',
+        text2: 'Please enter a valid 4-digit PIN.',
+      });
+      return;
+    }
+
+    confirmDebtPaymentMutation.mutate({
+      debtId: id,
+      pin: pinForApproval,
+    });
+  };
+
+  const handleConfirmPayment = (paymentId: string) => {
+    if (!pinForApproval || pinForApproval.length < 4) {
+      Toast.show({
+        type: 'error',
+        text1: 'Invalid PIN',
+        text2: 'Please enter a valid 4-digit PIN.',
+      });
+      return;
+    }
+
+    confirmPaymentMutation.mutate({
+      paymentId: paymentId,
+      pin: pinForApproval,
+    });
   };
 
   if (isLoadingDebt) {
@@ -410,10 +472,11 @@ export default function DebtDetailScreen() {
     amount,
     amountPaid,
     status,
-    paymentDate,
-    createdAt,
     initiationType,
+    payments,
   } = debt;
+  console.log("Here are the debts")
+  console.log(payments)
   const isRequester = user?.id === requester.id;
   const isIssuer = user?.id === issuer.id;
 
@@ -476,24 +539,99 @@ export default function DebtDetailScreen() {
             {parseFloat(debt.amountPaid || '0') > 0 && (
               <View style={styles.progressSection}>
                 <Text style={styles.progressLabel}>Payment Progress</Text>
-                <View style={styles.progressBar}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        width: `${
-                          (parseFloat(debt.amountPaid || '0') /
-                            parseFloat(debt.amount)) *
-                          100
-                        }%`,
-                      },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.progressText}>
-                  {parseFloat(debt.amountPaid || '0').toLocaleString()}RWF of{' '}
-                  {parseFloat(debt.amount).toLocaleString()}RWF
-                </Text>
+                
+                {/* Calculate confirmed payments total */}
+                {(() => {
+                  const confirmedPaymentsTotal = payments
+                    ?.filter(p => p.confirmedByIssuer)
+                    ?.reduce((sum, p) => sum + parseFloat(p.amount), 0) || 0;
+                  
+                  const remainingAmount = parseFloat(debt.amount) - confirmedPaymentsTotal;
+                  const progressPercentage = (confirmedPaymentsTotal / parseFloat(debt.amount)) * 100;
+                  
+                  return (
+                    <>
+                      <View style={styles.progressBar}>
+                        <View
+                          style={[
+                            styles.progressFill,
+                            {
+                              width: `${Math.min(progressPercentage, 100)}%`,
+                            },
+                          ]}
+                        />
+                      </View>
+                      
+                      <View style={styles.progressDetails}>
+                        <View style={styles.progressRow}>
+                          <Text style={styles.progressText}>
+                            Confirmed: {confirmedPaymentsTotal.toLocaleString()} RWF
+                          </Text>
+                          <Text style={styles.progressText}>
+                            {progressPercentage.toFixed(1)}%
+                          </Text>
+                        </View>
+                        
+                        <View style={styles.progressRow}>
+                          <Text style={styles.progressText}>
+                            Remaining: {remainingAmount.toLocaleString()} RWF
+                          </Text>
+                          <Text style={styles.progressText}>
+                            Total: {parseFloat(debt.amount).toLocaleString()} RWF
+                          </Text>
+                        </View>
+                      </View>
+                    </>
+                  );
+                })()}
+              </View>
+            )}
+
+            {/* Payment Summary */}
+            {payments && payments.length > 0 && (
+              <View style={styles.paymentSummary}>
+                {(() => {
+                  const confirmedPayments = payments.filter(p => p.confirmedByIssuer);
+                  const pendingPayments = payments.filter(p => !p.confirmedByIssuer);
+                  
+                  const confirmedTotal = confirmedPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+                  const pendingTotal = pendingPayments.reduce((sum, p) => sum + parseFloat(p.amount), 0);
+                  const remainingAmount = parseFloat(debt.amount) - confirmedTotal;
+                  
+                  return (
+                    <View style={styles.summaryGrid}>
+                      <View style={styles.summaryItem}>
+                        <Text style={styles.summaryLabel}>Confirmed Payments</Text>
+                        <Text style={[styles.summaryValue, { color: colors.success }]}>
+                          {confirmedTotal.toLocaleString()} RWF
+                        </Text>
+                        <Text style={styles.summaryCount}>
+                          {confirmedPayments.length} payment{confirmedPayments.length !== 1 ? 's' : ''}
+                        </Text>
+                      </View>
+                      
+                      <View style={styles.summaryItem}>
+                        <Text style={styles.summaryLabel}>Pending Confirmation</Text>
+                        <Text style={[styles.summaryValue, { color: colors.warning }]}>
+                          {pendingTotal.toLocaleString()} RWF
+                        </Text>
+                        <Text style={styles.summaryCount}>
+                          {pendingPayments.length} payment{pendingPayments.length !== 1 ? 's' : ''}
+                        </Text>
+                      </View>
+                      
+                      <View style={styles.summaryItem}>
+                        <Text style={styles.summaryLabel}>Remaining Amount</Text>
+                        <Text style={[styles.summaryValue, { color: colors.text }]}>
+                          {remainingAmount.toLocaleString()} RWF
+                        </Text>
+                        <Text style={styles.summaryCount}>
+                          Debt Total: {parseFloat(debt.amount).toLocaleString()} RWF
+                        </Text>
+                      </View>
+                    </View>
+                  );
+                })()}
               </View>
             )}
           </Card>
@@ -556,6 +694,96 @@ export default function DebtDetailScreen() {
             </View>
           </Card>
 
+          {/* Items Section */}
+          {debt.items && debt.items.length > 0 && (
+            <Card style={styles.itemsCard}>
+              <Text style={styles.sectionTitle}>Items</Text>
+              
+              {debt.items
+                .sort((a, b) => new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime())
+                .map((item, index) => (
+                  <View key={item.id} style={styles.itemRow}>
+                    <View style={styles.itemInfo}>
+                      <Text style={styles.itemName}>{item.name}</Text>
+                      <Text style={styles.itemDescription}>{item.description}</Text>
+                    </View>
+                    
+                    <View style={styles.itemDetails}>
+                      <Text style={styles.itemQuantity}>Qty: {item.quantity}</Text>
+                      <Text style={styles.itemAmount}>
+                        {parseFloat(item.amount).toLocaleString()} RWF
+                      </Text>
+                      <Text style={styles.itemTotal}>
+                        Total: {parseFloat(item.totalAmount).toLocaleString()} RWF
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+            </Card>
+          )}
+
+          {/* Payments Section */}
+          {payments && payments.length > 0 && (
+            <Card style={styles.paymentsCard}>
+              <Text style={styles.sectionTitle}>Payment History</Text>
+              
+              {payments
+                .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                .map((payment, index) => {
+                  // Find the first unconfirmed payment to show PIN input
+                  const isFirstUnconfirmed = !payment.confirmedByIssuer && 
+                    payments
+                      .sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime())
+                      .findIndex(p => !p.confirmedByIssuer) === index;
+                  
+                  return (
+                    <View key={payment.id} style={styles.paymentItem}>
+                      <View style={styles.paymentInfo}>
+                        <View style={styles.paymentHeader}>
+                          <Text style={styles.paymentAmount}>
+                            {parseFloat(payment.amount).toLocaleString()} RWF
+                          </Text>
+                          <View style={[
+                            styles.paymentStatus,
+                            { backgroundColor: payment.confirmedByIssuer ? colors.success + '20' : colors.warning + '20' }
+                          ]}>
+                            <Text style={[
+                              styles.paymentStatusText,
+                              { color: payment.confirmedByIssuer ? colors.success : colors.warning }
+                            ]}>
+                              {payment.confirmedByIssuer ? 'Confirmed' : 'Pending'}
+                            </Text>
+                          </View>
+                        </View>
+                        
+                        <Text style={styles.paymentDate}>
+                          {new Date(payment.createdAt).toLocaleDateString()} at {new Date(payment.createdAt).toLocaleTimeString()}
+                        </Text>
+                      </View>
+                      
+                      {/* Confirm Payment Button for Issuer - Only show for first unconfirmed payment */}
+                      {isIssuer && !payment.confirmedByIssuer && isFirstUnconfirmed && (
+                        <View style={styles.paymentActions}>
+                          <InputPin
+                            label="Enter PIN to confirm"
+                            value={pinForApproval}
+                            onChange={setPinForApproval}
+                          />
+                          <Button
+                            title="Confirm Payment"
+                            onPress={() => handleConfirmPayment(payment.id)}
+                            loading={confirmPaymentMutation.isPending}
+                            style={styles.confirmPaymentButton}
+                            disabled={!pinForApproval || pinForApproval.length < 4}
+                          />
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+            </Card>
+          )}
+
           {canViewActions && (
             <Card style={styles.actionCard}>
               <Text style={styles.sectionTitle}>Actions</Text>
@@ -569,10 +797,13 @@ export default function DebtDetailScreen() {
                     value={paymentAmount}
                     onChangeText={setPaymentAmount}
                     keyboardType="numeric"
-                    placeholder={`Max: ${(
-                      parseFloat(debt.amount) -
-                      parseFloat(debt.amountPaid || '0')
-                    ).toLocaleString()} RWF`}
+                    placeholder={`Max: ${(() => {
+                      const confirmedPaymentsTotal = payments
+                        ?.filter(p => p.confirmedByIssuer)
+                        ?.reduce((sum, p) => sum + parseFloat(p.amount), 0) || 0;
+                      const remainingAmount = parseFloat(debt.amount) - confirmedPaymentsTotal;
+                      return remainingAmount.toLocaleString();
+                    })()} RWF`}
                   />
 
                   <Button
@@ -629,7 +860,7 @@ export default function DebtDetailScreen() {
                   <Button
                     title="Confirm Payment Received"
                     onPress={handleConfirmPaid}
-                    loading={confirmPaidMutation.isPending}
+                    loading={confirmDebtPaymentMutation.isPending}
                     style={styles.actionButton}
                     disabled={!pinForApproval || pinForApproval.length < 4}
                   />
@@ -639,63 +870,6 @@ export default function DebtDetailScreen() {
           )}
         </MotiView>
       </ScrollView>
-
-      {/* Payment Instructions Modal */}
-      <Modal
-        visible={showPaymentInstructions}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowPaymentInstructions(false)}
-      >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Payment Instructions</Text>
-              <TouchableOpacity
-                onPress={() => setShowPaymentInstructions(false)}
-                style={styles.closeButton}
-              >
-                <X color={colors.textSecondary} size={24} />
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.modalBody}>
-              <Text style={styles.instructionTitle}>
-                You will soon be prompted to approve the transaction
-              </Text>
-
-              <Text style={styles.instructionText}>
-                If you don't receive a prompt, use these USSD codes to proceed
-                with the payment:
-              </Text>
-
-              <View style={styles.ussdSection}>
-                <View style={styles.ussdItem}>
-                  <Text style={styles.operatorLabel}>MTN</Text>
-                  <Text style={styles.ussdCode}>*182*7*1#</Text>
-                </View>
-
-                <View style={styles.ussdItem}>
-                  <Text style={styles.operatorLabel}>Airtel</Text>
-                  <Text style={styles.ussdCode}>*182*6*1#</Text>
-                </View>
-              </View>
-
-              <Text style={styles.noteText}>
-                Note: Follow the prompts on your phone to complete the payment
-              </Text>
-            </View>
-
-            <View style={styles.modalFooter}>
-              <Button
-                title="OK"
-                onPress={() => setShowPaymentInstructions(false)}
-                style={styles.okButton}
-              />
-            </View>
-          </View>
-        </View>
-      </Modal>
     </SafeAreaView>
   );
 }
@@ -821,6 +995,17 @@ const getStyles = (colors: any, isDark: boolean) =>
       color: colors.textSecondary,
       textAlign: 'center',
     },
+    progressDetails: {
+      marginTop: Spacing.sm,
+      paddingTop: Spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    progressRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginBottom: Spacing.xs,
+    },
     detailsCard: {
       backgroundColor: colors.card,
       borderRadius: 12,
@@ -893,93 +1078,164 @@ const getStyles = (colors: any, isDark: boolean) =>
     actionButton: {
       marginTop: Spacing.md,
     },
-    modalOverlay: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      backgroundColor: 'rgba(0,0,0,0.5)',
-    },
-    modalContent: {
+    paymentsCard: {
       backgroundColor: colors.card,
       borderRadius: 12,
       padding: Spacing.lg,
-      width: '80%',
-      alignItems: 'center',
+      marginBottom: Spacing.lg,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.2,
-      shadowRadius: 6,
-      elevation: 5,
-    },
-    modalHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      width: '100%',
-      marginBottom: Spacing.md,
-    },
-    modalTitle: {
-      fontSize: Typography.fontSize.xl,
-      fontFamily: 'DMSans-Bold',
-      color: colors.text,
-    },
-    closeButton: {
-      padding: 4,
-    },
-    modalBody: {
-      width: '100%',
-      marginBottom: Spacing.lg,
-    },
-    instructionTitle: {
-      fontSize: Typography.fontSize.lg,
-      fontFamily: 'DMSans-SemiBold',
-      color: colors.text,
-      marginBottom: Spacing.sm,
-      textAlign: 'center',
-    },
-    instructionText: {
-      fontSize: Typography.fontSize.md,
-      fontFamily: 'DMSans-Regular',
-      color: colors.textSecondary,
-      marginBottom: Spacing.md,
-      textAlign: 'center',
-    },
-    ussdSection: {
-      backgroundColor: colors.background,
-      borderRadius: 8,
-      padding: Spacing.md,
-      marginBottom: Spacing.md,
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
       borderColor: colors.border,
       borderWidth: 1,
     },
-    ussdItem: {
+    paymentItem: {
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+      paddingVertical: Spacing.md,
+    },
+    paymentInfo: {
+      marginBottom: Spacing.sm,
+    },
+    paymentHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       alignItems: 'center',
-      marginBottom: Spacing.sm,
+      marginBottom: Spacing.xs,
     },
-    operatorLabel: {
-      fontSize: Typography.fontSize.md,
-      fontFamily: 'DMSans-Medium',
+    paymentAmount: {
+      fontSize: Typography.fontSize.lg,
+      fontFamily: 'DMSans-Bold',
       color: colors.text,
     },
-    ussdCode: {
-      fontSize: Typography.fontSize.md,
-      fontFamily: 'DMSans-Regular',
-      color: colors.textSecondary,
+    paymentStatus: {
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: Spacing.xs,
+      borderRadius: 12,
     },
-    noteText: {
+    paymentStatusText: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Medium',
+      textTransform: 'uppercase',
+    },
+    paymentDate: {
       fontSize: Typography.fontSize.sm,
       fontFamily: 'DMSans-Regular',
       color: colors.textSecondary,
+    },
+    paymentActions: {
+      marginTop: Spacing.sm,
+      paddingTop: Spacing.sm,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    confirmPaymentButton: {
+      marginTop: Spacing.sm,
+    },
+    itemsCard: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: Spacing.lg,
+      marginBottom: Spacing.lg,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+      borderColor: colors.border,
+      borderWidth: 1,
+    },
+    itemRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      paddingVertical: Spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    itemInfo: {
+      flex: 1,
+      marginRight: Spacing.md,
+    },
+    itemName: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-SemiBold',
+      color: colors.text,
+      marginBottom: Spacing.xs,
+    },
+    itemDescription: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+    },
+    itemDetails: {
+      alignItems: 'flex-end',
+    },
+    itemQuantity: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Medium',
+      color: colors.textSecondary,
+      marginBottom: Spacing.xs,
+    },
+    itemAmount: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Bold',
+      color: colors.text,
+      marginBottom: Spacing.xs,
+    },
+    itemTotal: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+    },
+    paymentSummary: {
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      padding: Spacing.lg,
+      marginTop: Spacing.lg,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 2,
+      borderColor: colors.border,
+      borderWidth: 1,
+    },
+    summaryGrid: {
+      flexDirection: 'column',
+      justifyContent: 'space-between',
       marginTop: Spacing.md,
+      gap: Spacing.md,
+    },
+    summaryItem: {
+      alignItems: 'center',
+      paddingVertical: Spacing.sm,
+      paddingHorizontal: Spacing.md,
+      backgroundColor: colors.surface,
+      borderRadius: 8,
+      borderWidth: 1,
+      borderColor: colors.border,
+      width: '100%',
+    },
+    summaryLabel: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Medium',
+      color: colors.textSecondary,
+      marginBottom: Spacing.xs,
       textAlign: 'center',
     },
-    modalFooter: {
-      width: '100%',
-      marginTop: Spacing.md,
+    summaryValue: {
+      fontSize: Typography.fontSize.lg,
+      fontFamily: 'DMSans-Bold',
+      marginBottom: Spacing.xs,
+      textAlign: 'center',
     },
-    okButton: {
-      marginTop: Spacing.md,
+    summaryCount: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+      textAlign: 'center',
     },
   });

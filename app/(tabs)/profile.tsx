@@ -36,6 +36,7 @@ import {
   BadgeDollarSign,
   QrCode,
   Copy,
+  User2Icon,
 } from 'lucide-react-native';
 
 export default function ProfileScreen() {

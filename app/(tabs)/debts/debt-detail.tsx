@@ -588,9 +588,7 @@ export default function DebtDetailScreen() {
             )}
 
             {/* Payment Summary */}
-            {payments && payments.length > 0 && (
-              <View style={styles.paymentSummary}>
-                {(() => {
+            {payments && payments.length > 0 && (() => {
                   const confirmedPayments = payments.filter(p => p.confirmedByIssuer);
                   const pendingPayments = payments.filter(p => !p.confirmedByIssuer);
                   
@@ -632,8 +630,6 @@ export default function DebtDetailScreen() {
                     </View>
                   );
                 })()}
-              </View>
-            )}
           </Card>
 
           <Card style={styles.detailsCard}>
@@ -916,9 +912,7 @@ const getStyles = (colors: any, isDark: boolean) =>
       alignItems: 'center',
       paddingHorizontal: Spacing.lg,
       paddingVertical: Spacing.md,
-      backgroundColor: colors.card,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
+      backgroundColor: colors.background,
     },
     title: {
       fontSize: Typography.fontSize.xl,
@@ -1190,24 +1184,12 @@ const getStyles = (colors: any, isDark: boolean) =>
       fontFamily: 'DMSans-Regular',
       color: colors.textSecondary,
     },
-    paymentSummary: {
-      backgroundColor: colors.card,
-      borderRadius: 12,
-      padding: Spacing.lg,
-      marginTop: Spacing.lg,
-      shadowColor: '#000',
-      shadowOffset: { width: 0, height: 2 },
-      shadowOpacity: 0.1,
-      shadowRadius: 4,
-      elevation: 2,
-      borderColor: colors.border,
-      borderWidth: 1,
-    },
     summaryGrid: {
       flexDirection: 'column',
       justifyContent: 'space-between',
       marginTop: Spacing.md,
       gap: Spacing.md,
+      width:"100%"
     },
     summaryItem: {
       alignItems: 'center',

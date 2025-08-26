@@ -808,8 +808,6 @@ const getStyles = (colors: any) =>
       paddingTop: Spacing.lg,
       paddingBottom: Spacing.sm,
       backgroundColor: colors.background,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
     },
     backButton: {
       marginRight: Spacing.md,

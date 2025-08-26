@@ -207,7 +207,7 @@ export default function ProfileScreen() {
               </View>
 
               <View style={styles.infoItem}>
-                <User2Icon color={colors.textSecondary} size={20} />
+                <User color={colors.textSecondary} size={20} />
                 <Text style={styles.infoText}>{user?.nationalId}</Text>
               </View>
 

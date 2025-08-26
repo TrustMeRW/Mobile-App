@@ -714,28 +714,6 @@ export default function AddDebtScreen() {
         <View style={styles.placeholder} />
       </View>
 
-      {/* Step Indicator */}
-      <View style={styles.stepIndicator}>
-        {[0, 1, 2, 3].map((step) => (
-          <View key={step} style={styles.stepDotContainer}>
-            <View
-              style={[
-                styles.stepDot,
-                step <= currentStep && styles.stepDotActive,
-              ]}
-            />
-            {step < 3 && (
-              <View
-                style={[
-                  styles.stepLine,
-                  step < currentStep && styles.stepLineActive,
-                ]}
-              />
-            )}
-          </View>
-        ))}
-      </View>
-
       {/* Step Title */}
       <Text style={styles.stepTitleText}>{getStepTitle()}</Text>
       

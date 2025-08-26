@@ -86,7 +86,7 @@ export default function UserTrustabilityDisplay({
   };
 
   return (
-    <View style={styles.container} showsVerticalScrollIndicator={false}>
+    <View style={styles.container}>
       {/* User Header */}
       <Card style={styles.userHeaderCard}>
         <View style={styles.userHeader}>

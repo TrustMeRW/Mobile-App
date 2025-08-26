@@ -138,15 +138,19 @@ export default function ProfileScreen() {
       },
     },
     // Only show Subscriptions for SELLER users
-    ...(user?.userType === 'SELLER' ? [{
-      icon: <BadgeDollarSign color={colors.textSecondary} size={20} />,
-      title: 'Subscriptions',
-      subtitle: 'View available subscription plans',
-      onPress: () => {
-        // Navigate to subscriptions screen
-        router.push('/subscriptions');
-      },
-    }] : []),
+    ...(user?.userType === 'SELLER'
+      ? [
+          {
+            icon: <BadgeDollarSign color={colors.textSecondary} size={20} />,
+            title: 'Subscriptions',
+            subtitle: 'View available subscription plans',
+            onPress: () => {
+              // Navigate to subscriptions screen
+              router.push('/subscriptions');
+            },
+          },
+        ]
+      : []),
     {
       icon: darkMode ? (
         <Sun color={colors.textSecondary} size={20} />
@@ -161,7 +165,7 @@ export default function ProfileScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <ScrollView 
+      <ScrollView
         style={styles.content}
         refreshControl={
           <RefreshControl
@@ -202,7 +206,7 @@ export default function ProfileScreen() {
                 <Text style={styles.infoText}>{user?.phoneNumber}</Text>
               </View>
 
-                            <View style={styles.infoItem}>
+              <View style={styles.infoItem}>
                 <User2Icon color={colors.textSecondary} size={20} />
                 <Text style={styles.infoText}>{user?.nationalId}</Text>
               </View>
@@ -225,7 +229,7 @@ export default function ProfileScreen() {
             <Text style={styles.qrCodeSubtitle}>
               Share this code with others to connect and create debts
             </Text>
-            
+
             <View style={styles.qrCodeContent}>
               <View style={styles.qrCodeContainer}>
                 <QRCode
@@ -235,7 +239,7 @@ export default function ProfileScreen() {
                   backgroundColor={colors.white}
                 />
               </View>
-              
+
               <View style={styles.codeSection}>
                 <Text style={styles.codeLabel}>Your Code</Text>
                 <View style={styles.codeDisplay}>
@@ -258,7 +262,8 @@ export default function ProfileScreen() {
                   This unique code identifies you in the Trust Me system
                 </Text>
                 <Text style={styles.codeNote}>
-                  Others can scan your QR code or use this code to connect with you
+                  Others can scan your QR code or use this code to connect with
+                  you
                 </Text>
               </View>
             </View>
@@ -356,11 +361,13 @@ const getStyles = (colors: any) =>
       fontSize: Typography.fontSize.xl,
       fontFamily: 'DMSans-Bold',
       color: colors.text,
+      textAlign: 'center',
     },
     userEmail: {
       fontSize: Typography.fontSize.md,
       color: colors.textSecondary,
       fontFamily: 'DMSans-Regular',
+      textAlign: 'center',
     },
     infoSection: {
       width: '100%',

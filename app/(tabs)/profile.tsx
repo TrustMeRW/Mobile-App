@@ -36,7 +36,6 @@ import {
   BadgeDollarSign,
   QrCode,
   Copy,
-  User2Icon,
 } from 'lucide-react-native';
 
 export default function ProfileScreen() {
@@ -200,11 +199,6 @@ export default function ProfileScreen() {
               <View style={styles.infoItem}>
                 <Phone color={colors.textSecondary} size={20} />
                 <Text style={styles.infoText}>{user?.phoneNumber}</Text>
-              </View>
-
-                            <View style={styles.infoItem}>
-                <User2Icon color={colors.textSecondary} size={20} />
-                <Text style={styles.infoText}>{user?.nationalId}</Text>
               </View>
 
               <View style={styles.infoItem}>

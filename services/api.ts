@@ -89,7 +89,7 @@ export interface Debt {
   payments:any[];items:any[]
 }
 
-const BASE_URL = 'http://5.189.134.45:3000/api';
+const BASE_URL = 'http://5.189.134.45:8787/api';
 
 class ApiClient {
   private axiosInstance: AxiosInstance;
@@ -262,23 +262,35 @@ class ApiClient {
   }
 
   // Debt endpoints
-  async requestDebt(otherPartyId: string, items: Array<{ name: string; description: string; quantity: number; amount: number }>, paymentDate: string) {
-    const response = await this.axiosInstance.post<ApiResponse<Debt>>('/debt/request', { 
+  async requestDebt(otherPartyId: string, items: Array<{ name: string; description: string; quantity: number; amount: number }>, paymentDate?: string) {
+    const requestBody: any = { 
       otherPartyId, 
       initiationType: 'REQUESTED',
       items,
-      dueDate:paymentDate 
-    });
+    };
+    
+    // Only include dueDate if paymentDate is provided
+    if (paymentDate) {
+      requestBody.dueDate = paymentDate;
+    }
+    
+    const response = await this.axiosInstance.post<ApiResponse<Debt>>('/debt/request', requestBody);
     return response.data;
   }
 
-  async offerDebt(otherPartyId: string, items: Array<{ name: string; description: string; quantity: number; amount: number }>, paymentDate: string) {
-    const response = await this.axiosInstance.post<ApiResponse<Debt>>('/debt/offer', { 
+  async offerDebt(otherPartyId: string, items: Array<{ name: string; description: string; quantity: number; amount: number }>, paymentDate?: string) {
+    const requestBody: any = { 
       otherPartyId, 
       initiationType: 'OFFERED',
       items,
-      dueDate:paymentDate 
-    });
+    };
+    
+    // Only include dueDate if paymentDate is provided
+    if (paymentDate) {
+      requestBody.dueDate = paymentDate;
+    }
+    
+    const response = await this.axiosInstance.post<ApiResponse<Debt>>('/debt/offer', requestBody);
     return response.data;
   }
 

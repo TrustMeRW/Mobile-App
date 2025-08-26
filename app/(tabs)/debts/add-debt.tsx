@@ -10,6 +10,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
@@ -17,7 +18,11 @@ import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuthContext } from '@/contexts/AuthContext';
 import { apiClient } from '@/services/api';
-import { Spacing, Typography, BorderRadius } from '@/constants/theme';
+import {
+  Spacing,
+  Typography,
+  BorderRadius,
+} from '@/constants/theme';
 import { MotiView } from 'moti';
 import {
   ChevronLeft,
@@ -43,7 +48,7 @@ interface DebtItem {
 
 interface DebtFormData {
   items: DebtItem[];
-  dueDate: Date;
+  dueDate: Date | null;
   selectedUser: {
     id: string;
     fullName: string;
@@ -99,12 +104,12 @@ export default function AddDebtScreen() {
 
   const [currentStep, setCurrentStep] = useState(0);
   const [showScanner, setShowScanner] = useState(false);
-  const [scannedUserData, setScannedUserData] =
-    useState<UserTrustabilityData | null>(null);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [scannedUserData, setScannedUserData] = useState<UserTrustabilityData | null>(null);
   const [manualUserCode, setManualUserCode] = useState('');
   const [debtForm, setDebtForm] = useState<DebtFormData>({
     items: [{ name: '', description: '', quantity: 1, amount: 0 }],
-    dueDate: new Date(),
+    dueDate: null,
     selectedUser: null,
     intiationType: 'REQUEST',
   });
@@ -123,19 +128,18 @@ export default function AddDebtScreen() {
   const createDebtMutation = useMutation({
     mutationFn: (newDebt: DebtFormData) => {
       const { items, dueDate, selectedUser, intiationType } = newDebt;
-      const formattedPaymentDate = dueDate.toISOString().split('T')[0];
-
+      
       if (intiationType === 'REQUEST') {
         return apiClient.requestDebt(
           selectedUser?.id || '',
           items,
-          formattedPaymentDate
+          dueDate ? dueDate.toISOString().split('T')[0] : undefined
         );
       } else {
         return apiClient.offerDebt(
           selectedUser?.id || '',
           items,
-          formattedPaymentDate
+          dueDate ? dueDate.toISOString().split('T')[0] : undefined
         );
       }
     },
@@ -170,34 +174,27 @@ export default function AddDebtScreen() {
   };
 
   const handleDebtTypeChange = (type: 'REQUEST' | 'offer') => {
-    setDebtForm((prev) => ({ ...prev, intiationType: type }));
+    setDebtForm(prev => ({ ...prev, intiationType: type }));
   };
 
   const addItem = () => {
-    setDebtForm((prev) => ({
+    setDebtForm(prev => ({
       ...prev,
-      items: [
-        ...prev.items,
-        { name: '', description: '', quantity: 1, amount: 0 },
-      ],
+      items: [...prev.items, { name: '', description: '', quantity: 1, amount: 0 }],
     }));
   };
 
   const removeItem = (index: number) => {
     if (debtForm.items.length > 1) {
-      setDebtForm((prev) => ({
+      setDebtForm(prev => ({
         ...prev,
         items: prev.items.filter((_, i) => i !== index),
       }));
     }
   };
 
-  const updateItem = (
-    index: number,
-    field: keyof DebtItem,
-    value: string | number
-  ) => {
-    setDebtForm((prev) => ({
+  const updateItem = (index: number, field: keyof DebtItem, value: string | number) => {
+    setDebtForm(prev => ({
       ...prev,
       items: prev.items.map((item, i) =>
         i === index ? { ...item, [field]: value } : item
@@ -216,14 +213,16 @@ export default function AddDebtScreen() {
       Alert.alert(
         'Error',
         error.message || 'Failed to fetch user data. Please try again.',
-        [{ text: 'OK', onPress: () => setShowScanner(false) }]
+        [
+          { text: 'OK', onPress: () => setShowScanner(false) },
+        ]
       );
     }
   };
 
   const handleProceed = () => {
     if (scannedUserData) {
-      setDebtForm((prev) => ({
+      setDebtForm(prev => ({
         ...prev,
         selectedUser: {
           id: scannedUserData.userId,
@@ -248,9 +247,7 @@ export default function AddDebtScreen() {
     }
 
     try {
-      const response = await apiClient.getUserTrustabilityAnalyticsByCode(
-        manualUserCode.trim()
-      );
+      const response = await apiClient.getUserTrustabilityAnalyticsByCode(manualUserCode.trim());
       setScannedUserData(response.payload);
       setManualUserCode('');
       setCurrentStep(2); // Move to user display step
@@ -259,8 +256,31 @@ export default function AddDebtScreen() {
       Alert.alert(
         'Error',
         error.message || 'Failed to fetch user data. Please try again.',
-        [{ text: 'OK' }]
+        [
+          { text: 'OK' },
+        ]
       );
+    }
+  };
+
+  const handleDateChange = (event: any, selectedDate?: Date) => {
+    setShowDatePicker(false);
+    
+    if (selectedDate) {
+      // Ensure the selected date is from tomorrow onwards
+      const tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow.setHours(0, 0, 0, 0);
+      
+      if (selectedDate >= tomorrow) {
+        setDebtForm(prev => ({ ...prev, dueDate: selectedDate }));
+      } else {
+        Alert.alert(
+          'Invalid Date',
+          'Please select a date from tomorrow onwards.',
+          [{ text: 'OK' }]
+        );
+      }
     }
   };
 
@@ -271,7 +291,7 @@ export default function AddDebtScreen() {
     }
 
     const hasEmptyFields = debtForm.items.some(
-      (item) => !item.name || !item.description || item.amount <= 0
+      item => !item.name || !item.description || item.amount <= 0
     );
 
     if (hasEmptyFields) {
@@ -285,13 +305,14 @@ export default function AddDebtScreen() {
   const resetForm = () => {
     setDebtForm({
       items: [{ name: '', description: '', quantity: 1, amount: 0 }],
-      dueDate: new Date(),
+      dueDate: null,
       selectedUser: null,
       intiationType: 'REQUEST',
     });
     setCurrentStep(0);
     setScannedUserData(null);
     setManualUserCode('');
+    setShowDatePicker(false);
   };
 
   const renderStepContent = () => {
@@ -316,28 +337,21 @@ export default function AddDebtScreen() {
                 <TouchableOpacity
                   style={[
                     styles.debtTypeOption,
-                    debtForm.intiationType === 'REQUEST' &&
-                      styles.debtTypeOptionActive,
+                    debtForm.intiationType === 'REQUEST' && styles.debtTypeOptionActive
                   ]}
                   onPress={() => handleDebtTypeChange('REQUEST')}
                 >
                   <View style={styles.debtTypeContent}>
-                    <Text
-                      style={[
-                        styles.debtTypeTitle,
-                        debtForm.intiationType === 'REQUEST' &&
-                          styles.debtTypeTitleActive,
-                      ]}
-                    >
+                    <Text style={[
+                      styles.debtTypeTitle,
+                      debtForm.intiationType === 'REQUEST' && styles.debtTypeTitleActive
+                    ]}>
                       I Owe Someone
                     </Text>
-                    <Text
-                      style={[
-                        styles.debtTypeSubtext,
-                        debtForm.intiationType === 'REQUEST' &&
-                          styles.debtTypeSubtextActive,
-                      ]}
-                    >
+                    <Text style={[
+                      styles.debtTypeSubtext,
+                      debtForm.intiationType === 'REQUEST' && styles.debtTypeSubtextActive
+                    ]}>
                       You're requesting to borrow from someone
                     </Text>
                   </View>
@@ -346,28 +360,21 @@ export default function AddDebtScreen() {
                 <TouchableOpacity
                   style={[
                     styles.debtTypeOption,
-                    debtForm.intiationType === 'offer' &&
-                      styles.debtTypeOptionActive,
+                    debtForm.intiationType === 'offer' && styles.debtTypeOptionActive
                   ]}
                   onPress={() => handleDebtTypeChange('offer')}
                 >
                   <View style={styles.debtTypeContent}>
-                    <Text
-                      style={[
-                        styles.debtTypeTitle,
-                        debtForm.intiationType === 'offer' &&
-                          styles.debtTypeTitleActive,
-                      ]}
-                    >
+                    <Text style={[
+                      styles.debtTypeTitle,
+                      debtForm.intiationType === 'offer' && styles.debtTypeTitleActive
+                    ]}>
                       Someone Owes Me
                     </Text>
-                    <Text
-                      style={[
-                        styles.debtTypeSubtext,
-                        debtForm.intiationType === 'offer' &&
-                          styles.debtTypeSubtextActive,
-                      ]}
-                    >
+                    <Text style={[
+                      styles.debtTypeSubtext,
+                      debtForm.intiationType === 'offer' && styles.debtTypeSubtextActive
+                    ]}>
                       You're offering to lend to someone
                     </Text>
                   </View>
@@ -387,10 +394,10 @@ export default function AddDebtScreen() {
             <Card style={styles.stepCard}>
               <View style={styles.stepHeader}>
                 <Package color={colors.primary} size={24} />
-                <Text style={styles.stepTitle}>Add Items</Text>
+                <Text style={styles.stepTitle}>Add Items & Set Date</Text>
               </View>
               <Text style={styles.stepSubtext}>
-                Add the items you want to include in this debt
+                Add the items you want to include in this debt and set a payment due date
               </Text>
 
               {debtForm.items.map((item, index) => (
@@ -419,9 +426,7 @@ export default function AddDebtScreen() {
                     label="Description"
                     placeholder="Brief description of the item"
                     value={item.description}
-                    onChangeText={(value) =>
-                      updateItem(index, 'description', value)
-                    }
+                    onChangeText={(value) => updateItem(index, 'description', value)}
                     style={styles.itemInput}
                     multiline
                     numberOfLines={3}
@@ -429,28 +434,22 @@ export default function AddDebtScreen() {
                   />
 
                   <View style={styles.itemRow}>
-                    <View style={{ width: '49%' }}>
-                      <Input
-                        label="Quantity"
-                        placeholder="1"
-                        value={item.quantity.toString()}
-                        onChangeText={(value) =>
-                          updateItem(index, 'quantity', parseInt(value) || 1)
-                        }
-                        keyboardType="numeric"
-                      />
-                    </View>
-                    <View style={{ width: '49%' }}>
-                      <Input
-                        label="Amount (RWF)"
-                        placeholder="0"
-                        value={item.amount.toString()}
-                        onChangeText={(value) =>
-                          updateItem(index, 'amount', parseFloat(value) || 0)
-                        }
-                        keyboardType="numeric"
-                      />
-                    </View>
+                    <Input
+                      label="Quantity"
+                      placeholder="1"
+                      value={item.quantity.toString()}
+                      onChangeText={(value) => updateItem(index, 'quantity', parseInt(value) || 1)}
+                      keyboardType="numeric"
+                      style={[styles.itemInput, { flex: 0.48 }]}
+                    />
+                    <Input
+                      label="Amount (RWF)"
+                      placeholder="0"
+                      value={item.amount.toString()}
+                      onChangeText={(value) => updateItem(index, 'amount', parseFloat(value) || 0)}
+                      keyboardType="numeric"
+                      style={[styles.itemInput, { flex: 0.48 }]}
+                    />
                   </View>
                 </View>
               ))}
@@ -459,13 +458,75 @@ export default function AddDebtScreen() {
                 <Plus color={colors.primary} size={20} />
                 <Text style={styles.addItemText}>Add Another Item</Text>
               </TouchableOpacity>
+
+              {/* Payment Date Section */}
+              <View style={styles.paymentDateSection}>
+                <View style={styles.sectionHeader}>
+                  <Calendar color={colors.primary} size={20} />
+                  <Text style={styles.sectionTitle}>Payment Date (Optional)</Text>
+                </View>
+                <Text style={styles.sectionSubtext}>
+                  Set a payment due date for this debt. If not specified, no due date will be set.
+                </Text>
+                
+                <View style={styles.datePickerContainer}>
+                  <TouchableOpacity
+                    style={styles.datePickerButton}
+                    onPress={() => setShowDatePicker(true)}
+                  >
+                    <Calendar color={colors.primary} size={18} />
+                    <Text style={styles.datePickerButtonText}>
+                      {debtForm.dueDate ? debtForm.dueDate.toLocaleDateString() : 'Select Date'}
+                    </Text>
+                  </TouchableOpacity>
+                  
+                  {debtForm.dueDate && (
+                    <View style={styles.dateActionsContainer}>
+                      <TouchableOpacity
+                        style={styles.clearDateButton}
+                        onPress={() => setDebtForm(prev => ({ ...prev, dueDate: null }))}
+                      >
+                        <Text style={styles.clearDateButtonText}>Clear Date</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+                
+                {debtForm.dueDate && (
+                  <View style={styles.dateInfo}>
+                    <Text style={styles.dateInfoText}>
+                      Payment due: {debtForm.dueDate.toLocaleDateString()}
+                    </Text>
+                    <Text style={styles.dateInfoSubtext}>
+                      This debt will be marked as overdue after this date
+                    </Text>
+                  </View>
+                )}
+
+                {/* Date Picker - Only rendered in step 1 */}
+                {showDatePicker && (
+                  <DateTimePicker
+                    value={debtForm.dueDate || new Date()}
+                    mode="date"
+                    display="default"
+                    onChange={handleDateChange}
+                    minimumDate={new Date(Date.now() + 24 * 60 * 60 * 1000)} // Tomorrow
+                  />
+                )}
+              </View>
             </Card>
           </MotiView>
         );
 
       case 2:
         if (scannedUserData) {
-          return <UserTrustabilityDisplay data={scannedUserData} />;
+          return (
+            <UserTrustabilityDisplay
+              data={scannedUserData}
+              onProceed={handleProceed}
+              onCancel={handleCancel}
+            />
+          );
         }
         return (
           <MotiView
@@ -481,7 +542,8 @@ export default function AddDebtScreen() {
               <Text style={styles.stepSubtext}>
                 {debtForm.intiationType === 'REQUEST'
                   ? 'Scan the QR code of the person you want to borrow from'
-                  : 'Scan the QR code of the person you want to lend to'}
+                  : 'Scan the QR code of the person you want to lend to'
+                }
               </Text>
               <TouchableOpacity
                 style={styles.scanButton}
@@ -490,12 +552,10 @@ export default function AddDebtScreen() {
                 <QrCode color={colors.white} size={24} />
                 <Text style={styles.scanButtonText}>Scan QR Code</Text>
               </TouchableOpacity>
-
+              
               {/* Manual Input Section */}
               <View style={styles.manualInputSection}>
-                <Text style={styles.manualInputLabel}>
-                  Or enter user code manually:
-                </Text>
+                <Text style={styles.manualInputLabel}>Or enter user code manually:</Text>
                 <View style={styles.manualInputContainer}>
                   <Input
                     placeholder="Enter user code"
@@ -508,18 +568,18 @@ export default function AddDebtScreen() {
                     onPress={handleManualCodeSubmit}
                     disabled={!manualUserCode.trim()}
                   >
-                    <Text style={styles.manualSubmitButtonText}>
-                      Fetch User
-                    </Text>
+                    <Text style={styles.manualSubmitButtonText}>Fetch User</Text>
                   </TouchableOpacity>
                 </View>
               </View>
-
+              
               <Text style={styles.scanInstructions}>
-                Point your camera at the user's QR code to scan and view their
-                trustability analytics
+                Point your camera at the user's QR code to scan and view their trustability analytics
               </Text>
             </Card>
+
+            {/* Payment Date Section - Separate Card */}
+            {/* This section is now moved to step 1 */}
           </MotiView>
         );
 
@@ -542,25 +602,21 @@ export default function AddDebtScreen() {
               <View style={styles.reviewSection}>
                 <Text style={styles.reviewTitle}>Debt Type</Text>
                 <Text style={styles.reviewValue}>
-                  {debtForm.intiationType === 'REQUEST'
-                    ? 'I Owe Someone'
-                    : 'Someone Owes Me'}
+                  {debtForm.intiationType === 'REQUEST' ? 'I Owe Someone' : 'Someone Owes Me'}
                 </Text>
                 <Text style={styles.reviewDescription}>
-                  {debtForm.intiationType === 'REQUEST'
+                  {debtForm.intiationType === 'REQUEST' 
                     ? 'You are requesting to borrow from this person'
-                    : 'You are offering to lend to this person'}
+                    : 'You are offering to lend to this person'
+                  }
                 </Text>
               </View>
 
               <View style={styles.reviewSection}>
                 <Text style={styles.reviewTitle}>Selected User</Text>
-                <Text style={styles.reviewValue}>
-                  {debtForm.selectedUser?.fullName}
-                </Text>
+                <Text style={styles.reviewValue}>{debtForm.selectedUser?.fullName}</Text>
                 <Text style={styles.reviewDescription}>
-                  Trustability Score:{' '}
-                  {debtForm.selectedUser?.trustabilityPercentage}%
+                  Trustability Score: {debtForm.selectedUser?.trustabilityPercentage}%
                 </Text>
               </View>
 
@@ -577,17 +633,20 @@ export default function AddDebtScreen() {
                   </View>
                 ))}
                 <Text style={styles.reviewTotal}>
-                  Total: RWF{' '}
-                  {debtForm.items
-                    .reduce((sum, item) => sum + item.amount, 0)
-                    .toLocaleString()}
+                  Total: RWF {debtForm.items.reduce((sum, item) => sum + item.amount, 0).toLocaleString()}
                 </Text>
               </View>
 
               <View style={styles.reviewSection}>
                 <Text style={styles.reviewTitle}>Due Date</Text>
                 <Text style={styles.reviewValue}>
-                  {debtForm.dueDate.toLocaleDateString()}
+                  {debtForm.dueDate ? debtForm.dueDate.toLocaleDateString() : 'Not specified'}
+                </Text>
+                <Text style={styles.reviewDescription}>
+                  {debtForm.dueDate 
+                    ? `Payment due on ${debtForm.dueDate.toLocaleDateString()}`
+                    : 'No due date set for this debt'
+                  }
                 </Text>
               </View>
             </Card>
@@ -604,7 +663,7 @@ export default function AddDebtScreen() {
       case 0:
         return 'Select Debt Type';
       case 1:
-        return 'Add Items';
+        return 'Add Items & Set Date';
       case 2:
         return 'Scan User';
       case 3:
@@ -619,9 +678,7 @@ export default function AddDebtScreen() {
       case 0:
         return debtForm.intiationType !== null;
       case 1:
-        return debtForm.items.every(
-          (item) => item.name && item.description && item.amount > 0
-        );
+        return debtForm.items.every(item => item.name && item.description && item.amount > 0);
       case 2:
         return scannedUserData !== null;
       case 3:
@@ -650,10 +707,7 @@ export default function AddDebtScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ChevronLeft color={colors.text} size={24} />
         </TouchableOpacity>
         <Text style={styles.title}>Add New Debt</Text>
@@ -661,9 +715,41 @@ export default function AddDebtScreen() {
       </View>
 
       {/* Step Indicator */}
+      <View style={styles.stepIndicator}>
+        {[0, 1, 2, 3].map((step) => (
+          <View key={step} style={styles.stepDotContainer}>
+            <View
+              style={[
+                styles.stepDot,
+                step <= currentStep && styles.stepDotActive,
+              ]}
+            />
+            {step < 3 && (
+              <View
+                style={[
+                  styles.stepLine,
+                  step < currentStep && styles.stepLineActive,
+                ]}
+              />
+            )}
+          </View>
+        ))}
+      </View>
 
       {/* Step Title */}
       <Text style={styles.stepTitleText}>{getStepTitle()}</Text>
+      
+      {/* Step Description */}
+      {currentStep === 1 && (
+        <Text style={styles.stepDescription}>
+          Add debt items and optionally set a payment due date
+        </Text>
+      )}
+      {currentStep === 2 && (
+        <Text style={styles.stepDescription}>
+          Scan a user's QR code to select who you're creating the debt with
+        </Text>
+      )}
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -681,20 +767,12 @@ export default function AddDebtScreen() {
           />
         )}
         {currentStep < 3 ? (
-          currentStep == 2 ? (
-            <Button
-              title="Proceed"
-              onPress={handleProceed}
-              style={styles.navButton}
-            />
-          ) : (
-            <Button
-              title="Next"
-              onPress={handleNext}
-              disabled={!canProceed()}
-              style={styles.navButton}
-            />
-          )
+          <Button
+            title="Next"
+            onPress={handleNext}
+            disabled={!canProceed()}
+            style={styles.navButton}
+          />
         ) : (
           <Button
             title="Create Debt"
@@ -730,6 +808,8 @@ const getStyles = (colors: any) =>
       paddingTop: Spacing.lg,
       paddingBottom: Spacing.sm,
       backgroundColor: colors.background,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
     },
     backButton: {
       marginRight: Spacing.md,
@@ -781,10 +861,8 @@ const getStyles = (colors: any) =>
       color: colors.text,
       marginBottom: Spacing.sm,
       paddingHorizontal: Spacing.lg,
-      marginTop: Spacing.md,
     },
     stepCard: {
-      marginTop: Spacing.md,
       marginBottom: Spacing.md,
       borderRadius: BorderRadius.md,
       overflow: 'hidden',
@@ -868,7 +946,6 @@ const getStyles = (colors: any) =>
       backgroundColor: colors.card,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
-      marginBottom: Spacing.md,
     },
     itemNumber: {
       fontSize: Typography.fontSize.md,
@@ -881,11 +958,9 @@ const getStyles = (colors: any) =>
     itemInput: {
       marginBottom: Spacing.sm,
       paddingHorizontal: Spacing.sm,
-      flexGrow: 1,
     },
     itemRow: {
       flexDirection: 'row',
-      flexWrap: 'wrap',
       justifyContent: 'space-between',
       paddingHorizontal: Spacing.sm,
       marginBottom: Spacing.sm,
@@ -1017,13 +1092,15 @@ const getStyles = (colors: any) =>
       marginBottom: Spacing.xs,
     },
     manualInputContainer: {
-      flexDirection: 'column',
-      gap: Spacing.xs,
-      marginBottom: Spacing.md,
-      width: '100%',
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
     },
     manualInput: {
-      width: '100%',
+      flex: 1,
       paddingVertical: Spacing.sm,
       paddingHorizontal: Spacing.md,
       fontSize: Typography.fontSize.md,
@@ -1031,7 +1108,7 @@ const getStyles = (colors: any) =>
       color: colors.text,
     },
     manualSubmitButton: {
-      paddingVertical: Spacing.md,
+      paddingVertical: Spacing.sm,
       paddingHorizontal: Spacing.md,
       backgroundColor: colors.primary,
       borderRadius: BorderRadius.md,
@@ -1042,6 +1119,89 @@ const getStyles = (colors: any) =>
       fontSize: Typography.fontSize.md,
       fontFamily: 'DMSans-Medium',
       color: colors.white,
+    },
+    datePickerContainer: {
+      marginBottom: Spacing.sm,
+      padding: Spacing.sm,
+    },
+    datePickerButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: Spacing.md,
+      paddingHorizontal: Spacing.md,
+      borderRadius: BorderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.primary,
+      backgroundColor: colors.background,
+      minHeight: 50,
+    },
+    datePickerButtonText: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Medium',
+      color: colors.primary,
+      marginLeft: Spacing.sm,
       textAlign: 'center',
+      flex: 1,
+    },
+    clearDateButton: {
+      paddingVertical: Spacing.xs,
+      paddingHorizontal: Spacing.sm,
+      backgroundColor: colors.error,
+      borderRadius: BorderRadius.sm,
+    },
+    clearDateButtonText: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Medium',
+      color: colors.white,
+    },
+    dateInfo: {
+      marginTop: Spacing.sm,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: Spacing.sm,
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    dateInfoText: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Medium',
+      color: colors.text,
+      textAlign: 'center',
+    },
+    dateInfoSubtext: {
+      fontSize: Typography.fontSize.xs,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+      marginTop: Spacing.xs,
+      textAlign: 'center',
+    },
+    dateActionsContainer: {
+      flexDirection: 'row',
+      justifyContent: 'flex-end',
+      marginTop: Spacing.sm,
+    },
+    paymentDateSection: {
+      marginTop: Spacing.md,
+      paddingHorizontal: Spacing.sm,
+    },
+    sectionHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: Spacing.xs,
+    },
+    sectionTitle: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Bold',
+      color: colors.text,
+      marginLeft: Spacing.sm,
+    },
+    sectionSubtext: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+      marginBottom: Spacing.sm,
+      paddingHorizontal: Spacing.sm,
     },
   });

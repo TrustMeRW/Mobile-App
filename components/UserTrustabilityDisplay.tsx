@@ -59,11 +59,14 @@ interface UserTrustabilityData {
 
 interface UserTrustabilityDisplayProps {
   data: UserTrustabilityData;
-
+  onProceed: () => void;
+  onCancel: () => void;
 }
 
 export default function UserTrustabilityDisplay({
   data,
+  onProceed,
+  onCancel,
 }: UserTrustabilityDisplayProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
@@ -86,7 +89,7 @@ export default function UserTrustabilityDisplay({
   };
 
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* User Header */}
       <Card style={styles.userHeaderCard}>
         <View style={styles.userHeader}>
@@ -258,13 +261,24 @@ export default function UserTrustabilityDisplay({
           Analyzed on: {formatDate(data.analyzedAt)}
         </Text>
       </Card>
-    </View>
+
+      {/* Action Buttons */}
+      <View style={styles.actionButtons}>
+        <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
+          <Text style={styles.cancelButtonText}>Cancel</Text>
+        </TouchableOpacity>
+        <TouchableOpacity style={styles.proceedButton} onPress={onProceed}>
+          <Text style={styles.proceedButtonText}>Proceed</Text>
+        </TouchableOpacity>
+      </View>
+    </ScrollView>
   );
 }
 
 const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
+    padding: Spacing.lg,
   },
   userHeaderCard: {
     marginBottom: Spacing.lg,

@@ -1,4 +1,9 @@
 import { useEffect, useState } from 'react';
+import { LogBox } from 'react-native';
+// Suppress all log notifications and error popups in Expo Go
+LogBox.ignoreAllLogs(true);
+console.error = () => {};
+console.warn = () => {};
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import OnboardingScreen from './onboarding';
 import { Stack } from 'expo-router';

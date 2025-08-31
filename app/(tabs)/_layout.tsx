@@ -1,14 +1,18 @@
 import { Tabs } from 'expo-router';
 import { useTheme } from '@/contexts/ThemeContext';
-import { Home, CreditCard, BarChart3, User, Crown } from 'lucide-react-native';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { Home, CreditCard, BarChart3, User as UserIcon, Crown } from 'lucide-react-native';
 import { AnimatedTabBarIcon } from '@/components/AnimatedTabBarIcon';
 import { NotificationBell } from '@/components/NotificationBell';
 import { View } from 'react-native';
 
 export default function TabLayout() {
   const { colors } = useTheme();
+  const { t, currentLanguage } = useTranslation();
+
   return (
     <Tabs
+      key={currentLanguage} // Force re-render when language changes
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
@@ -30,7 +34,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
+          title: t('navigation.home'),
           tabBarIcon: ({ size, color, focused }) => (
             <AnimatedTabBarIcon
               icon={Home}
@@ -49,7 +53,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="debts"
         options={{
-          title: 'Debts',
+          title: t('navigation.debts'),
           tabBarIcon: ({ size, color, focused }) => (
             <AnimatedTabBarIcon
               icon={CreditCard}
@@ -63,7 +67,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="subscriptions"
         options={{
-          title: 'Subscriptions',
+          title: t('navigation.subscriptions'),
           tabBarIcon: ({ size, color, focused }) => (
             <AnimatedTabBarIcon
               icon={Crown}
@@ -77,10 +81,10 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
-          title: 'Profile',
+          title: t('navigation.profile'),
           tabBarIcon: ({ size, color, focused }) => (
             <AnimatedTabBarIcon
-              icon={User}
+              icon={UserIcon}
               size={size}
               color={color}
               isFocused={focused}

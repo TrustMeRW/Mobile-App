@@ -1,76 +1,106 @@
 import React from 'react';
-import { View, Text, StyleSheet, Modal, TouchableOpacity } from 'react-native';
-import { BlurView } from 'expo-blur';
-import { MotiView } from 'moti';
-import { Button } from './Button';
-import { lightColors as Colors, Typography, Spacing, BorderRadius } from '@/constants/theme';
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  Dimensions,
+} from 'react-native';
+import { useTheme } from '@/contexts/ThemeContext';
+import { Typography, Spacing, BorderRadius } from '@/constants/theme';
+import { CheckCircle, X } from 'lucide-react-native';
 
 interface ConfirmationModalProps {
-  visible: boolean;
+  isVisible: boolean;
+  onClose: () => void;
+  onConfirm: () => void;
   title: string;
   message: string;
   confirmText?: string;
   cancelText?: string;
-  onConfirm: () => void;
-  onCancel: () => void;
-  type?: 'default' | 'danger';
+  icon?: React.ReactNode;
+  iconColor?: string;
 }
 
+const { height: screenHeight } = Dimensions.get('window');
+
 export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
-  visible,
+  isVisible,
+  onClose,
+  onConfirm,
   title,
   message,
   confirmText = 'Confirm',
   cancelText = 'Cancel',
-  onConfirm,
-  onCancel,
-  type = 'default',
+  icon,
+  iconColor,
 }) => {
+  const { colors } = useTheme();
+
   return (
     <Modal
-      animationType="fade"
-      transparent={true}
-      visible={visible}
-      onRequestClose={onCancel}
+      visible={isVisible}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
     >
-      <BlurView intensity={20} style={styles.overlay}>
-        <TouchableOpacity 
-          style={styles.backdrop} 
-          activeOpacity={1} 
-          onPress={onCancel}
-        >
-          <MotiView
-            from={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ type: 'timing', duration: 300 }}
-            style={styles.modal}
-          >
-            <TouchableOpacity activeOpacity={1}>
-              <Text style={styles.title}>{title}</Text>
-              <Text style={styles.message}>{message}</Text>
-              
-              <View style={styles.buttons}>
-                <Button
-                  title={cancelText}
-                  onPress={onCancel}
-                  variant="outline"
-                  style={styles.cancelButton}
-                />
-                <Button
-                  title={confirmText}
-                  onPress={onConfirm}
-                  variant={type === 'danger' ? 'outline' : 'primary'}
-                  style={[
-                    styles.confirmButton,
-                    type === 'danger' && styles.dangerButton,
-                  ]}
-                  textStyle={type === 'danger' && styles.dangerText}
-                />
-              </View>
+      <View style={styles.overlay}>
+        <TouchableOpacity
+          style={styles.backdrop}
+          activeOpacity={1}
+          onPress={onClose}
+        />
+        
+        <View style={[styles.modal, { backgroundColor: colors.card }]}>
+          {/* Header */}
+          <View style={styles.header}>
+            <View style={styles.titleContainer}>
+              {icon && (
+                <View style={[
+                  styles.iconContainer, 
+                  { backgroundColor: (iconColor || colors.primary) + '15' }
+                ]}>
+                  {icon}
+                </View>
+              )}
+              <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
+            </View>
+            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+              <X color={colors.textSecondary} size={20} />
             </TouchableOpacity>
-          </MotiView>
-        </TouchableOpacity>
-      </BlurView>
+          </View>
+
+          {/* Content */}
+          <View style={styles.content}>
+            <Text style={[styles.message, { color: colors.textSecondary }]}>
+              {message}
+            </Text>
+          </View>
+
+          {/* Buttons */}
+          <View style={styles.buttonContainer}>
+            <TouchableOpacity
+              style={[styles.cancelButton, { borderColor: colors.border }]}
+              onPress={onClose}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>
+                {cancelText}
+              </Text>
+            </TouchableOpacity>
+            
+            <TouchableOpacity
+              style={[styles.confirmButton, { backgroundColor: colors.primary }]}
+              onPress={onConfirm}
+              activeOpacity={0.8}
+            >
+              <CheckCircle color={colors.white} size={18} />
+              <Text style={styles.confirmButtonText}>{confirmText}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </View>
     </Modal>
   );
 };
@@ -78,50 +108,91 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
+    justifyContent: 'flex-end',
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
   },
   backdrop: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: Spacing.lg,
   },
   modal: {
-    backgroundColor: Colors.white,
-    borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    width: '100%',
-    maxWidth: 400,
+    borderTopLeftRadius: BorderRadius.xl,
+    borderTopRightRadius: BorderRadius.xl,
+    paddingBottom: 40, // Safe area for bottom
+    maxHeight: screenHeight * 0.5,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0, 0, 0, 0.1)',
+  },
+  titleContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: Spacing.md,
   },
   title: {
     fontSize: Typography.fontSize.xl,
     fontFamily: 'DMSans-Bold',
-    color: Colors.dark,
-    textAlign: 'center',
-    marginBottom: Spacing.md,
+  },
+  closeButton: {
+    padding: Spacing.sm,
+    borderRadius: BorderRadius.md,
+  },
+  content: {
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: Spacing.lg,
   },
   message: {
     fontSize: Typography.fontSize.md,
     fontFamily: 'DMSans-Regular',
-    color: Colors.gray[600],
+    lineHeight: 24,
     textAlign: 'center',
-    lineHeight: 22,
-    marginBottom: Spacing.xl,
   },
-  buttons: {
+  buttonContainer: {
     flexDirection: 'row',
+    paddingHorizontal: Spacing.lg,
+    paddingTop: Spacing.md,
     gap: Spacing.md,
   },
   cancelButton: {
     flex: 1,
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cancelButtonText: {
+    fontSize: Typography.fontSize.md,
+    fontFamily: 'DMSans-SemiBold',
   },
   confirmButton: {
     flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    borderRadius: BorderRadius.lg,
+    gap: Spacing.sm,
   },
-  dangerButton: {
-    borderColor: Colors.error,
-  },
-  dangerText: {
-    color: Colors.error,
+  confirmButtonText: {
+    fontSize: Typography.fontSize.md,
+    fontFamily: 'DMSans-SemiBold',
+    color: 'white',
   },
 });

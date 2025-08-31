@@ -1,0 +1,548 @@
+{
+  "common": {
+    "welcome": "Murakaza neza",
+    "next": "Ikurikira",
+    "previous": "Ibanza",
+    "skip": "Reka",
+    "done": "Byarangiye",
+    "cancel": "Hagarika",
+    "save": "Bika",
+    "delete": "Siba",
+    "edit": "Hindura",
+    "loading": "Birakora...",
+    "error": "Ikibazo",
+    "success": "Intsinzi",
+    "confirm": "Emeza",
+    "back": "Subira inyuma",
+    "ok": "OK",
+    "close": "Funga"
+  },
+  "logout": {
+    "title": "Sohoka",
+    "message": "Uzi neza ko urifuza gusohoka muri konti yawe? Uzakeneye gusubira kwinjira kugira ngo ubone amakuru yawe.",
+    "cancel": "Hagarika",
+    "confirm": "Sohoka"
+  },
+  "changeCode": {
+    "input": {
+      "title": "Hindura kode yawe",
+      "message": "Andika kode yawe nshya y'ubwoko. Iyi izahindura kode yawe ya kera kandi izashobora gukoreshwa kugira ngo ubuhamya bw'ubwoko.",
+      "newCodeLabel": "Kode nshya",
+      "placeholder": "Andika kode nshya",
+      "hint": "Kode igomba kuba ifite inyuguti 4-6",
+      "next": "Uko utaha"
+    },
+    "confirm": {
+      "title": "Emeza kode nshya",
+      "message": "Nyamuneka emeza kode yawe nshya kugira ngo uzi neza ko ari yo.",
+      "confirmCodeLabel": "Emeza kode",
+      "placeholder": "Emeza kode nshya",
+      "back": "Subira inyuma",
+      "confirm": "Emeza kode"
+    },
+    "success": {
+      "title": "Kode yahindutse neza",
+      "message": "Kode yawe yongeye neza. Ubu ushobora kuyikoresha kugira ngo ubuhamya bw'ubwoko.",
+      "close": "Funga"
+    },
+    "error": {
+      "emptyCode": "Nyamuneka andika kode",
+      "tooShort": "Kode igomba kuba ifite inyuguti 4 kandi",
+      "tooLong": "Kode ntishobora kurenza inyuguti 6",
+      "mismatch": "Kode ntizihura. Ongera ugerageze."
+    }
+  },
+  "editProfile": {
+    "title": "Hindura aho uri",
+    "sections": {
+      "personalInfo": {
+        "title": "Amakuru yawe",
+        "readOnly": "Soma gusa"
+      },
+      "location": {
+        "title": "Amakuru y'aho uri",
+        "editable": "Hindurwa"
+      }
+    },
+    "fields": {
+      "firstName": "Izina rya mbere",
+      "firstNamePlaceholder": "Andika izina ryawe rya mbere",
+      "lastName": "Izina rya nyuma",
+      "lastNamePlaceholder": "Andika izina ryawe rya nyuma",
+      "email": "Imeyili",
+      "emailPlaceholder": "Andika imeyili yawe",
+      "phoneNumber": "Telefoni",
+      "phonePlaceholder": "Andika telefoni yawe"
+    },
+    "location": {
+      "province": "Intara",
+      "district": "Akarere",
+      "sector": "Umurenge",
+      "cell": "Akagari",
+      "village": "Umudugudu",
+      "selectProvince": "Hitamo intara",
+      "selectDistrict": "Hitamo akarere",
+      "selectSector": "Hitamo umurenge",
+      "selectCell": "Hitamo akagari",
+      "selectVillage": "Hitamo umudugudu",
+      "search": "Shakisha {{type}}...",
+      "selectProvince": "Hitamo Intara",
+      "selectDistrict": "Hitamo Akarere",
+      "selectSector": "Hitamo Umurenge",
+      "selectCell": "Hitamo Akagari",
+      "selectVillage": "Hitamo Umudugudu"
+    },
+    "location.error": {
+      "selectProvinceFirst": {
+        "title": "Hitamo Intara mbere",
+        "message": "Nyamuneka hitamo intara mbere yo guhitamo akarere"
+      },
+      "selectLocationFirst": {
+        "title": "Hitamo aho uri mbere",
+        "message": "Nyamuneka hitamo aho uri rya mbere rikenewe mbere"
+      },
+      "noData": {
+        "title": "Nta makuru ahari",
+        "message": "Nta makuru ya {{type}} yabonetse kuri aho uri wahitamo"
+      }
+    },
+    "validation": {
+      "error": {
+        "title": "Ikibazo",
+        "completeLocation": "Nyamuneka uzuzuza amashami yose y'aho uri"
+      }
+    },
+    "confirm": {
+      "title": "Emeza guhindura aho uri",
+      "message": "Uzi neza ko urifuza guhindura amakuru yawe y'aho uri?",
+      "updateButton": "Hindura aho uri"
+    },
+    "updateButton": "Hindura aho uri",
+    "success": {
+      "title": "Aho uri byongeye neza",
+      "message": "Amakuru yawe y'aho uri yongeye neza"
+    },
+    "error": {
+      "title": "Guhindura byanze",
+      "message": "Guhindura aho uri byanze. Ongera ugerageze."
+    }
+  },
+  "changePin": {
+    "title": "Hindura PIN/Ijambo ry'ubwoko",
+    "info": {
+      "title": "Amakuru y'ubwoko",
+      "message": "PIN/Ijambo ryawe ry'ubwoko rikoreshwa kugira ngo ubuhamya bwiza bw'ubwoko kandi emeze ibikorwa by'ingenzi. Reba ko uhitamo PIN/Ijambo ry'ubwoko ushobora kwibuka ariko abandi ntibashobora kuyigerageza."
+    },
+    "form": {
+      "currentPin": {
+        "title": "PIN/Ijambo ry'ubwoko rya kera",
+        "label": "PIN/Ijambo ry'ubwoko rya kera",
+        "placeholder": "Andika PIN/Ijambo ry'ubwoko rya kera"
+      },
+      "newPin": {
+        "title": "PIN/Ijambo ry'ubwoko nshya",
+        "label": "PIN/Ijambo ry'ubwoko nshya",
+        "placeholder": "Andika PIN/Ijambo ry'ubwoko nshya"
+      },
+      "confirmPin": {
+        "title": "Emeza PIN/Ijambo ry'ubwoko nshya",
+        "label": "Emeza PIN/Ijambo ry'ubwoko nshya",
+        "placeholder": "Emeza PIN/Ijambo ry'ubwoko nshya"
+      },
+      "hint": {
+        "title": "Ibikenewe PIN/Ijambo ry'ubwoko",
+        "message": "• Igomba kuba ifite inyuguti 4-6\n• Igomba kuba itandukanye na PIN/Ijambo ry'ubwoko rya kera\n• Reba ko ushobora kuyibuka"
+      }
+    },
+    "changeButton": "Hindura PIN/Ijambo ry'ubwoko",
+    "success": {
+      "title": "PIN/Ijambo ry'ubwoko ryahindutse neza",
+      "message": "PIN/Ijambo ryawe ry'ubwoko rongeye neza. Ubu ushobora kuryikoresha kugira ngo ubuhamya bw'ubwoko bw'ubwoko.",
+      "subtitle": "Subira inyuma kuri profil..."
+    },
+    "error": {
+      "title": "Guhindura PIN/Ijambo ry'ubwoko byanze",
+      "message": "Guhindura PIN/Ijambo ry'ubwoko byanze. Ongera ugerageze."
+    },
+    "validation": {
+      "error": {
+        "title": "Ikibazo cyo guhindura",
+        "allFieldsRequired": "Nyamuneka uzuzuza amashami yose",
+        "pinTooShort": "PIN/Ijambo ry'ubwoko nshya rigomba kuba rifite inyuguti 4 kandi",
+        "pinTooLong": "PIN/Ijambo ry'ubwoko nshya ntirishobora kurenza inyuguti 6",
+        "pinsDoNotMatch": "PIN/Ijambo ry'ubwoko nshya n'emeza ntibihura",
+        "samePin": "PIN/Ijambo ry'ubwoko nshya rigomba kuba ritandukanye na rya kera"
+      }
+    },
+    "confirm": {
+      "title": "Emeza guhindura PIN/Ijambo ry'ubwoko",
+      "message": "Uzi neza ko urifuza guhindura PIN/Ijambo ryawe ry'ubwoko? Iki gikorwa ntibishobora guhagarikwa.",
+      "changeButton": "Hindura PIN/Ijambo ry'ubwoko"
+    }
+  },
+  "navigation": {
+    "home": "Ahabanza",
+    "debts": "Amadeni",
+    "subscriptions": "Kwiyandikisha",
+    "profile": "Umwirondoro"
+  },
+  "subscriptions": {
+    "title": "Amabwiriza yo Kwiyandikisha",
+    "currentSubscription": {
+      "title": "Kwiyandikisha kwa Noneho",
+      "freeTrialActive": "Gerageza k'Ubuntu Gikora",
+      "planName": "Urugero Rukora",
+      "status": "Imiterere",
+      "trialEnds": "Gerageza k'Ubuntu Gira",
+      "ends": "Gira",
+      "daysLeft": "Umunsi Usigaye",
+      "amount": "Amafaranga",
+      "startDate": "Itariki yo Gutangira",
+      "endDate": "Itariki yo Gupfa",
+      "subscriptionPeriod": "Igihe cyo Kwiyandikisha"
+    },
+    "usageTracking": {
+      "title": "Gukoresha uku Kwezi",
+      "debtsCreated": "Amadeni Yakirijwe",
+      "trustabilityChecks": "Kugenzura Ubwishingizi",
+      "remaining": "usigaye"
+    },
+    "benefits": {
+      "title": "Inyungu zawe",
+      "trustabilityChecks": "Kugenzura Ubwishingizi",
+      "debtsAllowed": "Amadeni Bemerijwe",
+      "devices": "Ibikoresho"
+    },
+    "freeTrial": {
+      "info": "Gerageza k'Ubuntu kyawe gikora",
+      "message": "Gerageza k'Ubuntu kyawe gikora"
+    },
+    "upgrade": {
+      "title": "Ongera cyangwa Hindura urugero rwawe rwo Kwiyandikisha",
+      "choosePlan": "Hitamo urugero ruhuza neza ibikenewe byawe"
+    },
+    "plan": {
+      "features": "Ibikorwa",
+      "subscribeNow": "Iyandikishe Noneho",
+      "perDay": "ku munsi",
+      "currentPlan": "Urugero rwa Noneho"
+    },
+    "help": {
+      "title": "Ukeneye Ubufasha?",
+      "text": "Niba ufite ibibazo kuri amabwiriza yacu yo kwiyandikisha cyangwa ukeneye ubufasha, nyamuneka twandikire +250788355263 cyangwa imeyili support@trustme.rw ."
+    },
+    "confirm": {
+      "title": "Emeza Kwiyandikisha",
+      "message": "Uzi neza ko urifuza kwiyandikisha kuri {{planName}}?",
+      "subscribe": "Iyandikishe"
+    }
+  },
+  "onboarding": {
+    "step1": {
+      "title": "Murakaza neza kuri TrustMe",
+      "subtitle": "Urupapuro rwanyu rwizigirwa rwo gukora amaduka y'amafaranga kandi gukurikirana Amadeni"
+    },
+    "step2": {
+      "title": "Urukingo kandi Uwizigirwa",
+      "subtitle": "Urukingo rw'ubwubatsi bw'amabanki kugira ngo rwuzuze amakuru yanyu y'amafaranga n'amaduka"
+    },
+    "step3": {
+      "title": "Gukurikirana Byoroshye",
+      "subtitle": "Kurikirana Amadeni, gukurikirana amishahara, kandi gukurikirana ubuzima bwawe bw'amafaranga mu buryo bworoshye"
+    },
+    "step4": {
+      "title": "Hitamo Ururimi Rwawe",
+      "subtitle": "Hitamo ururimi rwanyu rw'ubwoko kugira ngo mufate ubuhamya bwiza"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Murakaza neza",
+      "subtitle": "Komeza urugendo rwawe na TrustMe",
+      "identifier": "Indangamuntu/Pasiporo/Telefoni/Imeyili",
+      "password": "Ijambo ry'ibanga/PIN",
+      "forgotPassword": "Wibagiwe ijambo ry'ibanga",
+      "loginButton": "Injira",
+      "createAccount": "Niba mutarafungura konti?",
+      "createAccountLink": "Fungura konti"
+    },
+    "register": {
+      "title": "Fungura konti",
+      "subtitle": "Uzuza kwiyandikisha kwawe na TrustMe",
+      "phoneNumber": "Telefoni",
+      "idCard": "Indangamuntu",
+      "idCardSubtitle": "Fata amafoto y'indangamuntu yawe (Pasiporo/Indangamuntu y'igihugu)",
+      "upperSection": "Igice cy'hejuru",
+      "lowerSection": "Igice cy'hasi",
+      "selfie": "Ifoto yawe",
+      "selfieSubtitle": "Fata ifoto yumvikana yawe",
+      "takePhoto": "Fata ifoto",
+      "createAccountButton": "Fungura konti",
+      "processing": "Birakora...",
+      "alreadyHaveAccount": "Murafise konti?",
+      "signIn": "Injira"
+    },
+    "forgotPassword": {
+      "title": "Ongera PIN",
+      "subtitle": "Wibagiwe PIN yawe? Ngombwa ko mwagerageza umukozi wa TrustMe kugira ngo abongere PIN yawe.",
+      "email": "Ineyili",
+      "sendResetLink": "Ohereza ukohereza kohereza",
+      "rememberPin": "Wibuka PIN yawe?",
+      "signIn": "Injira"
+    }
+  },
+  "home": {
+    "greeting": "Mwaramutse, {{name}}!",
+    "subGreeting": "Dore uko Amadeni yawe ari",
+    "totalDebt": "Amadeni yose",
+    "totalPaid": "Yose yishyuwe",
+    "activeDebts": "Amadeni akora",
+    "overdue": "Yarenze igihe",
+    "recentActivity": "Ibikorwa by'ubu",
+    "debtRequest": "Gusaba Amadeni",
+    "debtOffer": "Gutanga Amadeni",
+    "noRecentActivity": "Nta bikorwa by'ubu",
+    "trustabilityAnalytics": "Gukurikirana Ubwishingizi",
+    "trustScore": "Urugero rwawe rw'Ubwishingizi",
+    "trustabilityScore": "Urugero rw'Ubwishingizi",
+    "possiblePayments": "Amishahara Ashoboka",
+    "completed": "Byarangiye",
+    "successRate": "Urugero rwo Gutsinda"
+  },
+  "debts": {
+    "title": "Amadeni yanjye",
+    "searchPlaceholder": "Shakisha amadeni...",
+    "filters": {
+      "all": "Yose",
+      "active": "Akora",
+      "pending": "Ari gutegereza",
+      "completed": "Yarangiye",
+      "overdue": "Yarenze igihe",
+      "paidPending": "Yishyuwe ari gutegereza"
+    },
+    "debtTypes": {
+      "requested": "Yasabwe",
+      "offered": "Yatanzwe"
+    },
+    "status": {
+      "active": "Akora",
+      "pending": "Ari gutegereza",
+      "completed": "Yarangiye",
+      "overdue": "Yarenze igihe",
+      "paidPendingConfirmation": "Yishyuwe ari gutegereza"
+    },
+    "partyInfo": {
+      "from": "Kuva",
+      "to": "Kuri",
+      "unknown": "Ntibizwi"
+    },
+    "progress": {
+      "paid": "yishyuwe"
+    },
+    "payment": {
+      "paid": "Yishyuwe",
+      "remaining": "Usigaye"
+    },
+    "dueDate": "Itariki yo Gupfa",
+    "noDueDate": "Nta tariki yo gupfa",
+    "overdue": "Yarenze igihe",
+    "createdAt": "Yakirijwe",
+    "noDebts": "Nta deni ribashije kuboneka",
+    "noDebtsMessage": "Nta deni ufite kugeza ubu. Tangira ukusaba cyangwa gutanga deni.",
+    "searchNoResults": "Gerageza guhindura ibisabwa byawe byo gushakisha"
+  },
+  "addDebt": {
+    "title": "Ongera Deni Rishya",
+    "steps": {
+      "debtType": {
+        "title": "Hitamo Ubwoko bwa Deni",
+        "subtitle": "Hitamo uko urifuza gukomeza na deni",
+        "request": {
+          "title": "Ndi Umwishingizi",
+          "subtitle": "Urasaba kwishingizwa na umuntu"
+        },
+        "offer": {
+          "title": "Umuntu Ari Umwishingizi",
+          "subtitle": "Uratanga ubwishingizi kuri umuntu"
+        }
+      },
+      "products": {
+        "title": "Ibicuruzwa/Serivisi",
+        "subtitle": "Ongera ibicuruzwa cyangwa serivisi bizajya mu deni",
+        "item": "Igicuruzwa {{number}}",
+        "name": "Izina rya Gicuruzwa",
+        "namePlaceholder": "Andika izina rya gicuruzwa",
+        "description": "Ibisobanura (Bihitamo)",
+        "descriptionPlaceholder": "Ibisobanura gito bya gicuruzwa",
+        "quantity": "Umubare",
+        "quantityPlaceholder": "1",
+        "amount": "Amafaranga (RWF)",
+        "amountPlaceholder": "0",
+        "total": "Yose: RWF {{amount}}",
+        "addAnother": "Ongera Igicuruzwa Kindi"
+      },
+      "paymentDate": {
+        "title": "Itariki yo Gushyura (Bihitamo)",
+        "subtitle": "Shyira itariki yo gupfa kuri deni. Niba utashyizemo, nta tariki yo gupfa izashyirwa.",
+        "selectDate": "Hitamo Itariki",
+        "clearDate": "Siba Itariki",
+        "paymentDue": "Gushyura kugomba: {{date}}",
+        "overdueNote": "Iki deni kizajya kikarwa nk'irenze igihe nyuma y'iyi tariki"
+      },
+      "scanUser": {
+        "title": "Gukurikirana Kode ya QR ya Umukoresha",
+        "requestSubtitle": "Kurikirana kode ya QR ya umuntu urifuza kwishingizwa na we",
+        "offerSubtitle": "Kurikirana kode ya QR ya umuntu urifuza gutanga ubwishingizi kuri we",
+        "scanButton": "Kurikirana Kode ya QR",
+        "scanning": "Kurikirana...",
+        "manualInput": "Cyangwa andika kode ya mukoresha mu buryo bwa muntu:",
+        "codePlaceholder": "Andika kode ya mukoresha",
+        "fetchUser": "Kubona Umukoresha"
+      }
+    },
+    "navigation": {
+      "previous": "Ibanza",
+      "next": "Ikurikira",
+      "proceed": "Komeza",
+      "createDebt": "Kira Deni"
+    },
+    "errors": {
+      "userNotAuthenticated": "Umukoresha ntiyemejwe",
+      "creatingDebt": "Gukira deni..."
+    }
+  },
+  "debtDetail": {
+    "title": "Ibisobanura bya Deni",
+    "status": {
+      "pending": "Ari gutegereza",
+      "active": "Akora",
+      "completed": "Yarangiye",
+      "overdue": "Yarenze igihe",
+      "paidPending": "Yishyuwe ari gutegereza",
+      "rejected": "Yanze"
+    },
+    "debtType": {
+      "requested": "Yasabwe",
+      "offered": "Yatanzwe"
+    },
+    "amount": {
+      "total": "Amafaranga Yose",
+      "paid": "Amafaranga Yishyuwe",
+      "remaining": "Amafaranga Usigaye"
+    },
+    "payment": {
+      "title": "Gushyura",
+      "amount": "Amafaranga yo Gushyura",
+      "amountPlaceholder": "Andika amafaranga",
+      "pin": "PIN yo Kwemeza",
+      "pinPlaceholder": "Andika PIN yawe",
+      "pay": "Shyura Deni",
+      "confirm": "Emeza Gushyura",
+      "approve": "Emeza Deni",
+      "reject": "Nya Deni"
+    },
+    "actions": {
+      "approve": "Emeza",
+      "reject": "Nya",
+      "pay": "Shyura",
+      "confirm": "Emeza"
+    },
+    "messages": {
+      "debtApproved": "Deni Ryemejwe",
+      "debtApprovedMessage": "Urakoze neza kwemeza deni.",
+      "debtRejected": "Deni Ryanze",
+      "debtRejectedMessage": "Urakoze neza kugura deni.",
+      "paymentSuccess": "Gushyura Byatsinze",
+      "paymentSuccessMessage": "Gushyura kwawe kwakirijwe neza.",
+      "paymentConfirmed": "Gushyura Kwemejwe",
+      "paymentConfirmedMessage": "Gushyura kwemejwe.",
+      "approvalFailed": "Kwemeza Kwarangiriye",
+      "rejectionFailed": "Kugura Kwarangiriye",
+      "paymentFailed": "Gushyura Kwarangiriye",
+      "confirmationFailed": "Kwemeza Kwarangiriye"
+    },
+    "items": {
+      "title": "Ibicuruzwa",
+      "name": "Izina",
+      "description": "Ibisobanura",
+      "quantity": "Umubare",
+      "amount": "Amafaranga",
+      "total": "Yose"
+    },
+    "dates": {
+      "created": "Yakirijwe",
+      "dueDate": "Itariki yo Gupfa",
+      "noDueDate": "Nta tariki yo gupfa yashyizwe"
+    }
+  },
+  "profile": {
+    "refresh": {
+      "success": {
+        "title": "Umwirondoro wongeye",
+        "message": "Amakuru yawe y'umwirondoro yongeye"
+      },
+      "error": {
+        "title": "Kongera byanze",
+        "message": "Kongera amakuru y'umwirondoro byanze"
+      }
+    },
+    "logout": {
+      "button": "Sohoka",
+      "error": {
+        "title": "Gusohoka byanze",
+        "message": "Hari ikibazo mugihe mwasohoka. Ongera ugerageze."
+      }
+    },
+    "menu": {
+      "editProfile": "Hindura umwirondoro",
+      "editProfileSubtitle": "Ongera amakuru yawe y'umwirondoro",
+      "changePin": "Hindura PIN",
+      "changePinSubtitle": "Ongera PIN yawe y'urukingo",
+      "notifications": "Amatangazo",
+      "notificationsSubtitle": "{{count}} itangazo{{count, plural, one { '' } other {s} }} ritasomwe",
+      "language": "Ururimi",
+      "languageSubtitle": "Hindura ururimi rw'ububiko"
+    },
+    "qrCode": {
+      "title": "Kode yawe ya QR",
+      "subtitle": "Sangira iyi kode n'abandi kugira ngo muhuzwe kandi mufate Amadeni",
+      "codeLabel": "Kode yawe",
+      "description": "Iyi kode yihariye ikumenya muri sisitemu ya Trust Me",
+      "note": "Abandi bashobora gufata kode yawe ya QR cyangwa gukoresha iyi kode kugira ngo bahuzwe nawe",
+      "changeCode": "Hindura kode yawe",
+      "copySuccess": {
+        "title": "Kode yakopiwe",
+        "message": "Kode yawe yakopiwe muri clipboard"
+      }
+    },
+    "version": "Trust Me v1.0.0"
+  },
+  "language": {
+    "english": "Icyongereza",
+    "kinyarwanda": "Kinyarwanda",
+    "french": "Igifaransa",
+    "selectLanguage": "Hitamo ururimi",
+    "languageDescription": "Hitamo ururimi rwanyu rw'ubwoko kugira ngo mufate ubuhamya bwiza",
+    "settings": {
+      "title": "Igenamiterere ry'ururimi",
+      "infoTitle": "Hitamo ururimi rwawe",
+      "infoText": "Hitamo ururimi rwanyu rw'ubwoko kugira ngo mufate ubuhamya bwiza. Ibi bizahindura ururimi rw'amagambo yose muri ububiko.",
+      "selectLanguage": "Hitamo ururimi",
+      "confirmButton": "Emeza guhindura ururimi"
+    },
+    "changeConfirm": {
+      "title": "Emeza guhindura ururimi",
+      "message": "Uzi neza ko urifuza guhindura ururimi rw'ububiko kuri {{language}}? Ibi bizahindura amagambo yose muri ububiko.",
+      "confirmText": "Hindura ururimi",
+      "cancelText": "Hagarika"
+    },
+    "changeSuccess": {
+      "title": "Ururimi rwahindutse {{language}}",
+      "message": "Ururimi rwanyu rw'ubwoko rwongeye neza. Ububiko ubu buzagaragaza muri ururimi rwanyu rw'ubwoko."
+    },
+    "changeError": {
+      "title": "Guhindura ururimi byanze",
+      "message": "Guhindura ururimi byanze. Ongera ugerageze."
+    }
+  }
+}

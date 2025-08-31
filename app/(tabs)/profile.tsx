@@ -5,18 +5,21 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  Alert,
   RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { router } from 'expo-router';
-import Toast from 'react-native-toast-message';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useCurrentUser, useLogout, useChangeCode } from '@/hooks';
+import { TokenStorage } from '@/utils/tokenStorage';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { Card } from '@/components/ui/Card';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { LogoutModal } from '@/components/ui/LogoutModal';
+import { ChangeCodeModal } from '@/components/ui/ChangeCodeModal';
 import { Typography, Spacing } from '@/constants/theme';
 import { apiClient } from '@/services/api';
 import { MotiView } from 'moti';
@@ -36,16 +39,23 @@ import {
   BadgeDollarSign,
   QrCode,
   Copy,
-  User2Icon,
+  UserIcon,
+  Globe,
 } from 'lucide-react-native';
+import { Image } from 'react-native';
 
 export default function ProfileScreen() {
-  const { user, logout } = useAuthContext();
-  const { theme, toggleTheme, colors } = useTheme();
-  const darkMode = theme === 'dark';
+  const { user: currentUser } = useCurrentUser();
+  const logoutMutation = useLogout();
+  const changeCodeMutation = useChangeCode();
+  const { colors } = useTheme();
+  const { showSuccess, showError } = useToast();
+  const { t } = useTranslation();
   const styles = getStyles(colors);
   const queryClient = useQueryClient();
   const [refreshing, setRefreshing] = useState(false);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [showChangeCodeModal, setShowChangeCodeModal] = useState(false);
 
   const { data: notifications } = useQuery({
     queryKey: ['notifications'],
@@ -63,48 +73,44 @@ export default function ProfileScreen() {
       await queryClient.invalidateQueries({ queryKey: ['profile'] });
       // Refresh notifications
       await queryClient.invalidateQueries({ queryKey: ['notifications'] });
-      Toast.show({
-        type: 'success',
-        text1: 'Profile Updated',
-        text2: 'Your profile information has been refreshed',
-      });
+      showSuccess(t('profile.refresh.success.title'), t('profile.refresh.success.message'));
     } catch (error) {
-      Toast.show({
-        type: 'error',
-        text1: 'Refresh Failed',
-        text2: 'Failed to refresh profile data',
-      });
+      showError(t('profile.refresh.error.title'), t('profile.refresh.error.message'));
     } finally {
       setRefreshing(false);
     }
   };
 
-  const handleLogout = async () => {
-    Alert.alert('Confirm Logout', 'Are you sure you want to sign out?', [
-      {
-        text: 'Cancel',
-        style: 'cancel',
-      },
-      {
-        text: 'Sign Out',
-        style: 'destructive',
-        onPress: async () => {
-          try {
-            await logout();
-            // Navigate to login screen after successful logout
-            // @ts-ignore - expo-router types might not be up to date
-            router.replace('/(auth)/login');
-          } catch (error) {
-            console.error('Logout error:', error);
-            Toast.show({
-              type: 'error',
-              text1: 'Logout Failed',
-              text2: 'An error occurred while signing out. Please try again.',
-            });
-          }
-        },
-      },
-    ]);
+  const handleLogout = () => {
+    setShowLogoutModal(true);
+  };
+
+  const confirmLogout = async () => {
+    try {
+      // Get current token and logout
+      const token = await TokenStorage.getAccessToken();
+      if (token) {
+        await logoutMutation.mutateAsync(token);
+        // Navigate to auth screen after successful logout
+        router.replace('/(auth)');
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      showError(t('profile.logout.error.title'), t('profile.logout.error.message'));
+    } finally {
+      setShowLogoutModal(false);
+    }
+  };
+
+  const handleChangeCode = async (pin: string) => {
+    try {
+      await changeCodeMutation.mutateAsync(pin);
+      setShowChangeCodeModal(false);
+      // The hook will handle success message and profile refresh
+    } catch (error) {
+      console.error('Change code error:', error);
+      // Error is handled by the hook
+    }
   };
 
   const unreadCount = notifications?.data?.length || 0;
@@ -112,54 +118,36 @@ export default function ProfileScreen() {
   const profileItems = [
     {
       icon: <Edit3 color={colors.textSecondary} size={20} />,
-      title: 'Edit Profile',
-      subtitle: 'Update your personal information',
+      title: t('profile.menu.editProfile'),
+      subtitle: t('profile.menu.editProfileSubtitle'),
       onPress: () => {
         router.push('/edit-profile');
       },
     },
     {
       icon: <Shield color={colors.textSecondary} size={20} />,
-      title: 'Change PIN',
-      subtitle: 'Update your security PIN',
+      title: t('profile.menu.changePin'),
+      subtitle: t('profile.menu.changePinSubtitle'),
       onPress: () => {
         router.push('/change-pin');
       },
     },
     {
       icon: <Bell color={colors.textSecondary} size={20} />,
-      title: 'Notifications',
-      subtitle: `${unreadCount} unread notification${
-        unreadCount !== 1 ? 's' : ''
-      }`,
+      title: t('profile.menu.notifications'),
+      subtitle: t('profile.menu.notificationsSubtitle', { count: unreadCount }),
       onPress: () => {
         // Navigate to notifications screen
         router.push('/notifications');
       },
     },
-    // Only show Subscriptions for SELLER users
-    ...(user?.userType === 'SELLER'
-      ? [
-          {
-            icon: <BadgeDollarSign color={colors.textSecondary} size={20} />,
-            title: 'Subscriptions',
-            subtitle: 'View available subscription plans',
-            onPress: () => {
-              // Navigate to subscriptions screen
-              router.push('/subscriptions');
-            },
-          },
-        ]
-      : []),
     {
-      icon: darkMode ? (
-        <Sun color={colors.textSecondary} size={20} />
-      ) : (
-        <Moon color={colors.textSecondary} size={20} />
-      ),
-      title: 'Dark Mode',
-      subtitle: darkMode ? 'Switch to light mode' : 'Switch to dark mode',
-      onPress: toggleTheme,
+      icon: <Globe color={colors.textSecondary} size={20} />,
+      title: t('profile.menu.language'),
+      subtitle: t('profile.menu.languageSubtitle'),
+      onPress: () => {
+        router.push('/language-settings');
+      },
     },
   ];
 
@@ -185,36 +173,36 @@ export default function ProfileScreen() {
             <View style={styles.avatarContainer}>
               <View style={styles.avatar}>
                 <Text style={styles.avatarText}>
-                  {user?.firstName.charAt(0)}
-                  {user?.lastName.charAt(0)}
+                  {currentUser?.firstName.charAt(0)}
+                  {currentUser?.lastName.charAt(0)}
                 </Text>
               </View>
               <Text style={styles.userName}>
-                {user?.firstName} {user?.lastName}
+                {currentUser?.firstName} {currentUser?.lastName}
               </Text>
-              <Text style={styles.userEmail}>{user?.email}</Text>
+              <Text style={styles.userEmail}>{currentUser?.email}</Text>
             </View>
 
             <View style={styles.infoSection}>
               <View style={styles.infoItem}>
                 <Mail color={colors.textSecondary} size={20} />
-                <Text style={styles.infoText}>{user?.email}</Text>
+                <Text style={styles.infoText}>{currentUser?.email}</Text>
               </View>
 
               <View style={styles.infoItem}>
                 <Phone color={colors.textSecondary} size={20} />
-                <Text style={styles.infoText}>{user?.phoneNumber}</Text>
+                <Text style={styles.infoText}>{currentUser?.phoneNumber}</Text>
               </View>
 
               <View style={styles.infoItem}>
-                <User color={colors.textSecondary} size={20} />
-                <Text style={styles.infoText}>{user?.nationalId}</Text>
+                <UserIcon color={colors.textSecondary} size={20} />
+                <Text style={styles.infoText}>{currentUser?.nationalId}</Text>
               </View>
 
               <View style={styles.infoItem}>
                 <MapPin color={colors.textSecondary} size={20} />
                 <Text style={styles.infoText}>
-                  {user?.village}, {user?.cell}, {user?.sector}
+                  {currentUser?.village}, {currentUser?.cell}, {currentUser?.sector}
                 </Text>
               </View>
             </View>
@@ -224,47 +212,52 @@ export default function ProfileScreen() {
           <Card style={styles.qrCodeCard}>
             <View style={styles.qrCodeHeader}>
               <QrCode color={colors.primary} size={24} />
-              <Text style={styles.qrCodeTitle}>Your QR Code</Text>
+              <Text style={styles.qrCodeTitle}>{t('profile.qrCode.title')}</Text>
             </View>
             <Text style={styles.qrCodeSubtitle}>
-              Share this code with others to connect and create debts
+              {t('profile.qrCode.subtitle')}
             </Text>
 
             <View style={styles.qrCodeContent}>
               <View style={styles.qrCodeContainer}>
                 <QRCode
-                  value={user?.code || 'default-code'}
-                  size={200}
+                  value={currentUser?.code || 'default-code'}
+                  size={300}
                   color={colors.text}
-                  backgroundColor={colors.white}
+                  logo={require('@/assets/images/icon.png')}
+                  logoBorderRadius={10}
+                  backgroundColor={colors.white}            
                 />
               </View>
 
               <View style={styles.codeSection}>
-                <Text style={styles.codeLabel}>Your Code</Text>
+                <Text style={styles.codeLabel}>{t('profile.qrCode.codeLabel')}</Text>
                 <View style={styles.codeDisplay}>
-                  <Text style={styles.codeText}>{user?.code || 'N/A'}</Text>
+                  <Text style={styles.codeText}>{currentUser?.code || 'N/A'}</Text>
                   <TouchableOpacity
                     style={styles.copyButton}
                     onPress={() => {
                       // Copy to clipboard functionality
-                      Toast.show({
-                        type: 'success',
-                        text1: 'Code Copied',
-                        text2: 'Your code has been copied to clipboard',
-                      });
+                      showSuccess(t('profile.qrCode.copySuccess.title'), t('profile.qrCode.copySuccess.message'));
                     }}
                   >
                     <Copy color={colors.primary} size={16} />
                   </TouchableOpacity>
                 </View>
                 <Text style={styles.codeDescription}>
-                  This unique code identifies you in the Trust Me system
+                  {t('profile.qrCode.description')}
                 </Text>
                 <Text style={styles.codeNote}>
-                  Others can scan your QR code or use this code to connect with
-                  you
+                  {t('profile.qrCode.note')}
                 </Text>
+                
+                <TouchableOpacity
+                  style={styles.changeCodeButton}
+                  onPress={() => setShowChangeCodeModal(true)}
+                >
+                  <QrCode color={colors.primary} size={16} />
+                  <Text style={styles.changeCodeButtonText}>{t('profile.qrCode.changeCode')}</Text>
+                </TouchableOpacity>
               </View>
             </View>
           </Card>
@@ -303,13 +296,24 @@ export default function ProfileScreen() {
               style={styles.logoutButton}
             >
               <LogOut color={colors.error} size={20} />
-              <Text style={styles.logoutText}>Sign Out</Text>
+              <Text style={styles.logoutText}>{t('profile.logout.button')}</Text>
             </TouchableOpacity>
           </Card>
 
-          <Text style={styles.version}>Trust Me v1.0.0</Text>
+          <Text style={styles.version}>{t('profile.version')}</Text>
         </MotiView>
       </ScrollView>
+      <LogoutModal
+        isVisible={showLogoutModal}
+        onClose={() => setShowLogoutModal(false)}
+        onConfirm={confirmLogout}
+      />
+      <ChangeCodeModal
+        isVisible={showChangeCodeModal}
+        onClose={() => setShowChangeCodeModal(false)}
+        onConfirm={handleChangeCode}
+        isLoading={changeCodeMutation.isPending}
+      />
     </SafeAreaView>
   );
 }
@@ -364,14 +368,13 @@ const getStyles = (colors: any) =>
       textAlign: 'center',
     },
     userEmail: {
-      fontSize: Typography.fontSize.md,
+      fontSize: Typography.fontSize.sm,
       color: colors.textSecondary,
       fontFamily: 'DMSans-Regular',
-      textAlign: 'center',
     },
     infoSection: {
       width: '100%',
-      padding: Spacing.lg,
+      paddingTop: Spacing.lg,
       borderTopWidth: 1,
       borderTopColor: colors.border,
     },
@@ -389,15 +392,12 @@ const getStyles = (colors: any) =>
     menuCard: {
       marginHorizontal: Spacing.lg,
       marginBottom: Spacing.lg,
-      backgroundColor: colors.card,
-      borderColor: colors.border,
     },
     menuItem: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingVertical: Spacing.md,
-      paddingHorizontal: Spacing.lg,
     },
     menuItemLeft: {
       flexDirection: 'row',
@@ -433,7 +433,6 @@ const getStyles = (colors: any) =>
     logoutButton: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: Spacing.md,
     },
     logoutText: {
       marginLeft: Spacing.md,
@@ -458,13 +457,12 @@ const getStyles = (colors: any) =>
     qrCodeHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      padding: Spacing.lg,
+      paddingBottom: Spacing.sm,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
-      backgroundColor: colors.background,
     },
     qrCodeTitle: {
-      fontSize: Typography.fontSize.lg,
+      fontSize: Typography.fontSize.md,
       fontFamily: 'DMSans-Bold',
       color: colors.text,
       marginLeft: Spacing.md,
@@ -484,7 +482,7 @@ const getStyles = (colors: any) =>
     },
     qrCodeContainer: {
       width: '100%',
-      height: 220,
+      height: 300,
       borderRadius: 10,
       backgroundColor: colors.white,
       justifyContent: 'center',
@@ -548,5 +546,22 @@ const getStyles = (colors: any) =>
       textAlign: 'center',
       paddingHorizontal: Spacing.lg,
       marginTop: Spacing.sm,
+    },
+    changeCodeButton: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.primary + '10',
+      borderRadius: 8,
+      paddingVertical: Spacing.sm,
+      paddingHorizontal: Spacing.md,
+      marginTop: Spacing.sm,
+      borderWidth: 1,
+      borderColor: colors.primary,
+    },
+    changeCodeButtonText: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Medium',
+      color: colors.primary,
+      marginLeft: Spacing.sm,
     },
   });

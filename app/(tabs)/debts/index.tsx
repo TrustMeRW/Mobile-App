@@ -11,34 +11,27 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { DebtCardSkeleton } from '@/components/ui/DebtCardSkeleton';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useAuthContext } from '@/contexts/AuthContext';
-import { lightColors, Typography, Spacing } from '@/constants/theme';
-import { apiClient, type Debt, type User } from '@/services/api';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { useCurrentUser, useDebts } from '@/hooks';
+import { Typography, Spacing } from '@/constants/theme';
+import { type Debt, type User } from '@/services/api';
 import { MotiView } from 'moti';
-import { Search, Plus, Filter } from 'lucide-react-native';
+import { Search, Plus, Filter, UserIcon, Calendar } from 'lucide-react-native';
 import { ScrollView as RNScrollView } from 'react-native';
 
 type DebtWithType = Debt & {
   type: 'requested' | 'offered';
 };
 
-const statusFilters = [
-  { key: 'all', label: 'All' },
-  { key: 'ACTIVE', label: 'Active' },
-  { key: 'PENDING', label: 'Pending' },
-  { key: 'COMPLETED', label: 'Completed' },
-  { key: 'OVERDUE', label: 'Overdue' },
-  { key: 'PAID_PENDING_CONFIRMATION', label: 'Paid Pending' },
-];
-
 export default function DebtsScreen() {
   const { colors } = useTheme();
-  const { user: currentUser } = useAuthContext();
+  const { t } = useTranslation();
+  const { user: currentUser } = useCurrentUser();
   const styles = getStyles(colors);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<
@@ -49,45 +42,43 @@ export default function DebtsScreen() {
     | 'OVERDUE'
     | 'PAID_PENDING_CONFIRMATION'
   >('all');
+
+  const statusFilters = [
+    { key: 'all', label: t('debts.filters.all') },
+    { key: 'ACTIVE', label: t('debts.filters.active') },
+    { key: 'PENDING', label: t('debts.filters.pending') },
+    { key: 'COMPLETED', label: t('debts.filters.completed') },
+    { key: 'OVERDUE', label: t('debts.filters.overdue') },
+    { key: 'PAID_PENDING_CONFIRMATION', label: t('debts.filters.paidPending') },
+  ];
   // Remove searchResults/searching/debouncedSearchQuery state
 
   const {
-    data: requestedResponse,
-    isLoading: loadingRequested,
-    refetch: refetchRequested,
-  } = useQuery({
-    queryKey: ['debts-requested'],
-    queryFn: () => apiClient.getDebtsRequested({ limit: 100 }),
+    data: myDebtsResponse,
+    isLoading: loadingMyDebts,
+    refetch: refetchMyDebts,
+  } = useDebts({ 
+    limit: 100,
+    includeRequested: true,
+    includeOffered: true
   });
 
-  const {
-    data: offeredResponse,
-    isLoading: loadingOffered,
-    refetch: refetchOffered,
-  } = useQuery({
-    queryKey: ['debts-offered'],
-    queryFn: () => apiClient.getDebtsOffered({ limit: 100 }),
-  });
-
-  const requestedData = requestedResponse?.data || [];
-  const offeredData = offeredResponse?.data || [];
-
-  const isLoading = loadingRequested || loadingOffered;
+  const myDebtsData = myDebtsResponse?.data || [];
+  const isLoading = loadingMyDebts;
 
   const handleRefresh = async () => {
-    await Promise.all([refetchRequested(), refetchOffered()]);
+    await refetchMyDebts();
   };
 
-  const allDebts: DebtWithType[] = [
-    ...(requestedData || []).map((debt: Debt) => ({
+  const allDebts: DebtWithType[] = (myDebtsData || []).map((debt: Debt) => {
+    // Determine if this is a requested or offered debt based on the current user
+    // You might need to adjust this logic based on your API response structure
+    const isRequested = debt.requester?.id === currentUser?.id;
+    return {
       ...debt,
-      type: 'requested' as const,
-    })),
-    ...(offeredData || []).map((debt: Debt) => ({
-      ...debt,
-      type: 'offered' as const,
-    })),
-  ];
+      type: isRequested ? 'requested' as const : 'offered' as const,
+    };
+  });
 
   const sortedDebts = [...allDebts].sort(
     (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
@@ -119,6 +110,9 @@ export default function DebtsScreen() {
     const amount = parseFloat(debt.amount) || 0;
     const amountPaid = parseFloat(debt.amountPaid) || 0;
     const otherParty = debt.type === 'requested' ? debt.issuer : debt.requester;
+    const dueDate = debt.paymentDate ? new Date(debt.paymentDate) : null;
+    const isOverdue = dueDate && dueDate < new Date() && debt.status === 'ACTIVE';
+    const progressPercentage = amount > 0 ? (amountPaid / amount) * 100 : 0;
 
     return (
       <MotiView
@@ -134,47 +128,137 @@ export default function DebtsScreen() {
               params: { id: debt.id },
             })
           }
+          activeOpacity={0.7}
         >
           <Card style={styles.debtCard}>
+            {/* Header Section */}
             <View style={styles.debtHeader}>
+              <View style={styles.debtTypeContainer}>
+                <View style={[
+                  styles.debtTypeBadge,
+                  { backgroundColor: debt.type === 'requested' ? colors.primary + '15' : colors.success + '15' }
+                ]}>
+                  <Text style={[
+                    styles.debtTypeText,
+                    { color: debt.type === 'requested' ? colors.primary : colors.success }
+                  ]}>
+                    {debt.type === 'requested' ? t('debts.debtTypes.requested') : t('debts.debtTypes.offered')}
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.statusBadge,
+                    getStatusBadgeStyle(debt.status, colors),
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.statusText,
+                      getStatusTextStyle(debt.status, colors),
+                    ]}
+                  >
+                    {debt.status.replace(/_/g, ' ')}
+                  </Text>
+                </View>
+              </View>
+              
               <Text style={styles.debtAmount}>
                 RWF {amount.toLocaleString()}
               </Text>
-              <View
-                style={[
-                  styles.statusBadge,
-                  getStatusBadgeStyle(debt.status, colors),
-                ]}
-              >
-                <Text
-                  style={[
-                    styles.statusText,
-                    getStatusTextStyle(debt.status, colors),
-                  ]}
-                >
-                  {debt.status.replace(/_/g, ' ')}
+            </View>
+
+            {/* Progress Bar */}
+            {amountPaid > 0 && (
+              <View style={styles.progressContainer}>
+                <View style={styles.progressBar}>
+                  <View
+                    style={[
+                      styles.progressFill,
+                      { width: `${Math.min(progressPercentage, 100)}%` }
+                    ]}
+                  />
+                </View>
+                <Text style={styles.progressText}>
+                  {progressPercentage.toFixed(1)}% {t('debts.progress.paid')}
+                </Text>
+              </View>
+            )}
+
+            {/* Party Information */}
+            <View style={styles.partyInfo}>
+              <View style={styles.partyIconContainer}>
+                <UserIcon 
+                  color={debt.type === 'requested' ? colors.primary : colors.success} 
+                  size={16} 
+                />
+              </View>
+              <Text style={styles.partyText}>
+                {debt.type === 'requested' ? t('debts.partyInfo.from') : t('debts.partyInfo.to')}:{' '}
+                <Text style={styles.partyName}>
+                  {otherParty
+                    ? `${otherParty.firstName} ${otherParty.lastName}`
+                    : t('debts.partyInfo.unknown')}
+                </Text>
+              </Text>
+            </View>
+
+            {/* Additional Details */}
+            <View style={styles.detailsRow}>
+              {dueDate && (
+                <View style={styles.detailItem}>
+                  <Calendar color={colors.gray[500]} size={14} />
+                  <Text style={[
+                    styles.detailText,
+                    isOverdue && { color: colors.error }
+                  ]}>
+                    {t('debts.dueDate')}: {dueDate.toLocaleDateString()}
+                    {isOverdue && ` (${t('debts.overdue')})`}
+                  </Text>
+                </View>
+              )}
+              
+              <View style={styles.detailItem}>
+                <Text style={styles.detailText}>
+                  {t('debts.createdAt')}: {new Date(debt.createdAt).toLocaleDateString()}
                 </Text>
               </View>
             </View>
 
-            <Text style={styles.debtType}>
-              {debt.type === 'requested' ? 'Requested from' : 'Offered to'}:{' '}
-              {otherParty
-                ? `${otherParty.firstName} ${otherParty.lastName}`
-                : 'Unknown'}
-            </Text>
-
-            {debt.paymentDate && (
-              <Text style={styles.dueDate}>
-                Due: {new Date(debt.paymentDate).toLocaleDateString()}
-              </Text>
+            {/* Payment Summary */}
+            {amountPaid > 0 && (
+              <View style={styles.paymentSummary}>
+                <View style={styles.paymentRow}>
+                  <Text style={styles.paymentLabel}>{t('debts.payment.paid')}:</Text>
+                  <Text style={styles.paymentAmount}>
+                    RWF {amountPaid.toLocaleString()}
+                  </Text>
+                </View>
+                <View style={styles.paymentRow}>
+                  <Text style={styles.paymentLabel}>{t('debts.payment.remaining')}:</Text>
+                  <Text style={styles.paymentAmount}>
+                    RWF {(amount - amountPaid).toLocaleString()}
+                  </Text>
+                </View>
+              </View>
             )}
 
-            {amountPaid > 0 && (
-              <Text style={styles.paidAmount}>
-                Paid: RWF {amountPaid.toLocaleString()} / RWF{' '}
-                {amount.toLocaleString()}
-              </Text>
+            {/* Items Preview */}
+            {debt.items && debt.items.length > 0 && (
+              <View style={styles.itemsPreview}>
+                <Text style={styles.itemsPreviewTitle}>
+                  {debt.items.length} item{debt.items.length !== 1 ? 's' : ''}
+                </Text>
+                {debt.items.slice(0, 2).map((item, index) => (
+                  <Text key={item.id} style={styles.itemPreviewText}>
+                    • {item.name} ({item.quantity}x)
+                  </Text>
+                ))}
+                {debt.items.length > 2 && (
+                  <Text style={styles.itemsMoreText}>
+                    +{debt.items.length - 2} more items
+                  </Text>
+                )}
+              </View>
             )}
           </Card>
         </TouchableOpacity>
@@ -186,7 +270,7 @@ export default function DebtsScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.searchContainer}>
         <Input
-          placeholder="Search debts by name or amount..."
+          placeholder={t('debts.searchPlaceholder')}
           value={searchQuery}
           onChangeText={setSearchQuery}
           style={styles.searchInputContainer}
@@ -226,17 +310,23 @@ export default function DebtsScreen() {
           <RefreshControl refreshing={isLoading} onRefresh={handleRefresh} />
         }
       >
-        {debtsToShow.length > 0 ? (
+        {isLoading ? (
+          <View style={styles.debtsList}>
+            {[...Array(6)].map((_, index) => (
+              <DebtCardSkeleton key={index} />
+            ))}
+          </View>
+        ) : debtsToShow && debtsToShow.length > 0  ? (
           <View style={styles.debtsList}>
             {debtsToShow.map(renderDebtCard)}
           </View>
         ) : (
           <Card style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>No debts found</Text>
+            <Text style={styles.emptyTitle}>{t('debts.noDebts')}</Text>
             <Text style={styles.emptyDescription}>
               {searchQuery
-                ? 'Try adjusting your search criteria'
-                : 'Start by adding your first debt'}
+                ? t('debts.searchNoResults')
+                : t('debts.noDebtsMessage')}
             </Text>
           </Card>
         )}
@@ -254,7 +344,7 @@ export default function DebtsScreen() {
 
 const getStatusBadgeStyle = (
   status: string,
-  colors: typeof lightColors
+  colors: any
 ): ViewStyle => {
   switch (status) {
     case 'ACTIVE':
@@ -272,7 +362,7 @@ const getStatusBadgeStyle = (
 
 const getStatusTextStyle = (
   status: string,
-  colors: typeof lightColors
+  colors: any
 ): TextStyle => {
   switch (status) {
     case 'ACTIVE':
@@ -288,7 +378,7 @@ const getStatusTextStyle = (
   }
 };
 
-const getStyles = (colors: typeof lightColors) =>
+const getStyles = (colors: any) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -347,55 +437,173 @@ const getStyles = (colors: typeof lightColors) =>
     content: {
       flex: 1,
     },
-    loadingContainer: {
-      flex: 1,
-      justifyContent: 'center',
-      alignItems: 'center',
-      paddingVertical: Spacing.xxl,
-    },
     debtsList: {
       paddingHorizontal: Spacing.lg,
     },
     debtCard: {
       marginBottom: Spacing.md,
+      padding: Spacing.lg,
+      borderRadius: 16,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
     },
     debtHeader: {
       flexDirection: 'row',
       justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: Spacing.sm,
+      alignItems: 'flex-start',
+      marginBottom: Spacing.md,
+    },
+    debtTypeContainer: {
+      flexDirection: 'column',
+      gap: Spacing.xs,
+    },
+    debtTypeBadge: {
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: Spacing.xs,
+      borderRadius: 12,
+      alignSelf: 'flex-start',
+    },
+    debtTypeText: {
+      fontSize: Typography.fontSize.xs,
+      fontFamily: 'DMSans-SemiBold',
+      textTransform: 'uppercase',
     },
     debtAmount: {
       fontSize: Typography.fontSize.xl,
       fontFamily: 'DMSans-Bold',
       color: colors.text,
+      textAlign: 'right',
     },
     statusBadge: {
       paddingHorizontal: Spacing.sm,
       paddingVertical: Spacing.xs,
       borderRadius: 12,
+      alignSelf: 'flex-start',
     },
     statusText: {
       fontSize: Typography.fontSize.xs,
       fontFamily: 'DMSans-SemiBold',
       textTransform: 'uppercase',
     },
-    debtType: {
-      fontSize: Typography.fontSize.md,
-      fontFamily: 'DMSans-Medium',
-      color: colors.text,
+    progressContainer: {
+      marginBottom: Spacing.md,
+    },
+    progressBar: {
+      height: 6,
+      backgroundColor: colors.border,
+      borderRadius: 3,
+      overflow: 'hidden',
       marginBottom: Spacing.xs,
     },
-    dueDate: {
+    progressFill: {
+      height: '100%',
+      backgroundColor: colors.success,
+      borderRadius: 3,
+    },
+    progressText: {
+      fontSize: Typography.fontSize.xs,
+      fontFamily: 'DMSans-Medium',
+      color: colors.success,
+      textAlign: 'center',
+    },
+    partyInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: Spacing.md,
+      paddingVertical: Spacing.sm,
+      paddingHorizontal: Spacing.md,
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    partyIconContainer: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      backgroundColor: colors.background,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: Spacing.sm,
+    },
+    partyText: {
       fontSize: Typography.fontSize.sm,
       fontFamily: 'DMSans-Regular',
       color: colors.textSecondary,
+      flex: 1,
     },
-    paidAmount: {
+    partyName: {
+      fontFamily: 'DMSans-SemiBold',
+      color: colors.text,
+    },
+    detailsRow: {
+      marginBottom: Spacing.md,
+    },
+    detailItem: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: Spacing.xs,
+    },
+    detailText: {
       fontSize: Typography.fontSize.sm,
       fontFamily: 'DMSans-Regular',
-      color: colors.success,
-      marginTop: Spacing.xs,
+      color: colors.textSecondary,
+      marginLeft: Spacing.xs,
+    },
+    paymentSummary: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: Spacing.md,
+      marginBottom: Spacing.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    paymentRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: Spacing.xs,
+    },
+    paymentLabel: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Medium',
+      color: colors.textSecondary,
+    },
+    paymentAmount: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-SemiBold',
+      color: colors.text,
+    },
+    itemsPreview: {
+      backgroundColor: colors.surface,
+      borderRadius: 12,
+      padding: Spacing.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    itemsPreviewTitle: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-SemiBold',
+      color: colors.text,
+      marginBottom: Spacing.sm,
+    },
+    itemPreviewText: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+      marginBottom: Spacing.xs,
+    },
+    itemsMoreText: {
+      fontSize: Typography.fontSize.xs,
+      fontFamily: 'DMSans-Medium',
+      color: colors.primary,
+      fontStyle: 'italic',
     },
     emptyCard: {
       marginHorizontal: Spacing.lg,

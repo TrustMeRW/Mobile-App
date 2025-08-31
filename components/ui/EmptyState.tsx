@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle } from 'react-native';
 import { MotiView } from 'moti';
-import { lightColors as Colors, Typography, Spacing } from '@/constants/theme';
+import { Typography, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
+import { AlertCircle, Package, CreditCard, User, Bell } from 'lucide-react-native';
 import { Button } from './Button';
 
 interface EmptyStateProps {
@@ -13,67 +15,74 @@ interface EmptyStateProps {
 }
 
 export const EmptyState: React.FC<EmptyStateProps> = ({
-  icon,
+  type = 'default',
   title,
-  description,
+  message,
   actionText,
   onAction,
+  style,
 }) => {
+  const { colors } = useTheme();
+  const styles = getStyles(colors);
+
+  const getIcon = () => {
+    switch (type) {
+      case 'error':
+        return <AlertCircle size={48} color={colors.error} />;
+      case 'package':
+        return <Package size={48} color={colors.warning} />;
+      case 'payment':
+        return <CreditCard size={48} color={colors.info} />;
+      case 'user':
+        return <User size={48} color={colors.primary} />;
+      case 'notification':
+        return <Bell size={48} color={colors.textSecondary} />;
+      default:
+        return <AlertCircle size={48} color={colors.textSecondary} />;
+    }
+  };
+
   return (
-    <MotiView
-      from={{ opacity: 0, translateY: 30 }}
-      animate={{ opacity: 1, translateY: 0 }}
-      transition={{ type: 'timing', duration: 600 }}
-      style={styles.container}
-    >
-      {icon && (
-        <View style={styles.iconContainer}>
-          {icon}
-        </View>
-      )}
-      
+    <View style={[styles.container, style]}>
+      {getIcon()}
       <Text style={styles.title}>{title}</Text>
-      <Text style={styles.description}>{description}</Text>
-      
+      <Text style={styles.message}>{message}</Text>
       {actionText && onAction && (
         <Button
           title={actionText}
           onPress={onAction}
+          variant="primary"
           style={styles.actionButton}
         />
       )}
-    </MotiView>
+    </View>
   );
 };
 
-const styles = StyleSheet.create({
+const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.xxl,
-  },
-  iconContainer: {
-    marginBottom: Spacing.lg,
-    opacity: 0.6,
+    alignItems: 'center',
+    padding: Spacing.xl,
   },
   title: {
-    fontSize: Typography.fontSize.xl,
+    fontSize: Typography.fontSize.lg,
     fontFamily: 'DMSans-Bold',
-    color: Colors.dark,
+    color: colors.text,
     textAlign: 'center',
+    marginTop: Spacing.md,
     marginBottom: Spacing.sm,
   },
-  description: {
+  message: {
     fontSize: Typography.fontSize.md,
     fontFamily: 'DMSans-Regular',
-    color: Colors.gray[600],
+    color: colors.textSecondary,
     textAlign: 'center',
     lineHeight: 22,
     marginBottom: Spacing.lg,
   },
   actionButton: {
-    marginTop: Spacing.md,
+    minWidth: 120,
   },
 });

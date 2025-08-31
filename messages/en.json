@@ -1,0 +1,548 @@
+{
+  "common": {
+    "welcome": "Welcome",
+    "next": "Next",
+    "previous": "Previous",
+    "skip": "Skip",
+    "done": "Done",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "confirm": "Confirm",
+    "back": "Back",
+    "ok": "OK",
+    "close": "Close"
+  },
+  "navigation": {
+    "home": "Home",
+    "debts": "Debts",
+    "subscriptions": "Subscriptions",
+    "profile": "Profile"
+  },
+  "subscriptions": {
+    "title": "Subscription Plans",
+    "currentSubscription": {
+      "title": "Current Subscription",
+      "freeTrialActive": "Free Trial Active",
+      "planName": "Active Plan",
+      "status": "Status",
+      "trialEnds": "Trial Ends",
+      "ends": "Ends",
+      "daysLeft": "Days Left",
+      "amount": "Amount",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "subscriptionPeriod": "Subscription Period"
+    },
+    "usageTracking": {
+      "title": "Usage This Month",
+      "debtsCreated": "Debts Created",
+      "trustabilityChecks": "Trustability Checks",
+      "remaining": "remaining"
+    },
+    "benefits": {
+      "title": "Your Benefits",
+      "trustabilityChecks": "Trustability Checks",
+      "debtsAllowed": "Debts Allowed",
+      "devices": "Devices"
+    },
+    "freeTrial": {
+      "info": "Your free trial is active",
+      "message": "Your free trial is active"
+    },
+    "upgrade": {
+      "title": "Upgrade or change your subscription plan",
+      "choosePlan": "Choose the plan that best fits your needs"
+    },
+    "plan": {
+      "features": "Features",
+      "subscribeNow": "Subscribe Now",
+      "perDay": "per day",
+      "currentPlan": "Current Plan"
+    },
+    "help": {
+      "title": "Need Help?",
+      "text": "If you have any questions about our subscription plans or need assistance, please contact +250788355263 or email support@trustme.rw ."
+    },
+    "confirm": {
+      "title": "Confirm Subscription",
+      "message": "Are you sure you want to subscribe to {{planName}}?",
+      "subscribe": "Subscribe"
+    }
+  },
+  "onboarding": {
+    "step1": {
+      "title": "Welcome to TrustMe",
+      "subtitle": "Your trusted platform for secure financial transactions and debt management"
+    },
+    "step2": {
+      "title": "Secure & Reliable",
+      "subtitle": "Bank-grade security to protect your financial information and transactions"
+    },
+    "step3": {
+      "title": "Easy Management",
+      "subtitle": "Track debts, manage payments, and monitor your financial health effortlessly"
+    },
+    "step4": {
+      "title": "Choose Your Language",
+      "subtitle": "Select your preferred language for the best experience"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Continue your journey with TrustMe",
+      "identifier": "National ID/Passport/Phone Number /Email",
+      "password": "Password/PIN",
+      "forgotPassword": "Forgot password",
+      "loginButton": "Log In",
+      "createAccount": "Don't have an account?",
+      "createAccountLink": "Create Account"
+    },
+    "register": {
+      "title": "Create Account",
+      "subtitle": "Complete your registration with TrustMe",
+      "phoneNumber": "Phone Number",
+      "idCard": "Identification Card",
+      "idCardSubtitle": "Take photos of your ID card (Passport/National ID)",
+      "upperSection": "Upper Section",
+      "lowerSection": "Lower Section",
+      "selfie": "Selfie Photo",
+      "selfieSubtitle": "Take a clear photo of yourself",
+      "takePhoto": "Take Photo",
+      "createAccountButton": "Create Account",
+      "processing": "Processing...",
+      "alreadyHaveAccount": "Already have an account?",
+      "signIn": "Sign In"
+    },
+    "forgotPassword": {
+      "title": "Reset PIN",
+      "subtitle": "Forgot your PIN? Please approach a TrustMe agent to get your PIN reset.",
+      "email": "Email",
+      "sendResetLink": "Send Reset Link",
+      "rememberPin": "Remember your PIN?",
+      "signIn": "Sign In"
+    }
+  },
+  "home": {
+    "greeting": "Hello, {{name}}!",
+    "subGreeting": "Here's your debt overview",
+    "totalDebt": "Total Debt",
+    "totalPaid": "Total Paid",
+    "activeDebts": "Active Debts",
+    "overdue": "Overdue",
+    "recentActivity": "Recent Activity",
+    "debtRequest": "Debt Request",
+    "debtOffer": "Debt Offer",
+    "noRecentActivity": "No recent activity",
+    "trustabilityAnalytics": "Trustability Analytics",
+    "trustScore": "Your Trust Score",
+    "trustabilityScore": "Trustability Score",
+    "possiblePayments": "Possible Payments",
+    "completed": "Completed",
+    "successRate": "Success Rate"
+  },
+  "debts": {
+    "title": "My Debts",
+    "searchPlaceholder": "Search debts...",
+    "filters": {
+      "all": "All",
+      "active": "Active",
+      "pending": "Pending",
+      "completed": "Completed",
+      "overdue": "Overdue",
+      "paidPending": "Paid Pending"
+    },
+    "debtTypes": {
+      "requested": "Requested",
+      "offered": "Offered"
+    },
+    "status": {
+      "active": "Active",
+      "pending": "Pending",
+      "completed": "Completed",
+      "overdue": "Overdue",
+      "paidPendingConfirmation": "Paid Pending"
+    },
+    "partyInfo": {
+      "from": "From",
+      "to": "To",
+      "unknown": "Unknown"
+    },
+    "progress": {
+      "paid": "paid"
+    },
+    "payment": {
+      "paid": "Paid",
+      "remaining": "Remaining"
+    },
+    "dueDate": "Due Date",
+    "noDueDate": "No due date",
+    "overdue": "Overdue",
+    "createdAt": "Created",
+    "noDebts": "No debts found",
+    "noDebtsMessage": "You don't have any debts yet. Start by requesting or offering a debt.",
+    "searchNoResults": "Try adjusting your search criteria"
+  },
+  "addDebt": {
+    "title": "Add New Debt",
+    "steps": {
+      "debtType": {
+        "title": "Select Debt Type",
+        "subtitle": "Choose how you want to proceed with the debt",
+        "request": {
+          "title": "I Owe Someone",
+          "subtitle": "You're requesting to borrow from someone"
+        },
+        "offer": {
+          "title": "Someone Owes Me",
+          "subtitle": "You're offering to lend to someone"
+        }
+      },
+      "products": {
+        "title": "Products/Services",
+        "subtitle": "Add the products or services that will be included in this debt",
+        "item": "Item {{number}}",
+        "name": "Item Name",
+        "namePlaceholder": "Enter item name",
+        "description": "Description (Optional)",
+        "descriptionPlaceholder": "Brief description of the item",
+        "quantity": "Quantity",
+        "quantityPlaceholder": "1",
+        "amount": "Amount (RWF)",
+        "amountPlaceholder": "0",
+        "total": "Total: RWF {{amount}}",
+        "addAnother": "Add Another Item"
+      },
+      "paymentDate": {
+        "title": "Payment Date (Optional)",
+        "subtitle": "Set a payment due date for this debt. If not specified, no due date will be set.",
+        "selectDate": "Select Date",
+        "clearDate": "Clear Date",
+        "paymentDue": "Payment due: {{date}}",
+        "overdueNote": "This debt will be marked as overdue after this date"
+      },
+      "scanUser": {
+        "title": "Scan User QR Code",
+        "requestSubtitle": "Scan the QR code of the person you want to borrow from",
+        "offerSubtitle": "Scan the QR code of the person you want to lend to",
+        "scanButton": "Scan QR Code",
+        "scanning": "Scanning...",
+        "manualInput": "Or enter user code manually:",
+        "codePlaceholder": "Enter user code",
+        "fetchUser": "Fetch User"
+      }
+    },
+    "navigation": {
+      "previous": "Previous",
+      "next": "Next",
+      "proceed": "Proceed",
+      "createDebt": "Create Debt"
+    },
+    "errors": {
+      "userNotAuthenticated": "User not authenticated",
+      "creatingDebt": "Creating debt..."
+    }
+  },
+  "debtDetail": {
+    "title": "Debt Details",
+    "status": {
+      "pending": "Pending",
+      "active": "Active",
+      "completed": "Completed",
+      "overdue": "Overdue",
+      "paidPending": "Paid Pending",
+      "rejected": "Rejected"
+    },
+    "debtType": {
+      "requested": "Requested",
+      "offered": "Offered"
+    },
+    "amount": {
+      "total": "Total Amount",
+      "paid": "Amount Paid",
+      "remaining": "Remaining Amount"
+    },
+    "payment": {
+      "title": "Payment",
+      "amount": "Payment Amount",
+      "amountPlaceholder": "Enter amount",
+      "pin": "PIN for Approval",
+      "pinPlaceholder": "Enter your PIN",
+      "pay": "Pay Debt",
+      "confirm": "Confirm Payment",
+      "approve": "Approve Debt",
+      "reject": "Reject Debt"
+    },
+    "actions": {
+      "approve": "Approve",
+      "reject": "Reject",
+      "pay": "Pay",
+      "confirm": "Confirm"
+    },
+    "messages": {
+      "debtApproved": "Debt Approved",
+      "debtApprovedMessage": "You have successfully approved the debt.",
+      "debtRejected": "Debt Rejected",
+      "debtRejectedMessage": "You have successfully rejected the debt.",
+      "paymentSuccess": "Payment Successful",
+      "paymentSuccessMessage": "Your payment has been processed successfully.",
+      "paymentConfirmed": "Payment Confirmed",
+      "paymentConfirmedMessage": "The payment has been confirmed.",
+      "approvalFailed": "Approval Failed",
+      "rejectionFailed": "Rejection Failed",
+      "paymentFailed": "Payment Failed",
+      "confirmationFailed": "Confirmation Failed"
+    },
+    "items": {
+      "title": "Items",
+      "name": "Name",
+      "description": "Description",
+      "quantity": "Quantity",
+      "amount": "Amount",
+      "total": "Total"
+    },
+    "dates": {
+      "created": "Created",
+      "dueDate": "Due Date",
+      "noDueDate": "No due date set"
+    }
+  },
+  "profile": {
+    "refresh": {
+      "success": {
+        "title": "Profile Updated",
+        "message": "Your profile information has been refreshed"
+      },
+      "error": {
+        "title": "Refresh Failed",
+        "message": "Failed to refresh profile data"
+      }
+    },
+    "logout": {
+      "button": "Sign Out",
+      "error": {
+        "title": "Logout Failed",
+        "message": "An error occurred while signing out. Please try again."
+      }
+    },
+    "menu": {
+      "editProfile": "Edit Profile",
+      "editProfileSubtitle": "Update your personal information",
+      "changePin": "Change PIN",
+      "changePinSubtitle": "Update your security PIN",
+      "notifications": "Notifications",
+      "notificationsSubtitle": "{{count}} unread notification{{count, plural, one { '' } other {s} }}",
+      "language": "Language",
+      "languageSubtitle": "Change app language"
+    },
+    "qrCode": {
+      "title": "Your QR Code",
+      "subtitle": "Share this code with others to connect and create debts",
+      "codeLabel": "Your Code",
+      "description": "This unique code identifies you in the Trust Me system",
+      "note": "Others can scan your QR code or use this code to connect with you",
+      "changeCode": "Change Your Code",
+      "copySuccess": {
+        "title": "Code Copied",
+        "message": "Your code has been copied to clipboard"
+      }
+    },
+    "version": "Trust Me v1.0.0"
+  },
+  "language": {
+    "english": "English",
+    "kinyarwanda": "Kinyarwanda",
+    "french": "French",
+    "selectLanguage": "Select Language",
+    "languageDescription": "Choose your preferred language for the app interface",
+    "settings": {
+      "title": "Language Settings",
+      "infoTitle": "Choose Your Language",
+      "infoText": "Select your preferred language for the app interface. This will change the language of all text throughout the application.",
+      "selectLanguage": "Select Language",
+      "confirmButton": "Confirm Language Change"
+    },
+    "changeConfirm": {
+      "title": "Confirm Language Change",
+      "message": "Are you sure you want to change the app language to {{language}}? This will affect all text throughout the application.",
+      "confirmText": "Change Language",
+      "cancelText": "Cancel"
+    },
+    "changeSuccess": {
+      "title": "Language Changed to {{language}}",
+      "message": "Your language preference has been updated successfully. The app will now display in your selected language."
+    },
+    "changeError": {
+      "title": "Language Change Failed",
+      "message": "Failed to change language. Please try again."
+    }
+  },
+  "logout": {
+    "title": "Sign Out",
+    "message": "Are you sure you want to sign out of your account? You'll need to sign in again to access your data.",
+    "cancel": "Cancel",
+    "confirm": "Sign Out"
+  },
+  "changeCode": {
+    "input": {
+      "title": "Change Your Code",
+      "message": "Enter your new unique code. This will replace your current code and can be used for future verifications.",
+      "newCodeLabel": "New Code",
+      "placeholder": "Enter new code",
+      "hint": "Code should be 4-6 characters long",
+      "next": "Next"
+    },
+    "confirm": {
+      "title": "Confirm New Code",
+      "message": "Please confirm your new code to ensure it's correct.",
+      "confirmCodeLabel": "Confirm Code",
+      "placeholder": "Confirm new code",
+      "back": "Back",
+      "confirm": "Confirm Code"
+    },
+    "success": {
+      "title": "Code Changed Successfully",
+      "message": "Your code has been updated successfully. You can now use your new code for verifications.",
+      "close": "Close"
+    },
+    "error": {
+      "emptyCode": "Please enter a code",
+      "tooShort": "Code must be at least 4 characters long",
+      "tooLong": "Code must not exceed 6 characters",
+      "mismatch": "Codes do not match. Please try again."
+    }
+  },
+  "editProfile": {
+    "title": "Edit Location",
+    "sections": {
+      "personalInfo": {
+        "title": "Personal Information",
+        "readOnly": "Read Only"
+      },
+      "location": {
+        "title": "Location Information",
+        "editable": "Editable"
+      }
+    },
+    "fields": {
+      "firstName": "First Name",
+      "firstNamePlaceholder": "Enter your first name",
+      "lastName": "Last Name",
+      "lastNamePlaceholder": "Enter your last name",
+      "email": "Email",
+      "emailPlaceholder": "Enter your email address",
+      "phoneNumber": "Phone Number",
+      "phoneNumberPlaceholder": "Enter your phone number"
+    },
+    "location": {
+      "province": "Province",
+      "district": "District",
+      "sector": "Sector",
+      "cell": "Cell",
+      "village": "Village",
+      "selectProvince": "Select province",
+      "selectDistrict": "Select district",
+      "selectSector": "Select sector",
+      "selectCell": "Select cell",
+      "selectVillage": "Select village",
+      "search": "Search {{type}}...",
+      "selectProvince": "Select Province",
+      "selectDistrict": "Select District",
+      "selectSector": "Select Sector",
+      "selectCell": "Select Cell",
+      "selectVillage": "Select Village"
+    },
+    "location.error": {
+      "selectProvinceFirst": {
+        "title": "Select Province First",
+        "message": "Please select a province before selecting a district"
+      },
+      "selectLocationFirst": {
+        "title": "Select Location First",
+        "message": "Please select the required parent locations first"
+      },
+      "noData": {
+        "title": "No Data Available",
+        "message": "No {{type}} data found for the selected location"
+      }
+    },
+    "validation": {
+      "error": {
+        "title": "Error",
+        "completeLocation": "Please complete all location fields"
+      }
+    },
+    "confirm": {
+      "title": "Confirm Location Update",
+      "message": "Are you sure you want to update your location information?",
+      "updateButton": "Update Location"
+    },
+    "updateButton": "Update Location",
+    "success": {
+      "title": "Location Updated",
+      "message": "Your location information has been updated successfully"
+    },
+    "error": {
+      "title": "Update Failed",
+      "message": "Failed to update location. Please try again."
+    }
+  },
+  "changePin": {
+    "title": "Change PIN/Password",
+    "info": {
+      "title": "Security Information",
+      "message": "Your PIN/Password is used to secure your account and confirm important actions. Make sure to choose a PIN/Password that you can remember but others cannot easily guess."
+    },
+    "form": {
+      "currentPin": {
+        "title": "Current PIN/Password",
+        "label": "Current PIN/Password",
+        "placeholder": "Enter current PIN/Password"
+      },
+      "newPin": {
+        "title": "New PIN/Password",
+        "label": "New PIN/Password",
+        "placeholder": "Enter new PIN/Password"
+      },
+      "confirmPin": {
+        "title": "Confirm New PIN/Password",
+        "label": "Confirm New PIN/Password",
+        "placeholder": "Confirm new PIN/Password"
+      },
+      "hint": {
+        "title": "PIN/Password Requirements",
+        "message": "• Must be 4-6 characters long\n• Should be different from current PIN/Password\n• Make sure you can remember it"
+      }
+    },
+    "changeButton": "Change PIN/Password",
+    "success": {
+      "title": "PIN/Password Changed Successfully",
+      "message": "Your PIN/Password has been updated successfully. You can now use your new PIN/Password for future verifications.",
+      "subtitle": "Redirecting back to profile..."
+    },
+    "error": {
+      "title": "PIN/Password Change Failed",
+      "message": "Failed to change PIN/Password. Please try again."
+    },
+    "validation": {
+      "error": {
+        "title": "Validation Error",
+        "allFieldsRequired": "Please fill in all fields",
+        "pinTooShort": "New PIN/Password must be at least 4 characters long",
+        "pinTooLong": "New PIN/Password must not exceed 6 characters",
+        "pinsDoNotMatch": "New PIN/Password and confirm PIN/Password do not match",
+        "samePin": "New PIN/Password must be different from current PIN/Password"
+      }
+    },
+    "confirm": {
+      "title": "Confirm PIN/Password Change",
+      "message": "Are you sure you want to change your PIN/Password? This action cannot be undone.",
+      "changeButton": "Change PIN/Password"
+    }
+  }
+}

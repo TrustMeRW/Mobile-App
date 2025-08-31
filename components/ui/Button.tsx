@@ -1,97 +1,99 @@
 import React from 'react';
-import { TouchableOpacity, Text, StyleSheet, ViewStyle, TextStyle, ActivityIndicator, StyleProp } from 'react-native';
-import { lightColors as Colors, Typography, BorderRadius, Spacing } from '@/constants/theme';
+import {
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  ViewStyle,
+  TextStyle,
+  ActivityIndicator,
+} from 'react-native';
+import { Typography, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 
 interface ButtonProps {
   title: string;
   onPress: () => void;
   variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+  size?: 'small' | 'medium' | 'large';
   disabled?: boolean;
   loading?: boolean;
-  style?: StyleProp<ViewStyle>;
-  textStyle?: StyleProp<TextStyle>;
+  style?: ViewStyle;
+  textStyle?: TextStyle;
 }
 
-export const Button: React.FC<ButtonProps> = ({
+export function Button({
   title,
   onPress,
   variant = 'primary',
-  size = 'md',
+  size = 'medium',
   disabled = false,
   loading = false,
   style,
   textStyle,
-}) => {
-  const buttonStyle = [
-    styles.base,
-    styles[variant],
-    styles[size],
-    disabled && styles.disabled,
-    style,
-  ];
-
-  const textStyles = [
-    styles.text,
-    styles[`${variant}Text`],
-    styles[`${size}Text`],
-    textStyle,
-  ];
+}: ButtonProps) {
+  const { colors } = useTheme();
+  const styles = getStyles(colors, variant, size);
 
   return (
     <TouchableOpacity
-      style={buttonStyle}
+      style={[
+        styles.button,
+        disabled && styles.disabled,
+        style,
+      ]}
       onPress={onPress}
       disabled={disabled || loading}
       activeOpacity={0.8}
     >
       {loading ? (
         <ActivityIndicator 
-          color={variant === 'primary' ? Colors.white : Colors.primary} 
           size="small" 
+          color={variant === 'primary' ? '#ffffff' : colors.primary}
         />
       ) : (
-        <Text style={textStyles}>{title}</Text>
+        <Text style={[styles.text, textStyle]}>
+          {title}
+        </Text>
       )}
     </TouchableOpacity>
   );
-};
+}
 
-const styles = StyleSheet.create({
-  base: {
-    borderRadius: BorderRadius.md,
+const getStyles = (colors: any, variant: string, size: string) => StyleSheet.create({
+  button: {
+    borderRadius: 8,
     alignItems: 'center',
     justifyContent: 'center',
     flexDirection: 'row',
-  },
-  primary: {
-    backgroundColor: Colors.primary,
-  },
-  secondary: {
-    backgroundColor: Colors.gray[100],
-  },
-  outline: {
-    backgroundColor: 'transparent',
-    borderWidth: 1,
-    borderColor: Colors.primary,
-  },
-  ghost: {
-    backgroundColor: 'transparent',
-  },
-  sm: {
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    minHeight: 36,
-  },
-  md: {
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
-    minHeight: 48,
-  },
-  lg: {
-    paddingHorizontal: Spacing.xl,
-    paddingVertical: Spacing.lg,
-    minHeight: 56,
+    ...(variant === 'primary' && {
+      backgroundColor: colors.primary,
+    }),
+    ...(variant === 'secondary' && {
+      backgroundColor: colors.gray[100],
+    }),
+    ...(variant === 'outline' && {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: colors.primary,
+    }),
+    ...(variant === 'ghost' && {
+      backgroundColor: 'transparent',
+    }),
+    ...(size === 'small' && {
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.sm,
+      minHeight: 36,
+    }),
+    ...(size === 'medium' && {
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.md,
+      minHeight: 48,
+    }),
+    ...(size === 'large' && {
+      paddingHorizontal: Spacing.xl,
+      paddingVertical: Spacing.lg,
+      minHeight: 56,
+    }),
   },
   disabled: {
     opacity: 0.5,
@@ -99,26 +101,26 @@ const styles = StyleSheet.create({
   text: {
     fontFamily: 'DMSans-Medium',
     textAlign: 'center',
-  },
-  primaryText: {
-    color: Colors.white,
-  },
-  secondaryText: {
-    color: Colors.dark,
-  },
-  outlineText: {
-    color: Colors.primary,
-  },
-  ghostText: {
-    color: Colors.primary,
-  },
-  smText: {
-    fontSize: Typography.fontSize.sm,
-  },
-  mdText: {
-    fontSize: Typography.fontSize.md,
-  },
-  lgText: {
-    fontSize: Typography.fontSize.lg,
+    ...(variant === 'primary' && {
+      color: '#ffffff',
+    }),
+    ...(variant === 'secondary' && {
+      color: '#343a40',
+    }),
+    ...(variant === 'outline' && {
+      color: colors.primary,
+    }),
+    ...(variant === 'ghost' && {
+      color: colors.primary,
+    }),
+    ...(size === 'small' && {
+      fontSize: Typography.fontSize.sm,
+    }),
+    ...(size === 'medium' && {
+      fontSize: Typography.fontSize.md,
+    }),
+    ...(size === 'large' && {
+      fontSize: Typography.fontSize.lg,
+    }),
   },
 });

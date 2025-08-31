@@ -3,13 +3,15 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, RefreshControl } fr
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Stack, useNavigation } from 'expo-router';
 import { useNotifications, Notification as NotificationType } from '@/services/notifications';
-import { lightColors as Colors, Typography, Spacing } from '@/constants/theme';
+import { Typography, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
 import { Bell, BellOff, Check, ArrowLeft } from 'lucide-react-native';
 import { MotiView } from 'moti';
 import { formatDistanceToNow } from 'date-fns';
 
 export default function NotificationsScreen() {
   const navigation = useNavigation();
+  const { colors } = useTheme();
   const { 
     notifications, 
     unreadCount, 
@@ -49,11 +51,11 @@ export default function NotificationsScreen() {
           onPress={() => handleMarkAsRead(item.id)}
           style={styles.markAsReadButton}
         >
-          <Check size={16} color={Colors.primary} />
+          <Check size={16} color={colors.primary} />
         </TouchableOpacity>
       ) : null}
     </MotiView>
-  ), [handleMarkAsRead]);
+  ), [handleMarkAsRead, colors.primary]);
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -62,7 +64,7 @@ export default function NotificationsScreen() {
           title: 'Notifications',
           headerLeft: () => (
             <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-              <ArrowLeft size={24} color={Colors.primary} />
+              <ArrowLeft size={24} color={colors.primary} />
             </TouchableOpacity>
           ),
           headerRight: () => (
@@ -77,7 +79,7 @@ export default function NotificationsScreen() {
       
       {notifications.length === 0 && !isLoading ? (
         <View style={styles.emptyContainer}>
-          <BellOff size={48} color={Colors.gray[400]} />
+          <BellOff size={48} color={colors.gray[400]} />
           <Text style={styles.emptyText}>No notifications yet</Text>
           <Text style={styles.emptySubtext}>We'll let you know when something new arrives</Text>
         </View>
@@ -91,8 +93,8 @@ export default function NotificationsScreen() {
             <RefreshControl
               refreshing={isLoading}
               onRefresh={refresh}
-              colors={[Colors.primary]}
-              tintColor={Colors.primary}
+              colors={[colors.primary]}
+              tintColor={colors.primary}
             />
           }
         />
@@ -104,7 +106,7 @@ export default function NotificationsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Colors.white,
+    backgroundColor: '#fff',
   },
   listContent: {
     padding: Spacing.md,
@@ -120,10 +122,10 @@ const styles = StyleSheet.create({
   markAllText: {
     fontSize: Typography.fontSize.md,
     fontFamily: 'DMSans-Bold',
-    color: Colors.primary,
+    color: '#007bff', // Changed from colors.primary to '#007bff'
   },
   notificationItem: {
-    backgroundColor: Colors.white,
+    backgroundColor: '#fff',
     borderRadius: 12,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
@@ -137,7 +139,7 @@ const styles = StyleSheet.create({
   },
   unreadNotification: {
     borderLeftWidth: 3,
-    borderLeftColor: Colors.primary,
+    borderLeftColor: '#007bff', // Changed from colors.primary to '#007bff'
     paddingLeft: Spacing.md - 3, // Compensate for border
   },
   notificationContent: {
@@ -147,24 +149,24 @@ const styles = StyleSheet.create({
   notificationTitle: {
     fontSize: Typography.fontSize.md,
     fontFamily: 'DMSans-SemiBold',
-    color: Colors.gray[900],
+    color: '#343a40', // Changed from colors.gray[900] to '#343a40'
     marginBottom: Spacing.xs,
   },
   notificationMessage: {
     fontSize: Typography.fontSize.md,
     fontFamily: 'DMSans-Regular',
-    color: Colors.gray[700],
+    color: '#6c757d', // Changed from colors.gray[700] to '#6c757d'
     marginBottom: Spacing.xs,
   },
   notificationTime: {
     fontSize: Typography.fontSize.sm,
     fontFamily: 'DMSans-Regular',
-    color: Colors.gray[500],
+    color: '#adb5bd', // Changed from colors.gray[500] to '#adb5bd'
   },
   markAsReadButton: {
     padding: Spacing.xs,
     borderRadius: 16,
-    backgroundColor: Colors.gray[100],
+    backgroundColor: '#e9ecef', // Changed from colors.gray[100] to '#e9ecef'
   },
   emptyContainer: {
     flex: 1,
@@ -176,12 +178,12 @@ const styles = StyleSheet.create({
     fontSize: Typography.fontSize.xl,
     fontFamily: 'DMSans-Bold',
     marginTop: Spacing.md,
-    color: Colors.gray[700],
+    color: '#495057', // Changed from colors.gray[700] to '#495057'
   },
   emptySubtext: {
     fontSize: Typography.fontSize.md,
     fontFamily: 'DMSans-Regular',
-    color: Colors.gray[500],
+    color: '#6c757d', // Changed from colors.gray[500] to '#6c757d'
     textAlign: 'center',
     marginTop: Spacing.xs,
   },

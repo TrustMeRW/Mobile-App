@@ -4,11 +4,12 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   Dimensions,
 } from 'react-native';
 import { CameraView, CameraType, useCameraPermissions } from 'expo-camera';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useToast } from '@/contexts/ToastContext';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { Spacing, Typography, BorderRadius } from '@/constants/theme';
 import { MotiView } from 'moti';
 import { X, QrCode, AlertCircle, CheckCircle } from 'lucide-react-native';
@@ -17,12 +18,14 @@ interface QRCodeScannerProps {
   onScan: (code: string) => void;
   onClose: () => void;
   isVisible: boolean;
+  isPendingRequest?: boolean;
 }
 
 const { width } = Dimensions.get('window');
 
-export default function QRCodeScanner({ onScan, onClose, isVisible }: QRCodeScannerProps) {
+export default function QRCodeScanner({ onScan, onClose, isVisible, isPendingRequest = false }: QRCodeScannerProps) {
   const { colors } = useTheme();
+  const { showError } = useToast();
   const styles = getStyles(colors);
   
   const [facing, setFacing] = useState<CameraType>('back');
@@ -31,7 +34,7 @@ export default function QRCodeScanner({ onScan, onClose, isVisible }: QRCodeScan
   const [isLoading, setIsLoading] = useState(false);
 
   const handleBarcodeScanned = (scanningResult: { type: string; data: string }) => {
-    if (scanned) return;
+    if (scanned || isPendingRequest) return;
     
     const { type, data } = scanningResult;
     setScanned(true);
@@ -46,7 +49,7 @@ export default function QRCodeScanner({ onScan, onClose, isVisible }: QRCodeScan
       }, 1000);
     } else {
       setIsLoading(false);
-      Alert.alert('Invalid Code', 'The scanned QR code does not contain valid data. Please try again.');
+      showError('Invalid QR Code', 'The scanned QR code does not contain valid data. Please try again.');
       setScanned(false);
     }
   };
@@ -108,7 +111,7 @@ export default function QRCodeScanner({ onScan, onClose, isVisible }: QRCodeScan
         barcodeScannerSettings={{
           barcodeTypes: ["qr"],
         }}
-        onBarcodeScanned={scanned ? undefined : handleBarcodeScanned}
+        onBarcodeScanned={scanned || isPendingRequest ? undefined : handleBarcodeScanned}
       >
         {/* Overlay */}
         <View style={styles.overlay}>
@@ -133,8 +136,18 @@ export default function QRCodeScanner({ onScan, onClose, isVisible }: QRCodeScan
             </View>
             
             <Text style={styles.scanningText}>
-              Position the QR code within the frame
+              {isPendingRequest 
+                ? 'Request in progress...' 
+                : 'Position the QR code within the frame'
+              }
             </Text>
+
+            {/* Disabled Overlay */}
+            {isPendingRequest && (
+              <View style={styles.disabledOverlay}>
+                <Text style={styles.disabledText}>Scanning Disabled</Text>
+              </View>
+            )}
           </View>
 
           {/* Success State */}
@@ -155,11 +168,34 @@ export default function QRCodeScanner({ onScan, onClose, isVisible }: QRCodeScan
             </MotiView>
           )}
 
+          {/* Pending Request Indicator */}
+          {isPendingRequest && (
+            <MotiView
+              style={styles.pendingOverlay}
+              from={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ type: 'timing', duration: 300 }}
+            >
+              <View style={styles.pendingContent}>
+                <View style={[styles.pendingIcon, { backgroundColor: colors.primary + '20' }]}>
+                  <LoadingSpinner size="small" color={colors.primary} />
+                </View>
+                <Text style={styles.pendingTitle}>Request in Progress</Text>
+                <Text style={styles.pendingText}>
+                  Please wait while we fetch user data...
+                </Text>
+              </View>
+            </MotiView>
+          )}
+
           {/* Bottom Instructions */}
           <View style={styles.bottomInstructions}>
             <QrCode color={colors.white} size={20} />
             <Text style={styles.instructionsText}>
-              Point your camera at a QR code to scan
+              {isPendingRequest 
+                ? 'Processing request...' 
+                : 'Point your camera at a QR code to scan'
+              }
             </Text>
           </View>
         </View>
@@ -348,5 +384,56 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: Typography.fontSize.md,
     fontFamily: 'DMSans-Medium',
     color: colors.white,
+  },
+  pendingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  pendingContent: {
+    alignItems: 'center',
+    padding: Spacing.xl,
+  },
+  pendingIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: Spacing.md,
+  },
+  pendingTitle: {
+    fontSize: Typography.fontSize.lg,
+    fontFamily: 'DMSans-Bold',
+    color: colors.white,
+    marginBottom: Spacing.sm,
+  },
+  pendingText: {
+    fontSize: Typography.fontSize.md,
+    fontFamily: 'DMSans-Regular',
+    color: colors.textSecondary,
+    textAlign: 'center',
+  },
+  disabledOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1,
+  },
+  disabledText: {
+    fontSize: Typography.fontSize.lg,
+    fontFamily: 'DMSans-Bold',
+    color: colors.white,
+    textAlign: 'center',
   },
 });

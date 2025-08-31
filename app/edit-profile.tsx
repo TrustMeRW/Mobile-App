@@ -14,12 +14,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, MapPin, User, Mail, Phone, Search, X } from 'lucide-react-native';
+import { ArrowLeft, MapPin, User as UserIcon, Mail, Phone, Search, X, Lock } from 'lucide-react-native';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useAuthContext } from '@/contexts/AuthContext';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { useCurrentUser } from '@/hooks';
 import { Typography, Spacing, BorderRadius } from '@/constants/theme';
 import { apiClient } from '@/services/api';
 import Toast from 'react-native-toast-message';
@@ -102,7 +103,8 @@ const LocationModal: React.FC<LocationModalProps> = ({
 
 export default function EditProfileScreen() {
   const { colors } = useTheme();
-  const { user } = useAuthContext();
+  const { t } = useTranslation();
+  const { user } = useCurrentUser();
   const styles = getStyles(colors);
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -134,8 +136,8 @@ export default function EditProfileScreen() {
     onSuccess: () => {
       Toast.show({
         type: 'success',
-        text1: 'Profile Updated',
-        text2: 'Your profile has been updated successfully',
+        text1: t('editProfile.success.title'),
+        text2: t('editProfile.success.message'),
       });
       // Invalidate profile query to refresh user data
       queryClient.invalidateQueries({ queryKey: ['profile'] });
@@ -144,8 +146,8 @@ export default function EditProfileScreen() {
     onError: (error: any) => {
       Toast.show({
         type: 'error',
-        text1: 'Update Failed',
-        text2: error.message || 'Failed to update profile. Please try again.',
+        text1: t('editProfile.error.title'),
+        text2: error.message || t('editProfile.error.message'),
       });
     },
   });
@@ -160,55 +162,55 @@ export default function EditProfileScreen() {
 
     switch (type) {
       case 'province':
-        title = 'Select Province';
+        title = t('editProfile.location.selectProvince');
         data = rwandaLocations.getProvinces();
         break;
       case 'district':
         if (!formData.province) {
           Toast.show({
             type: 'error',
-            text1: 'Select Province First',
-            text2: 'Please select a province before selecting a district',
+            text1: t('editProfile.location.error.selectProvinceFirst.title'),
+            text2: t('editProfile.location.error.selectProvinceFirst.message'),
           });
           return;
         }
-        title = 'Select District';
+        title = t('editProfile.location.selectDistrict');
         data = rwandaLocations.getDistricts(formData.province);
         break;
       case 'sector':
         if (!formData.province || !formData.district) {
           Toast.show({
             type: 'error',
-            text1: 'Select Location First',
-            text2: 'Please select province and district before selecting a sector',
+            text1: t('editProfile.location.error.selectLocationFirst.title'),
+            text2: t('editProfile.location.error.selectLocationFirst.message'),
           });
           return;
         }
-        title = 'Select Sector';
+        title = t('editProfile.location.selectSector');
         data = rwandaLocations.getSectors(formData.province, formData.district);
         break;
       case 'cell':
         if (!formData.province || !formData.district || !formData.sector) {
           Toast.show({
             type: 'error',
-            text1: 'Select Location First',
-            text2: 'Please select province, district, and sector before selecting a cell',
+            text1: t('editProfile.location.error.selectLocationFirst.title'),
+            text2: t('editProfile.location.error.selectLocationFirst.message'),
           });
           return;
         }
-        title = 'Select Cell';
+        title = t('editProfile.location.selectCell');
         data = rwandaLocations.getCells(formData.province, formData.district, formData.sector);
         break;
       case 'village':
         if (!formData.province || !formData.district || !formData.sector || !formData.cell) {
           Toast.show({
             type: 'error',
-            text1: 'Select Location First',
-            text2: 'Please select province, district, sector, and cell before selecting a village',
+            text1: t('editProfile.location.error.selectLocationFirst.title'),
+            text2: t('editProfile.location.error.selectLocationFirst.message'),
           });
           return;
         }
-        title = 'Select Village';
+        title = t('editProfile.location.selectVillage');
         data = rwandaLocations.getVillages(formData.province, formData.district, formData.sector, formData.cell);
         break;
     }
@@ -217,8 +219,8 @@ export default function EditProfileScreen() {
     if (!data || data.length === 0) {
       Toast.show({
         type: 'error',
-        text1: 'No Data Available',
-        text2: `No ${type} data found for the selected location`,
+        text1: t('editProfile.location.error.noData.title'),
+        text2: t('editProfile.location.error.noData.message', { type }),
       });
       return;
     }
@@ -253,30 +255,20 @@ export default function EditProfileScreen() {
   };
 
   const handleSubmit = () => {
-    // Validation
-    if (!formData.firstName.trim() || !formData.lastName.trim()) {
-      Alert.alert('Error', 'First name and last name are required');
-      return;
-    }
-
-    if (!formData.phoneNumber.trim()) {
-      Alert.alert('Error', 'Phone number is required');
-      return;
-    }
-
+    // Only validate location fields since that's all we're updating
     if (!formData.province || !formData.district || !formData.sector || !formData.cell || !formData.village) {
-      Alert.alert('Error', 'Please complete all location fields');
+      Alert.alert(t('editProfile.validation.error.title'), t('editProfile.validation.error.completeLocation'));
       return;
     }
 
     // Confirm action
     Alert.alert(
-      'Confirm Update',
-      'Are you sure you want to update your profile information?',
+      t('editProfile.confirm.title'),
+      t('editProfile.confirm.message'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Update Profile',
+          text: t('editProfile.confirm.updateButton'),
           onPress: () => {
             updateProfileMutation.mutate(formData);
           },
@@ -291,7 +283,7 @@ export default function EditProfileScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft color={colors.text} size={24} />
         </TouchableOpacity>
-        <Text style={styles.title}>Edit Profile</Text>
+        <Text style={styles.title}>{t('editProfile.title')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
@@ -307,59 +299,70 @@ export default function EditProfileScreen() {
           >
             <Card style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
-                <User color={colors.primary} size={20} />
-                <Text style={styles.sectionTitle}>Personal Information</Text>
+                <UserIcon color={colors.textSecondary} size={20} />
+                <Text style={styles.sectionTitle}>{t('editProfile.sections.personalInfo.title')}</Text>
+                <View style={styles.readOnlyBadge}>
+                  <Lock color={colors.textSecondary} size={14} />
+                  <Text style={styles.readOnlyText}>{t('editProfile.sections.personalInfo.readOnly')}</Text>
+                </View>
               </View>
               
               <Input
-                label="First Name"
-                placeholder="Enter your first name"
+                label={t('editProfile.fields.firstName')}
+                placeholder={t('editProfile.fields.firstNamePlaceholder')}
                 value={formData.firstName}
                 onChangeText={(value) => updateField('firstName', value)}
                 style={styles.input}
+                editable={false}
               />
 
               <Input
-                label="Last Name"
-                placeholder="Enter your last name"
+                label={t('editProfile.fields.lastName')}
+                placeholder={t('editProfile.fields.lastNamePlaceholder')}
                 value={formData.lastName}
                 onChangeText={(value) => updateField('lastName', value)}
                 style={styles.input}
+                editable={false}
               />
 
               <Input
-                label="Email (Optional)"
-                placeholder="Enter your email address"
+                label={t('editProfile.fields.email')}
+                placeholder={t('editProfile.fields.emailPlaceholder')}
                 value={formData.email}
                 onChangeText={(value) => updateField('email', value)}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 style={styles.input}
+                editable={false}
               />
 
               <Input
-                label="Phone Number"
-                placeholder="Enter your phone number"
+                label={t('editProfile.fields.phoneNumber')}
+                placeholder={t('editProfile.fields.phoneNumberPlaceholder')}
                 value={formData.phoneNumber}
                 onChangeText={(value) => updateField('phoneNumber', value)}
                 keyboardType="phone-pad"
                 style={styles.input}
+                editable={false}
               />
             </Card>
 
             <Card style={styles.sectionCard}>
               <View style={styles.sectionHeader}>
                 <MapPin color={colors.primary} size={20} />
-                <Text style={styles.sectionTitle}>Location Information</Text>
+                <Text style={styles.sectionTitle}>{t('editProfile.sections.location.title')}</Text>
+                <View style={styles.editableBadge}>
+                  <Text style={styles.editableText}>{t('editProfile.sections.location.editable')}</Text>
+                </View>
               </View>
 
               <TouchableOpacity
                 style={styles.locationButton}
                 onPress={() => openLocationModal('province')}
               >
-                <Text style={styles.locationButtonLabel}>Province</Text>
+                <Text style={styles.locationButtonLabel}>{t('editProfile.location.province')}</Text>
                 <Text style={[styles.locationButtonValue, !formData.province && styles.placeholderText]}>
-                  {formData.province || 'Select province'}
+                  {formData.province || t('editProfile.location.selectProvince')}
                 </Text>
               </TouchableOpacity>
 
@@ -368,9 +371,9 @@ export default function EditProfileScreen() {
                 onPress={() => openLocationModal('district')}
                 disabled={!formData.province}
               >
-                <Text style={styles.locationButtonLabel}>District</Text>
+                <Text style={styles.locationButtonLabel}>{t('editProfile.location.district')}</Text>
                 <Text style={[styles.locationButtonValue, !formData.district && styles.placeholderText]}>
-                  {formData.district || 'Select district'}
+                  {formData.district || t('editProfile.location.selectDistrict')}
                 </Text>
               </TouchableOpacity>
 
@@ -379,9 +382,9 @@ export default function EditProfileScreen() {
                 onPress={() => openLocationModal('sector')}
                 disabled={!formData.district}
               >
-                <Text style={styles.locationButtonLabel}>Sector</Text>
+                <Text style={styles.locationButtonLabel}>{t('editProfile.location.sector')}</Text>
                 <Text style={[styles.locationButtonValue, !formData.sector && styles.placeholderText]}>
-                  {formData.sector || 'Select sector'}
+                  {formData.sector || t('editProfile.location.selectSector')}
                 </Text>
               </TouchableOpacity>
 
@@ -390,9 +393,9 @@ export default function EditProfileScreen() {
                 onPress={() => openLocationModal('cell')}
                 disabled={!formData.sector}
               >
-                <Text style={styles.locationButtonLabel}>Cell</Text>
+                <Text style={styles.locationButtonLabel}>{t('editProfile.location.cell')}</Text>
                 <Text style={[styles.locationButtonValue, !formData.cell && styles.placeholderText]}>
-                  {formData.cell || 'Select cell'}
+                  {formData.cell || t('editProfile.location.selectCell')}
                 </Text>
               </TouchableOpacity>
 
@@ -401,16 +404,16 @@ export default function EditProfileScreen() {
                 onPress={() => openLocationModal('village')}
                 disabled={!formData.cell}
               >
-                <Text style={styles.locationButtonLabel}>Village</Text>
+                <Text style={styles.locationButtonLabel}>{t('editProfile.location.village')}</Text>
                 <Text style={[styles.locationButtonValue, !formData.village && styles.placeholderText]}>
-                  {formData.village || 'Select village'}
+                  {formData.village || t('editProfile.location.selectVillage')}
                 </Text>
               </TouchableOpacity>
             </Card>
 
             <View style={styles.buttonContainer}>
               <Button
-                title="Update Profile"
+                title={t('editProfile.updateButton')}
                 onPress={handleSubmit}
                 loading={updateProfileMutation.isPending}
                 disabled={updateProfileMutation.isPending}
@@ -433,7 +436,7 @@ export default function EditProfileScreen() {
           locationModal.type === 'cell' ? (rwandaLocations.getCells(formData.province, formData.district, formData.sector) || []) :
           (rwandaLocations.getVillages(formData.province, formData.district, formData.sector, formData.cell) || [])
         }
-        searchPlaceholder={`Search ${locationModal.type}...`}
+        searchPlaceholder={t('editProfile.location.search', { type: locationModal.type })}
       />
     </SafeAreaView>
   );
@@ -475,12 +478,39 @@ const getStyles = (colors: any) =>
       flexDirection: 'row',
       alignItems: 'center',
       marginBottom: Spacing.md,
+      justifyContent: 'space-between',
     },
     sectionTitle: {
       fontSize: Typography.fontSize.md,
       fontFamily: 'DMSans-Bold',
       color: colors.text,
       marginLeft: Spacing.sm,
+      flex: 1,
+    },
+    readOnlyBadge: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.border,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: Spacing.xs,
+      borderRadius: BorderRadius.sm,
+    },
+    readOnlyText: {
+      fontSize: Typography.fontSize.xs,
+      fontFamily: 'DMSans-Medium',
+      color: colors.textSecondary,
+      marginLeft: Spacing.xs,
+    },
+    editableBadge: {
+      backgroundColor: colors.primary,
+      paddingHorizontal: Spacing.sm,
+      paddingVertical: Spacing.xs,
+      borderRadius: BorderRadius.sm,
+    },
+    editableText: {
+      fontSize: Typography.fontSize.xs,
+      fontFamily: 'DMSans-Medium',
+      color: colors.white,
     },
     input: {
       marginBottom: Spacing.md,
@@ -554,15 +584,19 @@ const getModalStyles = (colors: any) =>
     searchContainer: {
       flexDirection: 'row',
       alignItems: 'center',
-      backgroundColor: colors.background,
       borderRadius: BorderRadius.md,
       paddingHorizontal: Spacing.md,
       marginBottom: Spacing.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      minHeight: 52,
     },
     searchInput: {
       flex: 1,
       marginLeft: Spacing.sm,
       marginBottom: 0,
+      borderWidth: 0,
+      height:50
     },
     locationItem: {
       paddingVertical: Spacing.md,

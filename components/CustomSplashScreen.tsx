@@ -1,42 +1,73 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Image, StyleSheet, Animated, Dimensions } from 'react-native';
-import * as SplashScreen from 'expo-splash-screen';
-
-const { width, height } = Dimensions.get('window');
+import React, { useEffect, useState, useRef } from 'react';
+import { View, StyleSheet, ActivityIndicator, Text } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
+import { useCurrentUser } from '@/hooks';
 
 export default function CustomSplashScreen() {
-  const fadeAnim = useRef(new Animated.Value(0)).current;
+  const router = useRouter();
+  const { isAuthenticated, isLoading } = useCurrentUser();
+  const [authCheckComplete, setAuthCheckComplete] = useState(false);
+  const [showDelay, setShowDelay] = useState(false);
+  const hasNavigated = useRef(false);
 
+  // Check authentication when component mounts
   useEffect(() => {
-    SplashScreen.preventAutoHideAsync();
-    Animated.timing(fadeAnim, {
-      toValue: 1,
-      duration: 1200,
-      useNativeDriver: true,
-    }).start(() => {
-      // Ensure splash is visible for at least 2 seconds
-      setTimeout(() => {
-        SplashScreen.hideAsync();
-      }, 10000);
-    });
-  }, []);
+    if (!isLoading && !hasNavigated.current) {
+      console.log('CustomSplashScreen: Auth check complete, isAuthenticated:', isAuthenticated);
+      setAuthCheckComplete(true);
+      
+      // Wait 1 second after auth check before navigating
+      const delayTimer = setTimeout(() => {
+        setShowDelay(true);
+      }, 1000);
+
+      return () => clearTimeout(delayTimer);
+    }
+  }, [isLoading, isAuthenticated]);
+
+  // Navigate after the 1-second delay
+  useEffect(() => {
+    if (authCheckComplete && showDelay && !hasNavigated.current) {
+      console.log('CustomSplashScreen: Delay complete, navigating...');
+      
+      if (isAuthenticated) {
+        console.log('CustomSplashScreen: User authenticated, navigating to tabs');
+        router.replace('/(tabs)');
+      } else {
+        console.log('CustomSplashScreen: User not authenticated, navigating to auth');
+        router.replace('/(auth)');
+      }
+      hasNavigated.current = true;
+    }
+  }, [authCheckComplete, showDelay, isAuthenticated, router]);
+
+  // Prevent any further navigation attempts once we've navigated
+  if (hasNavigated.current) {
+    return null;
+  }
 
   return (
     <View style={styles.container}>
       <Image
-        source={require('../assets/images/woman.png')}
-        style={styles.bgImage}
-        resizeMode="cover"
-        blurRadius={1}
+        source={require('@/assets/images/whitelogo.png')}
+        style={styles.logo}
+        contentFit="contain"
       />
-      <View style={styles.overlay} />
-      <Animated.View style={[styles.logoContainer, { opacity: fadeAnim }]}>
-        <Image
-          source={require('../assets/images/whitelogo.png')}
-          style={styles.logo}
-          resizeMode="contain"
-        />
-      </Animated.View>
+      
+      {/* Show loading spinner during authentication check */}
+      {!authCheckComplete && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color="#ffffff" />
+        </View>
+      )}
+      
+      {/* Show "checking..." text during delay */}
+      {authCheckComplete && !showDelay && (
+        <View style={styles.loadingContainer}>
+          <Text style={styles.checkingText}>Checking...</Text>
+        </View>
+      )}
     </View>
   );
 }
@@ -44,30 +75,21 @@ export default function CustomSplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
     justifyContent: 'center',
-    position: 'relative',
-  },
-  bgImage: {
-    position: 'absolute',
-    width: width,
-    height: height,
-    top: 0,
-    left: 0,
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 68, 255, 0.55)',
-  },
-  logoContainer: {
-    zIndex: 2,
     alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: '#080C1C', // Use hardcoded color instead of theme
   },
   logo: {
-    width: 220,
-    height: 60,
+    width: 200,
+    height: 200,
+  },
+  loadingContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  checkingText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontFamily: 'DMSans-Medium',
   },
 });

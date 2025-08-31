@@ -4,26 +4,78 @@ import {
   Text,
   StyleSheet,
   TouchableOpacity,
-  Alert,
   KeyboardAvoidingView,
   Platform,
+  TextInput,
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { ArrowLeft, Eye, EyeOff, Shield } from 'lucide-react-native';
-import { InputPin } from '@/components/ui/InputPin';
+import { ArrowLeft, Lock, Eye, EyeOff, CheckCircle } from 'lucide-react-native';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { ConfirmationModal } from '@/components/ui/ConfirmationModal';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { Typography, Spacing, BorderRadius } from '@/constants/theme';
 import { apiClient } from '@/services/api';
 import Toast from 'react-native-toast-message';
 import { MotiView } from 'moti';
 
+interface PinInputProps {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChangeText: (text: string) => void;
+  secureTextEntry: boolean;
+  onToggleVisibility: () => void;
+  error?: string;
+}
+
+const PinInput: React.FC<PinInputProps> = ({
+  label,
+  placeholder,
+  value,
+  onChangeText,
+  secureTextEntry,
+  onToggleVisibility,
+  error,
+}) => {
+  const { colors } = useTheme();
+  const styles = getPinInputStyles(colors);
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.label}>{label}</Text>
+      <View style={[styles.inputWrapper, error && styles.inputError]}>
+        <Lock color={colors.textSecondary} size={20} style={styles.inputIcon} />
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textSecondary}
+          secureTextEntry={secureTextEntry}
+          keyboardType="default"
+          maxLength={6}
+          style={styles.input}
+        />
+        <TouchableOpacity onPress={onToggleVisibility} style={styles.eyeButton}>
+          {secureTextEntry ? (
+            <EyeOff color={colors.textSecondary} size={20} />
+          ) : (
+            <Eye color={colors.textSecondary} size={20} />
+          )}
+        </TouchableOpacity>
+      </View>
+      {error && <Text style={styles.errorText}>{error}</Text>}
+    </View>
+  );
+};
+
 export default function ChangePinScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = getStyles(colors);
   const router = useRouter();
   const queryClient = useQueryClient();
@@ -31,113 +83,160 @@ export default function ChangePinScreen() {
   const [currentPin, setCurrentPin] = useState('');
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
-  // Eye toggles removed; InputPin handles secure entry
-  const [pinStrength, setPinStrength] = useState<'weak' | 'medium' | 'strong'>(
-    'weak'
-  );
-
-  // Calculate PIN strength
-  const calculatePinStrength = (pin: string) => {
-    if (pin.length < 4) return 'weak';
-    if (pin.length >= 6) return 'strong';
-    return 'medium';
-  };
-
-  const handleNewPinChange = (pin: string) => {
-    setNewPin(pin);
-    setPinStrength(calculatePinStrength(pin));
-  };
+  const [showCurrentPin, setShowCurrentPin] = useState(false);
+  const [showNewPin, setShowNewPin] = useState(false);
+  const [showConfirmPin, setShowConfirmPin] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
 
   const changePinMutation = useMutation({
     mutationFn: (data: { currentPin: string; newPin: string }) =>
       apiClient.changePin(data.currentPin, data.newPin),
     onSuccess: () => {
+      setIsSuccess(true);
       Toast.show({
         type: 'success',
-        text1: 'PIN Changed Successfully',
-        text2: 'Your PIN has been updated successfully',
+        text1: t('changePin.success.title'),
+        text2: t('changePin.success.message'),
       });
+      
       // Invalidate profile query to refresh user data
       queryClient.invalidateQueries({ queryKey: ['profile'] });
-      router.back();
+      
+      // Navigate back after a delay
+      setTimeout(() => {
+        router.back();
+      }, 2000);
     },
     onError: (error: any) => {
       Toast.show({
         type: 'error',
-        text1: 'PIN Change Failed',
-        text2: error.message || 'Failed to change PIN. Please try again.',
+        text1: t('changePin.error.title'),
+        text2: error.message || t('changePin.error.message'),
       });
     },
   });
 
-  const handleChangePin = () => {
+  const handleSubmit = () => {
     // Validation
     if (!currentPin || !newPin || !confirmPin) {
-      Alert.alert('Error', 'Please fill in all fields');
+      Toast.show({
+        type: 'error',
+        text1: t('changePin.validation.error.title'),
+        text2: t('changePin.validation.error.allFieldsRequired'),
+      });
       return;
     }
 
     if (newPin.length < 4) {
-      Alert.alert('Error', 'New PIN must be at least 4 digits');
+      Toast.show({
+        type: 'error',
+        text1: t('changePin.validation.error.title'),
+        text2: t('changePin.validation.error.pinTooShort'),
+      });
+      return;
+    }
+
+    if (newPin.length > 6) {
+      Toast.show({
+        type: 'error',
+        text1: t('changePin.validation.error.title'),
+        text2: t('changePin.validation.error.pinTooLong'),
+      });
       return;
     }
 
     if (newPin !== confirmPin) {
-      Alert.alert('Error', 'New PIN and confirm PIN do not match');
+      Toast.show({
+        type: 'error',
+        text1: t('changePin.validation.error.title'),
+        text2: t('changePin.validation.error.pinsDoNotMatch'),
+      });
       return;
     }
 
-    if (newPin === currentPin) {
-      Alert.alert('Error', 'New PIN must be different from current PIN');
+    if (currentPin === newPin) {
+      Toast.show({
+        type: 'error',
+        text1: t('changePin.validation.error.title'),
+        text2: t('changePin.validation.error.samePin'),
+      });
       return;
     }
 
-    // Confirm action
-    Alert.alert(
-      'Confirm PIN Change',
-      'Are you sure you want to change your PIN? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Change PIN',
-          style: 'destructive',
-          onPress: () => {
-            changePinMutation.mutate({ currentPin, newPin });
-          },
-        },
-      ]
-    );
+    // Show confirmation modal
+    setShowConfirmModal(true);
   };
 
-  // Check if form is valid
-  const isFormValid = () => {
+  const handleConfirmChangePin = () => {
+    setShowConfirmModal(false);
+    changePinMutation.mutate({
+      currentPin,
+      newPin,
+    });
+  };
+
+  const resetForm = () => {
+    setCurrentPin('');
+    setNewPin('');
+    setConfirmPin('');
+    setShowCurrentPin(false);
+    setShowNewPin(false);
+    setShowConfirmPin(false);
+    setIsSuccess(false);
+  };
+
+  if (isSuccess) {
     return (
-      currentPin.length > 0 &&
-      newPin.length >= 4 &&
-      confirmPin.length > 0 &&
-      newPin === confirmPin &&
-      newPin !== currentPin
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+            <ArrowLeft color={colors.text} size={24} />
+          </TouchableOpacity>
+          <Text style={styles.title}>{t('changePin.title')}</Text>
+          <View style={{ width: 40 }} />
+        </View>
+
+        <View style={styles.scrollView}>
+          <MotiView
+            from={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', damping: 15 }}
+            style={styles.successContainer}
+          >
+            <View style={[styles.successIcon, { backgroundColor: colors.success + '15' }]}>
+              <CheckCircle color={colors.success} size={48} />
+            </View>
+            <Text style={styles.successTitle}>{t('changePin.success.title')}</Text>
+            <Text style={styles.successMessage}>{t('changePin.success.message')}</Text>
+            <Text style={styles.successSubtitle}>{t('changePin.success.subtitle')}</Text>
+          </MotiView>
+        </View>
+      </SafeAreaView>
     );
-  };
+  }
 
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ArrowLeft color={colors.text} size={24} />
         </TouchableOpacity>
-        <Text style={styles.title}>Change PIN</Text>
+        <Text style={styles.title}>{t('changePin.title')}</Text>
         <View style={{ width: 40 }} />
       </View>
 
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        <ScrollView 
+          style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
           <MotiView
             from={{ opacity: 0, translateY: 20 }}
             animate={{ opacity: 1, translateY: 0 }}
@@ -145,179 +244,124 @@ export default function ChangePinScreen() {
           >
             <Card style={styles.infoCard}>
               <View style={styles.infoHeader}>
-                <Shield color={colors.primary} size={24} />
-                <Text style={styles.infoTitle}>Security Information</Text>
+                <Lock color={colors.primary} size={24} />
+                <Text style={styles.infoTitle}>{t('changePin.info.title')}</Text>
               </View>
               <Text style={styles.infoText}>
-                Your PIN is used to secure your account and confirm important
-                actions. Make sure to choose a PIN that you can remember but
-                others cannot easily guess.
+                {t('changePin.info.message')}
               </Text>
             </Card>
 
             <Card style={styles.formCard}>
-              <Text style={styles.sectionTitle}>Current PIN</Text>
-              <View style={styles.inputContainer}>
-                <InputPin
-                  label="Enter Current PIN"
-                  value={currentPin}
-                  onChange={setCurrentPin}
-                />
-              </View>
+              <Text style={styles.sectionTitle}>{t('changePin.form.currentPin.title')}</Text>
+              
+              <PinInput
+                label={t('changePin.form.currentPin.label')}
+                placeholder={t('changePin.form.currentPin.placeholder')}
+                value={currentPin}
+                onChangeText={setCurrentPin}
+                secureTextEntry={!showCurrentPin}
+                onToggleVisibility={() => setShowCurrentPin(!showCurrentPin)}
+              />
 
-              <Text style={styles.sectionTitle}>New PIN</Text>
-              <View style={styles.inputContainer}>
-                <InputPin
-                  label="Enter New PIN"
-                  value={newPin}
-                  onChange={handleNewPinChange}
-                />
-              </View>
+              <Text style={styles.sectionTitle}>{t('changePin.form.newPin.title')}</Text>
+              
+              <PinInput
+                label={t('changePin.form.newPin.label')}
+                placeholder={t('changePin.form.newPin.placeholder')}
+                value={newPin}
+                onChangeText={setNewPin}
+                secureTextEntry={!showNewPin}
+                onToggleVisibility={() => setShowNewPin(!showNewPin)}
+              />
 
-              {/* PIN Strength Indicator */}
-              {newPin.length > 0 && (
-                <View style={styles.strengthContainer}>
-                  <Text style={styles.strengthLabel}>PIN Strength:</Text>
-                  <View style={styles.strengthBar}>
-                    <View
-                      style={[
-                        styles.strengthFill,
-                        {
-                          width: `${(newPin.length / 6) * 100}%`,
-                          backgroundColor:
-                            pinStrength === 'weak'
-                              ? colors.error
-                              : pinStrength === 'medium'
-                              ? colors.warning
-                              : colors.success,
-                        },
-                      ]}
-                    />
-                  </View>
-                  <Text
-                    style={[
-                      styles.strengthText,
-                      {
-                        color:
-                          pinStrength === 'weak'
-                            ? colors.error
-                            : pinStrength === 'medium'
-                            ? colors.warning
-                            : colors.success,
-                      },
-                    ]}
-                  >
-                    {pinStrength.charAt(0).toUpperCase() + pinStrength.slice(1)}
-                  </Text>
-                </View>
-              )}
+              <PinInput
+                label={t('changePin.form.confirmPin.label')}
+                placeholder={t('changePin.form.confirmPin.placeholder')}
+                value={confirmPin}
+                onChangeText={setConfirmPin}
+                secureTextEntry={!showConfirmPin}
+                onToggleVisibility={() => setShowConfirmPin(!showConfirmPin)}
+              />
 
-              <Text style={styles.sectionTitle}>Confirm New PIN</Text>
-              <View style={styles.inputContainer}>
-                <InputPin
-                  label="Confirm New PIN"
-                  value={confirmPin}
-                  onChange={setConfirmPin}
-                />
-              </View>
-
-              {/* PIN Requirements */}
-              <View style={styles.requirementsContainer}>
-                <Text style={styles.requirementsTitle}>PIN Requirements:</Text>
-                <View style={styles.requirementItem}>
-                  <View
-                    style={[
-                      styles.requirementDot,
-                      {
-                        backgroundColor:
-                          newPin.length >= 4 ? colors.success : colors.border,
-                      },
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.requirementText,
-                      {
-                        color:
-                          newPin.length >= 4
-                            ? colors.success
-                            : colors.textSecondary,
-                      },
-                    ]}
-                  >
-                    At least 4 digits
-                  </Text>
-                </View>
-                <View style={styles.requirementItem}>
-                  <View
-                    style={[
-                      styles.requirementDot,
-                      {
-                        backgroundColor:
-                          newPin !== currentPin
-                            ? colors.success
-                            : colors.border,
-                      },
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.requirementText,
-                      {
-                        color:
-                          newPin !== currentPin
-                            ? colors.success
-                            : colors.textSecondary,
-                      },
-                    ]}
-                  >
-                    Different from current PIN
-                  </Text>
-                </View>
-                <View style={styles.requirementItem}>
-                  <View
-                    style={[
-                      styles.requirementDot,
-                      {
-                        backgroundColor:
-                          newPin === confirmPin && confirmPin.length > 0
-                            ? colors.success
-                            : colors.border,
-                      },
-                    ]}
-                  />
-                  <Text
-                    style={[
-                      styles.requirementText,
-                      {
-                        color:
-                          newPin === confirmPin && confirmPin.length > 0
-                            ? colors.success
-                            : colors.textSecondary,
-                      },
-                    ]}
-                  >
-                    PINs match
-                  </Text>
-                </View>
+              <View style={styles.hintContainer}>
+                <Text style={styles.hintTitle}>{t('changePin.form.hint.title')}</Text>
+                <Text style={styles.hintText}>{t('changePin.form.hint.message')}</Text>
               </View>
             </Card>
 
             <View style={styles.buttonContainer}>
               <Button
-                title="Change PIN"
-                onPress={handleChangePin}
+                title={t('changePin.changeButton')}
+                onPress={handleSubmit}
                 loading={changePinMutation.isPending}
-                disabled={changePinMutation.isPending || !isFormValid()}
+                disabled={changePinMutation.isPending || !currentPin || !newPin || !confirmPin}
                 style={styles.changeButton}
               />
             </View>
           </MotiView>
         </ScrollView>
       </KeyboardAvoidingView>
+
+      <ConfirmationModal
+        isVisible={showConfirmModal}
+        onClose={() => setShowConfirmModal(false)}
+        onConfirm={handleConfirmChangePin}
+        title={t('changePin.confirm.title')}
+        message={t('changePin.confirm.message')}
+        confirmText={t('changePin.confirm.changeButton')}
+        cancelText={t('common.cancel')}
+        icon={<Lock color={colors.primary} size={24} />}
+        iconColor={colors.primary}
+      />
     </SafeAreaView>
   );
 }
+
+const getPinInputStyles = (colors: any) =>
+  StyleSheet.create({
+    container: {
+      marginBottom: Spacing.md,
+    },
+    label: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Medium',
+      color: colors.text,
+      marginBottom: Spacing.xs,
+    },
+    inputWrapper: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.md,
+      borderWidth: 1,
+      borderColor: colors.border,
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.sm,
+    },
+    inputError: {
+      borderColor: colors.error,
+    },
+    inputIcon: {
+      marginRight: Spacing.sm,
+    },
+    input: {
+      flex: 1,
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Regular',
+      color: colors.text,
+      paddingRight: Spacing.md,
+    },
+    eyeButton: {
+      padding: Spacing.sm,
+    },
+    errorText: {
+      fontSize: Typography.fontSize.xs,
+      color: colors.error,
+      marginTop: Spacing.xs,
+      fontFamily: 'DMSans-Regular',
+    },
+  });
 
 const getStyles = (colors: any) =>
   StyleSheet.create({
@@ -344,9 +388,12 @@ const getStyles = (colors: any) =>
       fontFamily: 'DMSans-Bold',
       color: colors.text,
     },
-    content: {
+    scrollView: {
       flex: 1,
+    },
+    scrollContent: {
       padding: Spacing.lg,
+      paddingBottom: Spacing.xl * 2, // Extra padding at bottom for keyboard
     },
     infoCard: {
       marginBottom: Spacing.lg,
@@ -380,78 +427,61 @@ const getStyles = (colors: any) =>
       marginBottom: Spacing.sm,
       marginTop: Spacing.md,
     },
-    inputContainer: {
-      position: 'relative',
-      marginBottom: Spacing.md,
-    },
-    input: {
-      width: '100%',
-      marginBottom: 0,
-      paddingRight: 40,
-    },
-    eyeButton: {
-      position: 'absolute',
-      right: 0,
-      top: 32,
-      padding: 8,
-      zIndex: 10,
-    },
     buttonContainer: {
       marginTop: Spacing.lg,
     },
     changeButton: {
       width: '100%',
     },
-    strengthContainer: {
-      marginTop: Spacing.sm,
+    successContainer: {
+      flex: 1,
+      justifyContent: 'center',
+      alignItems: 'center',
+      padding: Spacing.lg,
+    },
+    successIcon: {
+      width: 96,
+      height: 96,
+      borderRadius: 48,
+      justifyContent: 'center',
+      alignItems: 'center',
       marginBottom: Spacing.md,
     },
-    strengthLabel: {
+    successTitle: {
+      fontSize: Typography.fontSize.xl,
+      fontFamily: 'DMSans-Bold',
+      color: colors.text,
+      marginBottom: Spacing.xs,
+      textAlign: 'center',
+    },
+    successMessage: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+      textAlign: 'center',
+      marginBottom: Spacing.sm,
+    },
+    successSubtitle: {
       fontSize: Typography.fontSize.sm,
       fontFamily: 'DMSans-Regular',
       color: colors.textSecondary,
-      marginBottom: Spacing.xs,
+      textAlign: 'center',
     },
-    strengthBar: {
-      height: 8,
-      backgroundColor: colors.border,
-      borderRadius: BorderRadius.md,
-      overflow: 'hidden',
-      marginBottom: Spacing.xs,
-    },
-    strengthFill: {
-      height: '100%',
-      borderRadius: BorderRadius.md,
-    },
-    strengthText: {
-      fontSize: Typography.fontSize.xs,
-      fontFamily: 'DMSans-Regular',
-    },
-    requirementsContainer: {
+    hintContainer: {
       marginTop: Spacing.md,
       paddingTop: Spacing.md,
       borderTopWidth: 1,
       borderTopColor: colors.border,
     },
-    requirementsTitle: {
+    hintTitle: {
       fontSize: Typography.fontSize.sm,
       fontFamily: 'DMSans-Bold',
       color: colors.text,
       marginBottom: Spacing.xs,
     },
-    requirementItem: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      marginBottom: Spacing.xs,
-    },
-    requirementDot: {
-      width: 8,
-      height: 8,
-      borderRadius: 4,
-      marginRight: Spacing.xs,
-    },
-    requirementText: {
+    hintText: {
       fontSize: Typography.fontSize.xs,
       fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
     },
   });

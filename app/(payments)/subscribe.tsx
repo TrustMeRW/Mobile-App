@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, StyleSheet, Alert } from 'react-native';
+import { View, Text, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useMutation, useQuery } from '@tanstack/react-query';
@@ -7,6 +7,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { Card } from '@/components/ui/Card';
+import { ErrorModal } from '@/components/ui/ErrorModal';
 import { Spacing, Typography } from '@/constants/theme';
 import { apiClient } from '@/services/api';
 
@@ -16,6 +17,8 @@ export default function SubscribeScreen() {
   const { planId } = useLocalSearchParams();
   const [msisdn, setMsisdn] = useState('');
   const [paymentMethod, setPaymentMethod] = useState<'MTN' | 'AIRTEL'>('MTN');
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const { data: plan, isLoading: loadingPlan } = useQuery<
     any,
@@ -53,7 +56,8 @@ export default function SubscribeScreen() {
       });
     },
     onError: (err: any) => {
-      Alert.alert('Payment Error', err.message || 'Failed to initiate payment');
+      setErrorMessage(err.message || 'Failed to initiate payment');
+      setShowErrorModal(true);
     },
   });
 
@@ -108,6 +112,14 @@ export default function SubscribeScreen() {
           disabled={mutation.isPending}
         />
       </Card>
+
+      {/* Error Modal */}
+      <ErrorModal
+        isVisible={showErrorModal}
+        onClose={() => setShowErrorModal(false)}
+        title="Payment Error"
+        message={errorMessage}
+      />
     </SafeAreaView>
   );
 }

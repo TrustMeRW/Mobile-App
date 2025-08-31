@@ -1,20 +1,35 @@
-import React, { useCallback } from 'react';
-import { TouchableOpacity, StyleSheet, View, Text } from 'react-native';
-import { Bell, BellRing } from 'lucide-react-native';
-import { MotiView } from 'moti';
-import { useNotificationContext } from '@/services/notifications';
-import { lightColors as Colors } from '@/constants/theme';
+import React, { useState, useEffect } from 'react';
+import {
+  TouchableOpacity,
+  View,
+  Text,
+  StyleSheet,
+  ViewStyle,
+} from 'react-native';
 import { useRouter } from 'expo-router';
+import { useQuery } from '@tanstack/react-query';
+import { Typography, Spacing } from '@/constants/theme';
+import { useTheme } from '@/contexts/ThemeContext';
+import { apiClient } from '@/services/api';
+import { MotiView } from 'moti';
+import { Bell, BellRing } from 'lucide-react-native';
 
 export const NotificationBell: React.FC = () => {
   const router = useRouter();
-  const { unreadCount, refresh } = useNotificationContext();
+  const { colors } = useTheme();
   
+  const { data: notifications } = useQuery({
+    queryKey: ['notifications', 'unread'],
+    queryFn: () => apiClient.getNotifications({ unreadOnly: true }),
+    staleTime: 5 * 60 * 1000, // 5 minutes
+  });
+
+  const unreadCount = notifications?.payload?.data?.length || 0;
   const hasUnread = unreadCount > 0;
-  
-  const handlePress = useCallback(() => {
+
+  const handlePress = () => {
     router.push('/notifications');
-  }, [router]);
+  };
 
   return (
     <TouchableOpacity 
@@ -50,18 +65,18 @@ export const NotificationBell: React.FC = () => {
               loop: true,
               repeat: 2,
             }}
-      >
-            <BellRing size={24} color={Colors.primary} />
+          >
+            <BellRing size={24} color={colors.primary} />
           </MotiView>
         )}
         {!hasUnread && (
-          <Bell size={24} color={Colors.gray[700]} />
+          <Bell size={24} color={colors.gray[700]} />
         )}
       </MotiView>
       
       {hasUnread && (
         <MotiView
-          style={styles.badge}
+          style={[styles.badge, { backgroundColor: colors.error, borderColor: '#ffffff' }]}
           from={{ scale: 0.5, opacity: 0 }}
           animate={{ scale: 1, opacity: 1 }}
           transition={{ type: 'spring', damping: 15 }}
@@ -98,26 +113,22 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: 2,
     right: 2,
-    backgroundColor: Colors.error,
     borderRadius: 10,
     minWidth: 20,
     height: 20,
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 2,
-    borderColor: Colors.white,
     zIndex: 10,
   },
   badgeTextContainer: {
-    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
   badgeText: {
-    color: Colors.white,
-    fontSize: 10,
-    fontWeight: 'bold',
+    color: '#ffffff',
+    fontSize: Typography.fontSize.xs,
+    fontFamily: 'DMSans-Bold',
     textAlign: 'center',
-    lineHeight: 14,
   },
 });

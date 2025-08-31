@@ -1,23 +1,28 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  TextInput,
   Alert,
+  ViewStyle,
+  TextStyle,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { Button } from '@/components/ui/Button';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useAuthContext } from '@/contexts/AuthContext';
-import { apiClient } from '@/services/api';
+import { useTranslation } from '@/contexts/TranslationContext';
+import { useToast } from '@/contexts/ToastContext';
+import { useCurrentUser, useCreateDebt } from '@/hooks';
+import { apiClient, type Debt, type User } from '@/services/api';
 import {
   Spacing,
   Typography,
@@ -28,14 +33,18 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
+  Minus,
   Trash2,
   QrCode,
-  User,
+  User as UserIcon,
   Calendar,
   Package,
   DollarSign,
+  Search,
+  CheckCircle,
+  XCircle,
+  AlertTriangle,
 } from 'lucide-react-native';
-import Toast from 'react-native-toast-message';
 import QRCodeScanner from '@/components/QRCodeScanner';
 import UserTrustabilityDisplay from '@/components/UserTrustabilityDisplay';
 
@@ -97,7 +106,9 @@ interface UserTrustabilityData {
 
 export default function AddDebtScreen() {
   const { colors } = useTheme();
-  const { user } = useAuthContext();
+  const { t } = useTranslation();
+  const { showSuccess, showError } = useToast();
+  const { user: currentUser } = useCurrentUser();
   const router = useRouter();
   const queryClient = useQueryClient();
   const styles = getStyles(colors);
@@ -107,6 +118,7 @@ export default function AddDebtScreen() {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [scannedUserData, setScannedUserData] = useState<UserTrustabilityData | null>(null);
   const [manualUserCode, setManualUserCode] = useState('');
+  const [isPendingRequest, setIsPendingRequest] = useState(false);
   const [debtForm, setDebtForm] = useState<DebtFormData>({
     items: [{ name: '', description: '', quantity: 1, amount: 0 }],
     dueDate: null,
@@ -115,51 +127,24 @@ export default function AddDebtScreen() {
   });
 
   // Safety check for user
-  if (!user) {
+  if (!currentUser) {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.content}>
-          <Text style={styles.errorText}>User not authenticated</Text>
+          <Text style={styles.errorText}>{t('addDebt.errors.userNotAuthenticated')}</Text>
         </View>
       </SafeAreaView>
     );
   }
 
-  const createDebtMutation = useMutation({
-    mutationFn: (newDebt: DebtFormData) => {
-      const { items, dueDate, selectedUser, intiationType } = newDebt;
-      
-      if (intiationType === 'REQUEST') {
-        return apiClient.requestDebt(
-          selectedUser?.id || '',
-          items,
-          dueDate ? dueDate.toISOString().split('T')[0] : undefined
-        );
-      } else {
-        return apiClient.offerDebt(
-          selectedUser?.id || '',
-          items,
-          dueDate ? dueDate.toISOString().split('T')[0] : undefined
-        );
-      }
-    },
-    onSuccess: () => {
-      Toast.show({
-        type: 'success',
-        text1: 'Success',
-        text2: 'Debt created successfully!',
-      });
-      queryClient.invalidateQueries({ queryKey: ['debts'] });
+  const createDebtMutation = useCreateDebt();
+
+  // Handle successful debt creation
+  useEffect(() => {
+    if (createDebtMutation.isSuccess) {
       router.back();
-    },
-    onError: (error: any) => {
-      Toast.show({
-        type: 'error',
-        text1: 'Error',
-        text2: error.message || 'Failed to create debt',
-      });
-    },
-  });
+    }
+  }, [createDebtMutation.isSuccess, router]);
 
   const handleNext = () => {
     if (currentStep < 3) {
@@ -203,20 +188,30 @@ export default function AddDebtScreen() {
   };
 
   const handleQRCodeScan = async (code: string) => {
+    // Check if there's already a pending request
+    if (isPendingRequest) {
+      showError(
+        'Request in Progress',
+        'Please wait for the current request to complete before scanning another QR code.'
+      );
+      return;
+    }
+
     try {
+      setIsPendingRequest(true);
       const response = await apiClient.getUserTrustabilityAnalyticsByCode(code);
       setScannedUserData(response.payload);
       setShowScanner(false);
       setCurrentStep(2); // Move to user display step
     } catch (error: any) {
       console.error('QR Code scan error:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'Failed to fetch user data. Please try again.',
-        [
-          { text: 'OK', onPress: () => setShowScanner(false) },
-        ]
+      showError(
+        'QR Code Scan Failed',
+        error.message || 'Failed to fetch user data. Please try again.'
       );
+      setShowScanner(false);
+    } finally {
+      setIsPendingRequest(false);
     }
   };
 
@@ -237,29 +232,39 @@ export default function AddDebtScreen() {
   const handleCancel = () => {
     setScannedUserData(null);
     setManualUserCode('');
+    setIsPendingRequest(false);
     setCurrentStep(0); // Go back to step 1
   };
 
   const handleManualCodeSubmit = async () => {
     if (!manualUserCode.trim()) {
-      Alert.alert('Error', 'Please enter a valid user code.');
+      showError('Invalid Code', 'Please enter a valid user code.');
+      return;
+    }
+
+    // Check if there's already a pending request
+    if (isPendingRequest) {
+      showError(
+        'Request in Progress',
+        'Please wait for the current request to complete before submitting another code.'
+      );
       return;
     }
 
     try {
+      setIsPendingRequest(true);
       const response = await apiClient.getUserTrustabilityAnalyticsByCode(manualUserCode.trim());
       setScannedUserData(response.payload);
       setManualUserCode('');
       setCurrentStep(2); // Move to user display step
     } catch (error: any) {
       console.error('Manual code scan error:', error);
-      Alert.alert(
-        'Error',
-        error.message || 'Failed to fetch user data. Please try again.',
-        [
-          { text: 'OK' },
-        ]
+      showError(
+        'Code Submission Failed',
+        error.message || 'Failed to fetch user data. Please try again.'
       );
+    } finally {
+      setIsPendingRequest(false);
     }
   };
 
@@ -275,10 +280,9 @@ export default function AddDebtScreen() {
       if (selectedDate >= tomorrow) {
         setDebtForm(prev => ({ ...prev, dueDate: selectedDate }));
       } else {
-        Alert.alert(
+        showError(
           'Invalid Date',
-          'Please select a date from tomorrow onwards.',
-          [{ text: 'OK' }]
+          'Please select a date from tomorrow onwards.'
         );
       }
     }
@@ -286,16 +290,16 @@ export default function AddDebtScreen() {
 
   const handleSubmit = () => {
     if (!debtForm.selectedUser) {
-      Alert.alert('Error', 'Please select a user first');
+      showError('Error', 'Please select a user first');
       return;
     }
 
     const hasEmptyFields = debtForm.items.some(
-      item => !item.name || !item.description || item.amount <= 0
+      item => !item.name || item.amount <= 0
     );
 
     if (hasEmptyFields) {
-      Alert.alert('Error', 'Please fill in all item details');
+      showError('Error', 'Please fill in all item details');
       return;
     }
 
@@ -313,24 +317,20 @@ export default function AddDebtScreen() {
     setScannedUserData(null);
     setManualUserCode('');
     setShowDatePicker(false);
+    setIsPendingRequest(false);
   };
 
   const renderStepContent = () => {
     switch (currentStep) {
       case 0:
         return (
-          <MotiView
-            from={{ opacity: 0, translateY: 30 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 600 }}
-          >
-            <Card style={styles.stepCard}>
+          <Card style={styles.stepCard}>
               <View style={styles.stepHeader}>
                 <Package color={colors.primary} size={24} />
-                <Text style={styles.stepTitle}>Select Debt Type</Text>
+                <Text style={styles.stepTitle}>{t('addDebt.steps.debtType.title')}</Text>
               </View>
               <Text style={styles.stepSubtext}>
-                Choose how you want to proceed with the debt
+                {t('addDebt.steps.debtType.subtitle')}
               </Text>
 
               <View style={styles.debtTypeOptions}>
@@ -346,13 +346,13 @@ export default function AddDebtScreen() {
                       styles.debtTypeTitle,
                       debtForm.intiationType === 'REQUEST' && styles.debtTypeTitleActive
                     ]}>
-                      I Owe Someone
+                      {t('addDebt.steps.debtType.request.title')}
                     </Text>
                     <Text style={[
                       styles.debtTypeSubtext,
                       debtForm.intiationType === 'REQUEST' && styles.debtTypeSubtextActive
                     ]}>
-                      You're requesting to borrow from someone
+                      {t('addDebt.steps.debtType.request.subtitle')}
                     </Text>
                   </View>
                 </TouchableOpacity>
@@ -369,153 +369,171 @@ export default function AddDebtScreen() {
                       styles.debtTypeTitle,
                       debtForm.intiationType === 'offer' && styles.debtTypeTitleActive
                     ]}>
-                      Someone Owes Me
+                      {t('addDebt.steps.debtType.offer.title')}
                     </Text>
                     <Text style={[
                       styles.debtTypeSubtext,
                       debtForm.intiationType === 'offer' && styles.debtTypeSubtextActive
                     ]}>
-                      You're offering to lend to someone
+                      {t('addDebt.steps.debtType.offer.subtitle')}
                     </Text>
                   </View>
                 </TouchableOpacity>
               </View>
             </Card>
-          </MotiView>
         );
 
       case 1:
         return (
-          <MotiView
-            from={{ opacity: 0, translateY: 30 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 600 }}
-          >
+          <View>
             <Card style={styles.stepCard}>
               <View style={styles.stepHeader}>
                 <Package color={colors.primary} size={24} />
-                <Text style={styles.stepTitle}>Add Items & Set Date</Text>
+                <Text style={styles.stepTitle}>{t('addDebt.steps.products.title')}</Text>
               </View>
               <Text style={styles.stepSubtext}>
-                Add the items you want to include in this debt and set a payment due date
+                {t('addDebt.steps.products.subtitle')}
               </Text>
 
-              {debtForm.items.map((item, index) => (
-                <View key={index} style={styles.itemCard}>
-                  <View style={styles.itemHeader}>
-                    <Text style={styles.itemNumber}>Item {index + 1}</Text>
-                    {debtForm.items.length > 1 && (
-                      <TouchableOpacity
-                        onPress={() => removeItem(index)}
-                        style={styles.removeButton}
-                      >
-                        <Trash2 color={colors.error} size={16} />
-                      </TouchableOpacity>
-                    )}
+            {debtForm.items.map((item, index) => (
+              <View key={index} style={styles.itemCard}>
+                <View style={styles.itemHeader}>
+                  <View style={styles.itemNumberContainer}>
+                    <Text style={styles.itemNumber}>{t('addDebt.steps.products.item', { number: index + 1 })}</Text>
+                    <View style={styles.itemStatus}>
+                      {item.name && item.amount > 0 ? (
+                        <CheckCircle color={colors.success} size={16} />
+                      ) : (
+                        <AlertTriangle color={colors.warning} size={16} />
+                      )}
+                    </View>
                   </View>
+                  {debtForm.items.length > 1 && (
+                    <TouchableOpacity
+                      onPress={() => removeItem(index)}
+                      style={styles.removeButton}
+                    >
+                      <Trash2 color={colors.error} size={16} />
+                    </TouchableOpacity>
+                  )}
+                </View>
 
-                  <Input
-                    label="Item Name"
-                    placeholder="Enter item name"
-                    value={item.name}
-                    onChangeText={(value) => updateItem(index, 'name', value)}
-                    style={styles.itemInput}
-                  />
+                <Input
+                  label={t('addDebt.steps.products.name')}
+                  placeholder={t('addDebt.steps.products.namePlaceholder')}
+                  value={item.name}
+                  onChangeText={(value) => updateItem(index, 'name', value)}
+                  style={styles.itemInput}
+                />
 
-                  <Input
-                    label="Description"
-                    placeholder="Brief description of the item"
-                    value={item.description}
-                    onChangeText={(value) => updateItem(index, 'description', value)}
-                    style={styles.itemInput}
-                    multiline
-                    numberOfLines={3}
-                    textAlignVertical="top"
-                  />
+                <Text style={styles.descriptionLabel}>{t('addDebt.steps.products.description')}</Text>
+                <TextInput
+                  placeholder={t('addDebt.steps.products.descriptionPlaceholder')}
+                  value={item.description}
+                  onChangeText={(value) => updateItem(index, 'description', value)}
+                  style={styles.descriptionInput}
+                  multiline
+                  numberOfLines={3}
+                  textAlignVertical="top"
+                  placeholderTextColor={colors.textSecondary}
+                />
 
-                  <View style={styles.itemRow}>
+                <View style={styles.itemRow}>
+                  <View style={styles.itemInputHalf}>
                     <Input
-                      label="Quantity"
-                      placeholder="1"
+                      label={t('addDebt.steps.products.quantity')}
+                      placeholder={t('addDebt.steps.products.quantityPlaceholder')}
                       value={item.quantity.toString()}
                       onChangeText={(value) => updateItem(index, 'quantity', parseInt(value) || 1)}
                       keyboardType="numeric"
-                      style={[styles.itemInput, { flex: 0.48 }]}
+                      style={styles.itemInput}
                     />
+                  </View>
+                  <View style={styles.itemInputHalf}>
                     <Input
-                      label="Amount (RWF)"
-                      placeholder="0"
+                      label={t('addDebt.steps.products.amount')}
+                      placeholder={t('addDebt.steps.products.amountPlaceholder')}
                       value={item.amount.toString()}
                       onChangeText={(value) => updateItem(index, 'amount', parseFloat(value) || 0)}
                       keyboardType="numeric"
-                      style={[styles.itemInput, { flex: 0.48 }]}
+                      style={styles.itemInput}
                     />
                   </View>
                 </View>
-              ))}
-
-              <TouchableOpacity style={styles.addItemButton} onPress={addItem}>
-                <Plus color={colors.primary} size={20} />
-                <Text style={styles.addItemText}>Add Another Item</Text>
-              </TouchableOpacity>
-
-              {/* Payment Date Section */}
-              <View style={styles.paymentDateSection}>
-                <View style={styles.sectionHeader}>
-                  <Calendar color={colors.primary} size={20} />
-                  <Text style={styles.sectionTitle}>Payment Date (Optional)</Text>
-                </View>
-                <Text style={styles.sectionSubtext}>
-                  Set a payment due date for this debt. If not specified, no due date will be set.
-                </Text>
                 
-                <View style={styles.datePickerContainer}>
-                  <TouchableOpacity
-                    style={styles.datePickerButton}
-                    onPress={() => setShowDatePicker(true)}
-                  >
-                    <Calendar color={colors.primary} size={18} />
-                    <Text style={styles.datePickerButtonText}>
-                      {debtForm.dueDate ? debtForm.dueDate.toLocaleDateString() : 'Select Date'}
-                    </Text>
-                  </TouchableOpacity>
-                  
-                  {debtForm.dueDate && (
-                    <View style={styles.dateActionsContainer}>
-                      <TouchableOpacity
-                        style={styles.clearDateButton}
-                        onPress={() => setDebtForm(prev => ({ ...prev, dueDate: null }))}
-                      >
-                        <Text style={styles.clearDateButtonText}>Clear Date</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                </View>
-                
-                {debtForm.dueDate && (
-                  <View style={styles.dateInfo}>
-                    <Text style={styles.dateInfoText}>
-                      Payment due: {debtForm.dueDate.toLocaleDateString()}
-                    </Text>
-                    <Text style={styles.dateInfoSubtext}>
-                      This debt will be marked as overdue after this date
+                {/* Item Summary */}
+                {item.name && item.amount > 0 && (
+                  <View style={styles.itemSummary}>
+                    <Text style={styles.itemSummaryText}>
+                      {t('addDebt.steps.products.total', { amount: (item.quantity * item.amount).toLocaleString() })}
                     </Text>
                   </View>
                 )}
-
-                {/* Date Picker - Only rendered in step 1 */}
-                {showDatePicker && (
-                  <DateTimePicker
-                    value={debtForm.dueDate || new Date()}
-                    mode="date"
-                    display="default"
-                    onChange={handleDateChange}
-                    minimumDate={new Date(Date.now() + 24 * 60 * 60 * 1000)} // Tomorrow
-                  />
-                )}
               </View>
-            </Card>
-          </MotiView>
+            ))}
+
+            <TouchableOpacity style={styles.addItemButton} onPress={addItem}>
+              <Plus color={colors.primary} size={20} />
+              <Text style={styles.addItemText}>{t('addDebt.steps.products.addAnother')}</Text>
+            </TouchableOpacity>
+          </Card>
+
+          {/* Payment Date Section - Separate Card */}
+          <Card style={styles.stepCard}>
+            <View style={styles.stepHeader}>
+              <Calendar color={colors.primary} size={24} />
+              <Text style={styles.stepTitle}>{t('addDebt.steps.paymentDate.title')}</Text>
+            </View>
+            <Text style={styles.stepSubtext}>
+              {t('addDebt.steps.paymentDate.subtitle')}
+            </Text>
+            
+            <View style={styles.datePickerContainer}>
+              <TouchableOpacity
+                style={styles.datePickerButton}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Calendar color={colors.primary} size={18} />
+                <Text style={styles.datePickerButtonText}>
+                  {debtForm.dueDate ? debtForm.dueDate.toLocaleDateString() : t('addDebt.steps.paymentDate.selectDate')}
+                </Text>
+              </TouchableOpacity>
+              
+              {debtForm.dueDate && (
+                <View style={styles.dateActionsContainer}>
+                  <TouchableOpacity
+                    style={styles.clearDateButton}
+                    onPress={() => setDebtForm(prev => ({ ...prev, dueDate: null }))}
+                  >
+                    <Text style={styles.clearDateButtonText}>{t('addDebt.steps.paymentDate.clearDate')}</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+            
+            {debtForm.dueDate && (
+              <View style={styles.dateInfo}>
+                <Text style={styles.dateInfoText}>
+                  {t('addDebt.steps.paymentDate.paymentDue', { date: debtForm.dueDate.toLocaleDateString() })}
+                </Text>
+                <Text style={styles.dateInfoSubtext}>
+                  {t('addDebt.steps.paymentDate.overdueNote')}
+                </Text>
+              </View>
+            )}
+
+            {/* Date Picker - Only rendered in step 1 */}
+            {showDatePicker && (
+              <DateTimePicker
+                value={debtForm.dueDate || new Date()}
+                mode="date"
+                display="default"
+                onChange={handleDateChange}
+                minimumDate={new Date(Date.now() + 24 * 60 * 60 * 1000)} // Tomorrow
+              />
+            )}
+          </Card>
+        </View>
         );
 
       case 2:
@@ -529,46 +547,60 @@ export default function AddDebtScreen() {
           );
         }
         return (
-          <MotiView
-            from={{ opacity: 0, translateY: 20 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 300 }}
-          >
-            <Card style={styles.stepCard}>
+          <Card style={styles.stepCard}>
               <View style={styles.stepHeader}>
                 <QrCode color={colors.primary} size={24} />
-                <Text style={styles.stepTitle}>Scan User QR Code</Text>
+                <Text style={styles.stepTitle}>{t('addDebt.steps.scanUser.title')}</Text>
               </View>
               <Text style={styles.stepSubtext}>
                 {debtForm.intiationType === 'REQUEST'
-                  ? 'Scan the QR code of the person you want to borrow from'
-                  : 'Scan the QR code of the person you want to lend to'
+                  ? t('addDebt.steps.scanUser.requestSubtitle')
+                  : t('addDebt.steps.scanUser.offerSubtitle')
                 }
               </Text>
               <TouchableOpacity
-                style={styles.scanButton}
+                style={[
+                  styles.scanButton,
+                  isPendingRequest && styles.scanButtonDisabled
+                ]}
                 onPress={() => setShowScanner(true)}
+                disabled={isPendingRequest}
+                activeOpacity={0.8}
               >
-                <QrCode color={colors.white} size={24} />
-                <Text style={styles.scanButtonText}>Scan QR Code</Text>
+                {isPendingRequest ? (
+                  <LoadingSpinner size="small" color={colors.white} />
+                ) : (
+                  <QrCode color={colors.white} size={24} />
+                )}
+                <Text style={styles.scanButtonText}>
+                  {isPendingRequest ? t('addDebt.steps.scanUser.scanning') : t('addDebt.steps.scanUser.scanButton')}
+                </Text>
               </TouchableOpacity>
               
               {/* Manual Input Section */}
               <View style={styles.manualInputSection}>
-                <Text style={styles.manualInputLabel}>Or enter user code manually:</Text>
+                <Text style={styles.manualInputLabel}>{t('addDebt.steps.scanUser.manualInput')}</Text>
                 <View style={styles.manualInputContainer}>
                   <Input
-                    placeholder="Enter user code"
+                    placeholder={t('addDebt.steps.scanUser.codePlaceholder')}
                     value={manualUserCode}
                     onChangeText={setManualUserCode}
                     style={styles.manualInput}
                   />
                   <TouchableOpacity
-                    style={styles.manualSubmitButton}
+                    style={[
+                      styles.manualSubmitButton,
+                      isPendingRequest && styles.manualSubmitButtonDisabled
+                    ]}
                     onPress={handleManualCodeSubmit}
-                    disabled={!manualUserCode.trim()}
+                    disabled={!manualUserCode.trim() || isPendingRequest}
+                    activeOpacity={0.8}
                   >
-                    <Text style={styles.manualSubmitButtonText}>Fetch User</Text>
+                    {isPendingRequest ? (
+                      <LoadingSpinner size="small" color={colors.white} />
+                    ) : (
+                      <Text style={styles.manualSubmitButtonText}>{t('addDebt.steps.scanUser.fetchUser')}</Text>
+                    )}
                   </TouchableOpacity>
                 </View>
               </View>
@@ -577,22 +609,13 @@ export default function AddDebtScreen() {
                 Point your camera at the user's QR code to scan and view their trustability analytics
               </Text>
             </Card>
-
-            {/* Payment Date Section - Separate Card */}
-            {/* This section is now moved to step 1 */}
-          </MotiView>
         );
 
       case 3:
         return (
-          <MotiView
-            from={{ opacity: 0, translateY: 30 }}
-            animate={{ opacity: 1, translateY: 0 }}
-            transition={{ type: 'timing', duration: 600 }}
-          >
-            <Card style={styles.stepCard}>
+          <Card style={styles.stepCard}>
               <View style={styles.stepHeader}>
-                <User color={colors.primary} size={24} />
+                <UserIcon color={colors.primary} size={24} />
                 <Text style={styles.stepTitle}>Review & Confirm</Text>
               </View>
               <Text style={styles.stepSubtext}>
@@ -650,7 +673,6 @@ export default function AddDebtScreen() {
                 </Text>
               </View>
             </Card>
-          </MotiView>
         );
 
       default:
@@ -663,7 +685,7 @@ export default function AddDebtScreen() {
       case 0:
         return 'Select Debt Type';
       case 1:
-        return 'Add Items & Set Date';
+        return 'Add Products/Services';
       case 2:
         return 'Scan User';
       case 3:
@@ -678,7 +700,7 @@ export default function AddDebtScreen() {
       case 0:
         return debtForm.intiationType !== null;
       case 1:
-        return debtForm.items.every(item => item.name && item.description && item.amount > 0);
+        return debtForm.items.every(item => item.name && item.amount > 0);
       case 2:
         return scannedUserData !== null;
       case 3:
@@ -696,8 +718,8 @@ export default function AddDebtScreen() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.loadingContainer}>
-          <LoadingSpinner size={48} />
-          <Text style={styles.loadingText}>Creating debt...</Text>
+          <LoadingSpinner size="large" />
+          <Text style={styles.loadingText}>{t('addDebt.errors.creatingDebt')}</Text>
         </View>
       </SafeAreaView>
     );
@@ -710,54 +732,67 @@ export default function AddDebtScreen() {
         <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
           <ChevronLeft color={colors.text} size={24} />
         </TouchableOpacity>
-        <Text style={styles.title}>Add New Debt</Text>
+        <Text style={styles.title}>{t('addDebt.title')}</Text>
         <View style={styles.placeholder} />
       </View>
 
-      {/* Step Title */}
-      <Text style={styles.stepTitleText}>{getStepTitle()}</Text>
-      
-      {/* Step Description */}
-      {currentStep === 1 && (
-        <Text style={styles.stepDescription}>
-          Add debt items and optionally set a payment due date
-        </Text>
-      )}
-      {currentStep === 2 && (
-        <Text style={styles.stepDescription}>
-          Scan a user's QR code to select who you're creating the debt with
-        </Text>
-      )}
+
 
       {/* Content */}
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {renderStepContent()}
+        <MotiView
+          key={currentStep}
+          from={{ opacity: 0, translateX: 50 }}
+          animate={{ opacity: 1, translateX: 0 }}
+          exit={{ opacity: 0, translateX: -50 }}
+          transition={{ type: 'timing', duration: 400 }}
+        >
+          {renderStepContent()}
+        </MotiView>
       </ScrollView>
 
       {/* Navigation */}
       <View style={styles.navigation}>
         {canGoBack() && (
-          <Button
-            title="Previous"
+          <TouchableOpacity
+            style={[styles.navButton, styles.previousButton]}
             onPress={handlePrevious}
-            variant="outline"
-            style={styles.navButton}
-          />
+            activeOpacity={0.8}
+          >
+            <ChevronLeft color={colors.primary} size={20} style={styles.navButtonIcon} />
+            <Text style={[styles.navButtonText, { color: colors.primary }]}>{t('addDebt.navigation.previous')}</Text>
+          </TouchableOpacity>
         )}
-        {currentStep < 3 ? (
-          <Button
-            title="Next"
+        {currentStep === 2 && scannedUserData ? (
+          <TouchableOpacity
+            style={[styles.navButton, styles.proceedButton]}
             onPress={handleNext}
             disabled={!canProceed()}
-            style={styles.navButton}
-          />
+            activeOpacity={0.8}
+          >
+            <CheckCircle color={colors.white} size={20} style={styles.navButtonIcon} />
+            <Text style={[styles.navButtonText, { color: colors.white }]}>{t('addDebt.navigation.proceed')}</Text>
+          </TouchableOpacity>
+        ) : currentStep < 3 ? (
+          <TouchableOpacity
+            style={[styles.navButton, styles.nextButton]}
+            onPress={handleNext}
+            disabled={!canProceed()}
+            activeOpacity={0.8}
+          >
+            <ChevronRight color={colors.white} size={20} style={styles.navButtonIcon} />
+            <Text style={[styles.navButtonText, { color: colors.white }]}>{t('addDebt.navigation.next')}</Text>
+          </TouchableOpacity>
         ) : (
-          <Button
-            title="Create Debt"
+          <TouchableOpacity
+            style={[styles.navButton, styles.createButton]}
             onPress={handleSubmit}
             disabled={!canProceed()}
-            style={styles.navButton}
-          />
+            activeOpacity={0.8}
+          >
+            <CheckCircle color={colors.white} size={20} style={styles.navButtonIcon} />
+            <Text style={[styles.navButtonText, { color: colors.white }]}>{t('addDebt.navigation.createDebt')}</Text>
+          </TouchableOpacity>
         )}
       </View>
 
@@ -767,6 +802,7 @@ export default function AddDebtScreen() {
           isVisible={showScanner}
           onScan={handleQRCodeScan}
           onClose={() => setShowScanner(false)}
+          isPendingRequest={isPendingRequest}
         />
       )}
     </SafeAreaView>
@@ -783,8 +819,8 @@ const getStyles = (colors: any) =>
       flexDirection: 'row',
       alignItems: 'center',
       paddingHorizontal: Spacing.lg,
-      paddingTop: Spacing.lg,
-      paddingBottom: Spacing.sm,
+      paddingTop: Spacing.xs,
+      paddingBottom: Spacing.md,
       backgroundColor: colors.background,
     },
     backButton: {
@@ -797,6 +833,43 @@ const getStyles = (colors: any) =>
     },
     placeholder: {
       width: 40,
+    },
+    stepIndicatorContainer: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: Spacing.lg,
+      paddingHorizontal: Spacing.lg,
+    },
+    stepIndicatorItem: {
+      alignItems: 'center',
+      flex: 1,
+      maxWidth: 80,
+    },
+    stepIndicatorDot: {
+      width: 32,
+      height: 32,
+      borderRadius: 16,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: Spacing.xs,
+    },
+    stepIndicatorDotActive: {
+      backgroundColor: colors.primary,
+    },
+    stepIndicatorDotInactive: {
+      backgroundColor: colors.border,
+    },
+    stepIndicatorLine: {
+      width: 2,
+      height: 20,
+      borderRadius: 1,
+    },
+    stepIndicatorLineActive: {
+      backgroundColor: colors.primary,
+    },
+    stepIndicatorLineInactive: {
+      backgroundColor: colors.border,
     },
     stepIndicator: {
       flexDirection: 'row',
@@ -829,7 +902,7 @@ const getStyles = (colors: any) =>
     },
     content: {
       flex: 1,
-      paddingHorizontal: Spacing.lg,
+      paddingHorizontal: Spacing.sm,
     },
     stepTitleText: {
       fontSize: Typography.fontSize.lg,
@@ -840,14 +913,25 @@ const getStyles = (colors: any) =>
     },
     stepCard: {
       marginBottom: Spacing.md,
-      borderRadius: BorderRadius.md,
+      borderRadius: BorderRadius.lg,
       overflow: 'hidden',
       padding: Spacing.md,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      shadowColor: '#000',
+      shadowOffset: { width: 0, height: 2 },
+      shadowOpacity: 0.1,
+      shadowRadius: 8,
+      elevation: 3,
     },
     stepHeader: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: Spacing.sm,
+      marginBottom: Spacing.md,
+      paddingBottom: Spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
     },
     stepTitle: {
       fontSize: Typography.fontSize.lg,
@@ -911,7 +995,6 @@ const getStyles = (colors: any) =>
       marginBottom: Spacing.md,
       borderRadius: BorderRadius.md,
       overflow: 'hidden',
-      padding: Spacing.sm,
     },
     itemHeader: {
       flexDirection: 'row',
@@ -922,6 +1005,14 @@ const getStyles = (colors: any) =>
       backgroundColor: colors.card,
       borderBottomWidth: 1,
       borderBottomColor: colors.border,
+      marginBottom: Spacing.sm,
+    },
+    itemNumberContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+    },
+    itemStatus: {
+      marginLeft: Spacing.xs,
     },
     itemNumber: {
       fontSize: Typography.fontSize.md,
@@ -935,11 +1026,28 @@ const getStyles = (colors: any) =>
       marginBottom: Spacing.sm,
       paddingHorizontal: Spacing.sm,
     },
+    descriptionInput: {
+      marginBottom: Spacing.sm,
+      paddingHorizontal: Spacing.sm,
+      minHeight: 100,
+      textAlignVertical: 'top',
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Regular',
+      color: colors.text,
+      backgroundColor: colors.card,
+      borderRadius: BorderRadius.sm,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
     itemRow: {
       flexDirection: 'row',
       justifyContent: 'space-between',
       paddingHorizontal: Spacing.sm,
       marginBottom: Spacing.sm,
+      gap: Spacing.sm,
+    },
+    itemInputHalf: {
+      flex: 1,
     },
     addItemButton: {
       flexDirection: 'row',
@@ -951,6 +1059,18 @@ const getStyles = (colors: any) =>
       marginTop: Spacing.md,
       borderWidth: 1,
       borderColor: colors.primary,
+    },
+    itemSummary: {
+      backgroundColor: colors.success + '10',
+      padding: Spacing.sm,
+      borderRadius: BorderRadius.sm,
+      marginTop: Spacing.sm,
+      alignItems: 'center',
+    },
+    itemSummaryText: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-SemiBold',
+      color: colors.success,
     },
     addItemText: {
       fontSize: Typography.fontSize.md,
@@ -973,6 +1093,9 @@ const getStyles = (colors: any) =>
       fontFamily: 'DMSans-Medium',
       color: colors.white,
       marginLeft: Spacing.sm,
+    },
+    scanButtonDisabled: {
+      opacity: 0.7,
     },
     scanInstructions: {
       fontSize: Typography.fontSize.sm,
@@ -1029,14 +1152,44 @@ const getStyles = (colors: any) =>
     },
     navigation: {
       flexDirection: 'row',
-      justifyContent: 'space-around',
-      padding: Spacing.md,
+      justifyContent: 'space-between',
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.md,
       backgroundColor: colors.background,
       borderTopWidth: 1,
       borderTopColor: colors.border,
     },
     navButton: {
       flex: 1,
+      marginHorizontal: Spacing.xs,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.md,
+      borderRadius: BorderRadius.lg,
+      minHeight: 48,
+    },
+    previousButton: {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: colors.primary,
+    },
+    nextButton: {
+      backgroundColor: colors.primary,
+    },
+    proceedButton: {
+      backgroundColor: colors.success,
+    },
+    createButton: {
+      backgroundColor: colors.primary,
+    },
+    navButtonIcon: {
+      marginRight: Spacing.xs,
+    },
+    navButtonText: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-SemiBold',
     },
     loadingContainer: {
       flex: 1,
@@ -1069,11 +1222,7 @@ const getStyles = (colors: any) =>
     },
     manualInputContainer: {
       flexDirection: 'row',
-      alignItems: 'center',
-      backgroundColor: colors.card,
-      borderRadius: BorderRadius.md,
-      borderWidth: 1,
-      borderColor: colors.border,
+      gap:Spacing.sm
     },
     manualInput: {
       flex: 1,
@@ -1088,6 +1237,8 @@ const getStyles = (colors: any) =>
       paddingHorizontal: Spacing.md,
       backgroundColor: colors.primary,
       borderRadius: BorderRadius.md,
+      alignItems:"center",
+      height:"100%",
       borderLeftWidth: 1,
       borderLeftColor: colors.border,
     },
@@ -1095,6 +1246,9 @@ const getStyles = (colors: any) =>
       fontSize: Typography.fontSize.md,
       fontFamily: 'DMSans-Medium',
       color: colors.white,
+    },
+    manualSubmitButtonDisabled: {
+      opacity: 0.7,
     },
     datePickerContainer: {
       marginBottom: Spacing.sm,
@@ -1178,6 +1332,13 @@ const getStyles = (colors: any) =>
       fontFamily: 'DMSans-Regular',
       color: colors.textSecondary,
       marginBottom: Spacing.sm,
+      paddingHorizontal: Spacing.sm,
+    },
+    descriptionLabel: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+      marginBottom: Spacing.xs,
       paddingHorizontal: Spacing.sm,
     },
   });

@@ -1,6 +1,7 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 import { router } from 'expo-router';
+import { TrustabilityAnalyticsResponse } from '@/types/api';
 
 // Base response types
 export interface ApiResponse<T = any> {
@@ -56,7 +57,6 @@ export interface User {
   nationalId: string;
   email: string;
   phoneNumber: string;
-  userType: 'CLIENT' | 'SELLER';
   province: string;
   district: string;
   sector: string;
@@ -64,13 +64,82 @@ export interface User {
   village: string;
   role: 'USER' | 'ADMIN';
   isTrustable: boolean;
-  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
-  userSubscription?: UserSubscription;
-  trustabilityPercentage?: number;
-  totalDebts?: number;
-  paidDebts?: number;
+  isActive: boolean;
+  code: string;
+  pin: string;
+  pinFailureCount: number;
+  lastPinFailureAt: string | null;
+  accountBlockedAt: string | null;
   createdAt: string;
   updatedAt: string;
+}
+
+// Current Subscription type
+export interface CurrentSubscription {
+  id: string;
+  userId: string;
+  planId: string | null;
+  status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
+  startDate: string;
+  endDate: string;
+  amountPaid: string;
+  paymentMethod: string;
+  transactionId: string;
+  autoRenew: boolean;
+  cancellationReason: string | null;
+  cancelledAt: string | null;
+  lastBillingDate: string | null;
+  nextBillingDate: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+// Subscription Details type
+export interface SubscriptionDetails {
+  daysRemaining: number;
+  endDate: string;
+  formattedEndDate: string;
+  isActive: boolean;
+  startDate: string;
+  status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
+  type: string;
+}
+
+// Subscription Features type
+export interface SubscriptionFeatures {
+  daysLeftInTrial: number;
+  isFreeTrial: boolean;
+  maxDebtsAllowed: number;
+  maxDevices: number;
+  maxTrustabilityChecks: number;
+  planAmount: number;
+  planDescription: string;
+  planDuration: number;
+  planName: string;
+  remainingChecks: number;
+  trialEndDate: string;
+}
+
+// Subscription Summary type
+export interface SubscriptionSummary {
+  daysRemaining: number;
+  endDate: string;
+  hasActiveSubscription: boolean;
+  isFreeTrial: boolean;
+  isPaidSubscription: boolean;
+  message: string;
+  status: 'ACTIVE' | 'EXPIRED' | 'CANCELLED';
+  subscriptionType: string;
+}
+
+// Profile Response type
+export interface ProfileResponse {
+  user: User;
+  currentSubscription: CurrentSubscription;
+  subscriptionDetails: SubscriptionDetails;
+  subscriptionFeatures: SubscriptionFeatures;
+  subscriptionStatus: string;
+  subscriptionSummary: SubscriptionSummary;
 }
 
 // Debt type
@@ -89,7 +158,7 @@ export interface Debt {
   payments:any[];items:any[]
 }
 
-const BASE_URL = 'http://5.189.134.45:8787/api';
+const BASE_URL = 'http://172.20.10.3:4000/api';
 
 class ApiClient {
   private axiosInstance: AxiosInstance;
@@ -130,7 +199,7 @@ class ApiClient {
         // Handle missing/invalid JWT token - only redirect for authentication-related errors
         if (errorCategory === 'authentication') {
           console.log('[API] Redirecting to login due to authentication error');
-          router.replace('/(auth)/login');
+          router.replace('/(auth)');
         }
         
         return Promise.reject(error);
@@ -309,6 +378,11 @@ class ApiClient {
     return response.data;
   }
 
+  async rejectPayment(paymentId: string) {
+    const response = await this.axiosInstance.post<ApiResponse<{ message: string }>>(`/debt/payment/${paymentId}/reject`, {});
+    return response.data;
+  }
+
   async rejectDebt(id: string) {
     const response = await this.axiosInstance.post<ApiResponse<Debt>>(`/debt/${id}/reject`, {});
     return response.data;
@@ -430,6 +504,67 @@ class ApiClient {
   }
 
   /**
+   * Get all debts for the current user (both requested and offered)
+   * @param params Query parameters for filtering and pagination
+   * @returns Paginated response with all user debts
+   */
+  async getMyDebts(params: {
+    status?: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'PAID_PENDING_CONFIRMATION' | 'OVERDUE';
+    dateFrom?: string;
+    dateTo?: string;
+    limit?: number;
+    page?: number;
+    includeRequested?: boolean;
+    includeOffered?: boolean;
+  } = { limit: 10, page: 1, includeRequested: true, includeOffered: true }): Promise<PaginatedResponse<Debt>> {
+    // Define the expected response structure
+    interface DebtsApiResponsePayload {
+      data: Debt[];
+      total: number;
+      page: number;
+      limit: number;
+    }
+    
+    interface DebtsApiResponse {
+      message: string;
+      payload: DebtsApiResponsePayload;
+    }
+
+    try {
+      const response = await this.axiosInstance.get<DebtsApiResponse>('/debt/mine', {
+        params: { 
+          status: params.status,
+          dateFrom: params.dateFrom,
+          dateTo: params.dateTo,
+          limit: params.limit || 10, 
+          page: params.page || 1,
+          includeRequested: params.includeRequested !== false, // Default to true
+          includeOffered: params.includeOffered !== false      // Default to true
+        }
+      });
+      
+      // If no response or payload, return default values
+      if (!response.data?.payload) {
+        console.warn('No payload in getMyDebts response');
+        return { data: [], total: 0, page: 1, limit: 10 };
+      }
+      
+      // Safely extract values from the payload with proper type checking
+      const payload = response.data.payload;
+      const data = Array.isArray(payload?.data) ? payload.data : [];
+      const total = typeof payload?.total === 'number' ? payload.total : 0;
+      const page = typeof payload?.page === 'number' ? payload.page : 1;
+      const limit = typeof payload?.limit === 'number' ? payload.limit : 10;
+      
+      // Return the properly typed PaginatedResponse
+      return { data, total, page, limit };
+    } catch (error) {
+      console.error('Error in getMyDebts:', error);
+      return { data: [], total: 0, page: 1, limit: 10 };
+    }
+  }
+
+  /**
    * Get a specific debt by ID
    * @param id The ID of the debt to fetch
    * @returns The debt details or null if not found
@@ -470,7 +605,6 @@ class ApiClient {
         nationalId: '',
         email: '',
         phoneNumber: '',
-        userType: 'CLIENT',
         province: '',
         district: '',
         sector: '',
@@ -478,7 +612,12 @@ class ApiClient {
         village: '',
         role: 'USER',
         isTrustable: false,
-        status: 'INACTIVE',
+        isActive: false,
+        code: '',
+        pin: '',
+        pinFailureCount: 0,
+        lastPinFailureAt: null,
+        accountBlockedAt: null,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -517,7 +656,14 @@ class ApiClient {
   }
 
   async getUserProfile() {
-    const response = await this.axiosInstance.get<ApiResponse<{ user: User }>>('/auth/profile');
+    const response = await this.axiosInstance.get<ApiResponse<ProfileResponse>>('/auth/profile');
+    return response.data;
+  }
+
+  async changeCode(pin: string) {
+    const response = await this.axiosInstance.post<ApiResponse<any>>('/users/change-code', {
+      pin
+    });
     return response.data;
   }
 
@@ -561,6 +707,12 @@ class ApiClient {
 
   async getUserTrustabilityAnalyticsByCode(code: string) {
     const response = await this.axiosInstance.get<ApiResponse<any>>(`/users/trustability-analytics/${code}`);
+    return response.data;
+  }
+
+  // Personal trustability analytics for current user
+  async getPersonalTrustabilityAnalytics() {
+    const response = await this.axiosInstance.get<TrustabilityAnalyticsResponse>('/auth/trustability-analytics');
     return response.data;
   }
 

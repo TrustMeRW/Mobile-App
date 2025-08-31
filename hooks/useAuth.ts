@@ -1,168 +1,202 @@
-import { useState, useEffect } from 'react';
-import * as SecureStore from 'expo-secure-store';
-import { User } from '@/types/api';
-import Toast from 'react-native-toast-message';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { AuthService, LoginRequest, RegisterRequest, ForgotPasswordRequest, ResetPasswordRequest, UserProfile } from '@/services/auth';
+import { apiClient } from '@/services/api';
+import { useToast } from '@/contexts/ToastContext';
+import { TokenStorage } from '@/utils/tokenStorage';
+import { UserStorage } from '@/utils/userStorage';
 
-const TOKEN_KEY = 'access_token';
-const REFRESH_TOKEN_KEY = 'refresh_token';
-
-export const useAuth = () => {
-  const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(() => {
-    let isMounted = true;
-    
-    const checkAuth = async () => {
-      try {
-        const token = await SecureStore.getItemAsync(TOKEN_KEY);
-        if (token && isMounted) {
-          // Verify token with profile endpoint
-          const response = await fetch('http://5.189.134.45:8787/api/auth/profile', {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-          });
-          
-          if (response.ok && isMounted) {
-            const userData = await response.json();
-            setUser(userData.payload.user);
-            setIsAuthenticated(true);
-          } else if (isMounted) {
-            // Clear tokens without calling logout to avoid hook issues
-            await SecureStore.deleteItemAsync(TOKEN_KEY);
-            await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
-            setUser(null);
-            setIsAuthenticated(false);
+export const useLogin = () => {
+  const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
+  
+  return useMutation({
+    mutationFn: (data: LoginRequest) => AuthService.login(data),
+    onSuccess: async (data) => {
+      if (data.success && data.token) {
+        try {
+          // Store tokens
+          await TokenStorage.setAccessToken(data.token);
+          if (data.refreshToken) {
+            await TokenStorage.setRefreshToken(data.refreshToken);
           }
+          
+          // Store user data locally if provided
+          if (data.user) {
+            await UserStorage.setUserData(data.user);
+          }
+          
+          // Invalidate and refetch user profile to ensure fresh data
+          await queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+          await queryClient.invalidateQueries({ queryKey: ['auth', 'profile'] });
+          
+          // Force refetch the current user data
+          await queryClient.refetchQueries({ queryKey: ['user-profile'] });
+          
+          showSuccess('Welcome!', 'You have successfully logged in', 2000);
+        } catch (error) {
+          console.error('Error during login success handling:', error);
+          showError('Login Error', 'Failed to complete login process. Please try again.', 3000);
         }
-      } catch (error) {
-        console.error('Auth check failed:', error);
-        if (isMounted) {
-          // Clear tokens on error without calling logout
-          await SecureStore.deleteItemAsync(TOKEN_KEY);
-          await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
-          setUser(null);
-          setIsAuthenticated(false);
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false);
-        }
+      } else {
+        showError('Login Failed', data.message || 'Invalid credentials', 3000);
       }
-    };
+    },
+    onError: (error: any) => {
+      showError('Login Error', error.message || 'Something went wrong. Please try again.', 5000);
+    },
+  });
+};
 
-    checkAuth();
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  const login = async (identifier: string, pin: string) => {
-    try {
-      console.log('Attempting login with:', { identifier, pin });
-      const response = await fetch('http://5.189.134.45:8787/api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json',
-        },
-        body: JSON.stringify({ identifier, pin }),
-      });
-
-      console.log('Login response status:', response.status);
-      const responseData = await response.json().catch(err => {
-        console.error('Error parsing JSON response:', err);
-        throw new Error('Invalid server response');
-      });
-      
-      console.log('Login response data:', responseData);
-      
-      if (!response.ok) {
-        // Handle error response
-        const errorMessage = Array.isArray(responseData.message) 
-          ? responseData.message.join(', ')
-          : responseData.message || `Login failed with status ${response.status}`;
-        
-        throw new Error(errorMessage);
+export const useRegister = () => {
+  const { showSuccess, showError } = useToast();
+  
+  return useMutation({
+    mutationFn: (data: RegisterRequest) => AuthService.register(data),
+    onSuccess: (data) => {
+      if (data.success) {
+        showSuccess('Registration Successful', data.message || 'Your account has been created successfully', 3000);
+      } else {
+        showError('Registration Failed', data.message || 'Failed to create account', 3000);
       }
+    },
+    onError: (error: any) => {
+      showError('Registration Error', error.message || 'Something went wrong. Please try again.', 5000);
+    },
+  });
+};
 
-      // Handle successful login
-      if (!responseData.payload) {
-        throw new Error('Invalid response format: missing payload');
+export const useForgotPassword = () => {
+  const { showSuccess, showError } = useToast();
+  
+  return useMutation({
+    mutationFn: (data: ForgotPasswordRequest) => AuthService.forgotPassword(data),
+    onSuccess: (data) => {
+      if (data.success) {
+        showSuccess('Reset Link Sent', data.message || 'Check your email for password reset instructions', 3000);
+      } else {
+        showError('Reset Failed', data.message || 'Failed to send reset link', 3000);
       }
+    },
+    onError: (error: any) => {
+      showError('Reset Error', error.message || 'Something went wrong. Please try again.', 5000);
+    },
+  });
+};
 
-      const { accessToken, refreshToken, user } = responseData.payload;
-      
-      if (!accessToken) {
-        throw new Error('No access token in response');
+export const useResetPassword = () => {
+  const { showSuccess, showError } = useToast();
+  
+  return useMutation({
+    mutationFn: (data: ResetPasswordRequest) => AuthService.resetPassword(data),
+    onSuccess: (data) => {
+      if (data.success) {
+        showSuccess('Password Reset', data.message || 'Your password has been reset successfully', 3000);
+      } else {
+        showError('Reset Failed', data.message || 'Failed to reset password', 3000);
       }
-      
-      // Store tokens securely
-      await SecureStore.setItemAsync(TOKEN_KEY, accessToken);
-      if (refreshToken) {
-        await SecureStore.setItemAsync(REFRESH_TOKEN_KEY, refreshToken);
-      }
-      
-      // Update user state
-      setUser(user || null);
-      setIsAuthenticated(true);
-      
-      return { 
-        success: true,
-        message: responseData.message || 'Login successful',
-        user
-      };
-    } catch (error) {
-      console.error('Login error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Network error occurred';
-      
-      // Show error toast
-      Toast.show({
-        type: 'error',
-        text1: 'Login Failed',
-        text2: errorMessage,
-        visibilityTime: 4000,
-      });
-      
-      return { 
-        success: false, 
-        error: errorMessage
-      };
-    }
-  };
+    },
+    onError: (error: any) => {
+      showError('Reset Error', error.message || 'Something went wrong. Please try again.', 5000);
+    },
+  });
+};
 
-  const logout = async () => {
-    try {
-      // Clear tokens first
-      await SecureStore.deleteItemAsync(TOKEN_KEY);
-      await SecureStore.deleteItemAsync(REFRESH_TOKEN_KEY);
-      
-      // Update state in a safe way
-      setUser(null);
-      setIsAuthenticated(false);
-    } catch (error) {
+export const useUserProfile = (token: string | null) => {
+  return useQuery({
+    queryKey: ['auth', 'profile', token],
+    queryFn: () => token ? AuthService.getUserProfile(token) : null,
+    enabled: !!token,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes
+    select: (data) => data?.user || null,
+  });
+};
+
+export const useValidateToken = (token: string | null) => {
+  return useQuery({
+    queryKey: ['auth', 'validate', token],
+    queryFn: () => token ? AuthService.validateToken(token) : false,
+    enabled: !!token,
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    gcTime: 10 * 60 * 1000, // 10 minutes (replaces cacheTime in newer versions)
+  });
+};
+
+export const useRefreshToken = () => {
+  const queryClient = useQueryClient();
+  
+  return useMutation({
+    mutationFn: (refreshToken: string) => AuthService.refreshToken(refreshToken),
+    onSuccess: (data) => {
+      if (data.success) {
+        // Invalidate and refetch auth-related queries
+        queryClient.invalidateQueries({ queryKey: ['auth'] });
+      }
+    },
+    onError: (error) => {
+      // Handle token refresh failure (e.g., redirect to login)
+      console.error('Token refresh failed:', error);
+    },
+  });
+};
+
+export const useLogout = () => {
+  const queryClient = useQueryClient();
+  const { showSuccess } = useToast();
+  
+  return useMutation({
+    mutationFn: (token: string) => AuthService.logout(token),
+    onSuccess: async () => {
+      // Clear tokens and user data
+      await Promise.all([
+        TokenStorage.clearTokens(),
+        UserStorage.clearUserData(),
+      ]);
+      // Clear all queries from cache
+      queryClient.clear();
+      showSuccess('Logged Out', 'You have been successfully logged out', 2000);
+    },
+    onError: async (error) => {
+      // Even if logout API fails, clear local state
+      await Promise.all([
+        TokenStorage.clearTokens(),
+        UserStorage.clearUserData(),
+      ]);
+      queryClient.clear();
       console.error('Logout error:', error);
-      // Even if token deletion fails, ensure state is cleared
-      setUser(null);
-      setIsAuthenticated(false);
-    }
-  };
+    },
+  });
+};
 
-  const getToken = async () => {
-    return await SecureStore.getItemAsync(TOKEN_KEY);
-  };
+export const useChangeCode = () => {
+  const queryClient = useQueryClient();
+  const { showSuccess, showError } = useToast();
+  
+  return useMutation({
+    mutationFn: (pin: string) => apiClient.changeCode(pin),
+    onSuccess: async (data) => {
+      showSuccess('Code Changed', 'Your user code has been successfully changed', 3000);
+      // Invalidate and refetch user profile to get the new code
+      await queryClient.invalidateQueries({ queryKey: ['user-profile'] });
+      await queryClient.invalidateQueries({ queryKey: ['auth', 'profile'] });
+      await queryClient.refetchQueries({ queryKey: ['user-profile'] });
+    },
+    onError: (error: any) => {
+      const errorMessage = error?.response?.data?.message || 'Failed to change code. Please try again.';
+      showError('Change Code Failed', errorMessage, 5000);
+    },
+  });
+};
 
-  return {
-    user,
-    isLoading,
-    isAuthenticated,
-    login,
-    logout,
-    getToken,
-    setUser,
-  };
+// Default export containing all auth hooks
+export default {
+  useLogin,
+  useRegister,
+  useForgotPassword,
+  useResetPassword,
+  useUserProfile,
+  useValidateToken,
+  useRefreshToken,
+  useLogout,
+  useChangeCode,
 };

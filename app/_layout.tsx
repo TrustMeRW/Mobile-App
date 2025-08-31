@@ -9,10 +9,11 @@ import OnboardingScreen from './onboarding';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { AuthProvider } from '@/contexts/AuthContext';
+
 import { ThemeProvider } from '@/contexts/ThemeContext';
-import { NotificationBell } from '@/components/NotificationBell';
-import Toast from 'react-native-toast-message';
+import { ToastProvider } from '@/contexts/ToastContext';
+import { TranslationProvider } from '@/contexts/TranslationContext';
+import CustomSplashScreen from '@/components/CustomSplashScreen';
 import {
   useFonts,
   DMSans_400Regular,
@@ -23,7 +24,6 @@ import {
 import { useFrameworkReady } from '@/hooks/useFrameworkReady';
 import * as SplashScreen from 'expo-splash-screen';
 import { View } from 'react-native';
-import CustomSplashScreen from '@/components/CustomSplashScreen';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NotificationProvider } from '@/services/notifications';
 
@@ -52,23 +52,42 @@ export default function RootLayout() {
 
   useEffect(() => {
     async function checkOnboarding() {
-      const seen = await AsyncStorage.getItem('hasSeenOnboarding');
-      if (!seen) {
-        setShowOnboarding(true);
+      try {
+        const seen = await AsyncStorage.getItem('hasSeenOnboarding');
+        if (!seen) {
+          setShowOnboarding(true);
+        }
+        setOnboardingChecked(true);
+      } catch (error) {
+        console.error('Error checking onboarding:', error);
+        setOnboardingChecked(true); // Continue even if there's an error
       }
-      setOnboardingChecked(true);
     }
+    
     if (fontsLoaded || fontError) {
-      SplashScreen.hideAsync();
       checkOnboarding();
     }
   }, [fontsLoaded, fontError]);
 
+  // Hide native splash screen after fonts are loaded and onboarding is checked
+  useEffect(() => {
+    if (onboardingChecked && (fontsLoaded || fontError)) {
+      console.log('Hiding native splash screen');
+      SplashScreen.hideAsync().catch(console.error);
+    }
+  }, [onboardingChecked, fontsLoaded, fontError]);
+
+  // Debug logging
+  console.log('Layout state:', { fontsLoaded, fontError, onboardingChecked, showOnboarding });
+
+  // Show loading state while fonts are loading or onboarding is being checked
   if ((!fontsLoaded && !fontError) || !onboardingChecked) {
-    return <CustomSplashScreen />;
+    console.log('Showing loading state');
+    return null; // Return null to let native splash screen handle loading
   }
 
   if (showOnboarding) {
+    console.log('Showing onboarding screen');
     return (
       <ThemeProvider>
         <OnboardingScreen />
@@ -76,36 +95,39 @@ export default function RootLayout() {
     );
   }
 
+  console.log('Showing main app');
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <QueryClientProvider client={queryClient}>
-        <AuthProvider>
-          <ThemeProvider>
+        <ThemeProvider>
+          <TranslationProvider>
             <NotificationProvider>
-              <Stack screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="(auth)" />
-                <Stack.Screen
-                  name="(tabs)"
-                  options={{
-                    headerRight: () => <NotificationBell />,
-                  }}
-                />
-                <Stack.Screen name="onboarding" />
-                <Stack.Screen
-                  name="notifications"
-                  options={{
-                    headerShown: true,
-                    title: 'Notifications',
-                    headerBackTitle: 'Back',
-                  }}
-                />
-                <Stack.Screen name="+not-found" />
-              </Stack>
-              <Toast />
-              <StatusBar style="auto" />
+              <ToastProvider>
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="index" />
+                  <Stack.Screen name="(auth)" />
+                  <Stack.Screen
+                    name="(tabs)"
+                    options={{
+                      headerRight: () => null,
+                    }}
+                  />
+                  <Stack.Screen name="onboarding" />
+                  <Stack.Screen
+                    name="notifications"
+                    options={{
+                      headerShown: true,
+                      title: 'Notifications',
+                      headerBackTitle: 'Back',
+                    }}
+                  />
+                  <Stack.Screen name="+not-found" />
+                </Stack>
+                <StatusBar style="auto" />
+              </ToastProvider>
             </NotificationProvider>
-          </ThemeProvider>
-        </AuthProvider>
+          </TranslationProvider>
+        </ThemeProvider>
       </QueryClientProvider>
     </GestureHandlerRootView>
   );

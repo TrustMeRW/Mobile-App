@@ -11,12 +11,12 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import * as SecureStore from 'expo-secure-store';
-import { useAuthContext } from '@/contexts/AuthContext';
-import Toast from 'react-native-toast-message';
+import { useCurrentUser, useDebts, usePersonalTrustabilityAnalytics } from '@/hooks';
 import { Card } from '@/components/ui/Card';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { Typography, Spacing, lightColors } from '@/constants/theme';
+import { Typography, Spacing } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { apiClient } from '@/services/api';
 import { MotiView } from 'moti';
 import {
@@ -24,10 +24,13 @@ import {
   TrendingUp,
   TriangleAlert as AlertTriangle,
   CircleCheck as CheckCircle,
+  Shield,
+  Target,
+  MapPin,
 } from 'lucide-react-native';
 import { NotificationBell } from '@/components/NotificationBell';
 
-import type { Debt as ApiDebt, PaginatedResponse } from '@/services/api';
+import type { Debt as ApiDebt, PaginatedResponse, TrustabilityAnalytics } from '@/services/api';
 
 interface Debt extends Omit<ApiDebt, 'status'> {
   status:
@@ -49,40 +52,38 @@ interface Stats {
 
 export default function HomeScreen() {
   const { colors } = useTheme();
+  const { t } = useTranslation();
   const styles = getStyles(colors);
-  const { user } = useAuthContext();
+  const { user, isLoading: userLoading, refetch: refetchUser } = useCurrentUser();
 
   const {
-    data: debtsRequested,
-    isLoading: loadingRequested,
-    refetch: refetchRequested,
-  } = useQuery<PaginatedResponse<Debt>>({
-    queryKey: ['debts-requested'],
-    queryFn: () => apiClient.getDebtsRequested(),
+    data: myDebts,
+    isLoading: loadingMyDebts,
+    refetch: refetchMyDebts,
+  } = useDebts({
+    includeRequested: true,
+    includeOffered: true
   });
 
   const {
-    data: debtsOffered,
-    isLoading: loadingOffered,
-    refetch: refetchOffered,
-  } = useQuery<PaginatedResponse<Debt>>({
-    queryKey: ['debts-offered'],
-    queryFn: () => apiClient.getDebtsOffered(),
-  });
+    data: trustabilityAnalytics,
+    isLoading: loadingTrustability,
+    refetch: refetchTrustability,
+  } = usePersonalTrustabilityAnalytics();
 
-  const isLoading = loadingRequested || loadingOffered;
+  const isLoading = loadingMyDebts || userLoading || loadingTrustability;
 
   const handleRefresh = async () => {
-    await Promise.all([refetchRequested(), refetchOffered()]);
+    await Promise.all([
+      refetchMyDebts(),
+      refetchUser(),
+      refetchTrustability(),
+    ]);
   };
 
   const calculateStats = (): Stats => {
-    const requestedDebts = debtsRequested?.data || [];
-    const offeredDebts = debtsOffered?.data || [];
-    const allDebts: Debt[] = [...requestedDebts, ...offeredDebts];
-    console.log(allDebts)
-    console.log(requestedDebts)
-    console.log(offeredDebts)
+    const allDebts: Debt[] = myDebts?.data || [];
+    console.log('All debts:', allDebts);
 
     const totalDebtAmount = allDebts
       .filter((debt) => debt.status === 'ACTIVE')
@@ -113,10 +114,7 @@ console.log(totalDebtAmount)
 
   const stats = calculateStats();
 
-  const recentTransactions = [
-    ...(debtsRequested?.data || []),
-    ...(debtsOffered?.data || []),
-  ]
+  const recentTransactions = (myDebts?.data || [])
     .sort(
       (a, b) =>
         new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
@@ -155,8 +153,8 @@ console.log(totalDebtAmount)
             ]}
           >
             <View>
-              <Text style={styles.greeting}>Hello, {user?.firstName}!</Text>
-              <Text style={styles.subGreeting}>Here's your debt overview</Text>
+              <Text style={styles.greeting}>{t('home.greeting', { name: user?.firstName || 'User' })}</Text>
+              <Text style={styles.subGreeting}>{t('home.subGreeting')}</Text>
             </View>
             <NotificationBell />
           </View>
@@ -175,7 +173,7 @@ console.log(totalDebtAmount)
                     {(stats.totalDebtAmount).toLocaleString()}
                     RWF
                   </Text>
-                  <Text style={styles.statLabelDebt}>Total Debt</Text>
+                  <Text style={styles.statLabelDebt}>{t('home.totalDebt')}</Text>
                 </View>
               </View>
             </MotiView>
@@ -192,7 +190,7 @@ console.log(totalDebtAmount)
                   <Text style={styles.statValue}>
                     {stats.totalPaid.toLocaleString()}RWF
                   </Text>
-                  <Text style={styles.statLabel}>Total Paid</Text>
+                  <Text style={styles.statLabel}>{t('home.totalPaid')}</Text>
                 </View>
               </View>
             </MotiView>
@@ -207,7 +205,7 @@ console.log(totalDebtAmount)
                 <View style={styles.statContent}>
                   <CheckCircle color={colors.info} size={24} />
                   <Text style={styles.statValue}>{stats.activeDebts}</Text>
-                  <Text style={styles.statLabel}>Active Debts</Text>
+                  <Text style={styles.statLabel}>{t('home.activeDebts')}</Text>
                 </View>
               </View>
             </MotiView>
@@ -222,11 +220,67 @@ console.log(totalDebtAmount)
                 <View style={styles.statContent}>
                   <AlertTriangle color={colors.error} size={24} />
                   <Text style={styles.statValue}>{stats.overdueDebts}</Text>
-                  <Text style={styles.statLabel}>Overdue</Text>
+                  <Text style={styles.statLabel}>{t('home.overdueDebts')}</Text>
                 </View>
               </View>
             </MotiView>
           </View>
+
+          {/* Trustability Analytics Section */}
+          {trustabilityAnalytics?.payload && (
+            <MotiView
+              from={{ opacity: 0, translateY: 30 }}
+              animate={{ opacity: 1, translateY: 0 }}
+              transition={{ type: 'timing', duration: 600, delay: 450 }}
+            >
+              <View style={styles.trustabilitySection}>
+                <Text style={styles.sectionTitle}>{t('home.trustabilityAnalytics')}</Text>
+                <View style={styles.trustabilityCard}>
+                  <View style={styles.trustabilityHeader}>
+                    <Shield color={colors.primary} size={24} />
+                    <Text style={styles.trustabilityTitle}>{t('home.trustScore')}</Text>
+                  </View>
+                  <View style={styles.trustabilityScore}>
+                    <Text style={styles.trustabilityPercentage}>
+                      {trustabilityAnalytics.payload.trustabilityPercentage}%
+                    </Text>
+                    <Text style={styles.trustabilityLabel}>{t('home.trustabilityScore')}</Text>
+                  </View>
+                  
+                  <View style={styles.trustabilityStats}>
+                    <View style={styles.trustabilityStat}>
+                      <Target color={colors.success} size={20} />
+                      <Text style={styles.trustabilityStatValue}>
+                        {trustabilityAnalytics.payload.possiblePayments}
+                      </Text>
+                      <Text style={styles.trustabilityStatLabel}>{t('home.possiblePayments')}</Text>
+                    </View>
+                    <View style={styles.trustabilityStat}>
+                      <CheckCircle color={colors.info} size={20} />
+                      <Text style={styles.trustabilityStatValue}>
+                        {trustabilityAnalytics.payload.completedPayments}
+                      </Text>
+                      <Text style={styles.trustabilityStatLabel}>{t('home.completed')}</Text>
+                    </View>
+                    <View style={styles.trustabilityStat}>
+                      <TrendingUp color={colors.warning} size={20} />
+                      <Text style={styles.trustabilityStatValue}>
+                        {trustabilityAnalytics.payload.paymentSuccessRate}%
+                      </Text>
+                      <Text style={styles.trustabilityStatLabel}>{t('home.successRate')}</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.locationInfo}>
+                    <MapPin color={colors.textSecondary} size={16} />
+                    <Text style={styles.locationText}>
+                      {trustabilityAnalytics.payload.location.province}, {trustabilityAnalytics.payload.location.district}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            </MotiView>
+          )}
 
           <MotiView
             from={{ opacity: 0, translateY: 30 }}
@@ -234,15 +288,15 @@ console.log(totalDebtAmount)
             transition={{ type: 'timing', duration: 600, delay: 500 }}
           >
             <View style={styles.recentSection}>
-              <Text style={styles.sectionTitle}>Recent Activity</Text>
+              <Text style={styles.sectionTitle}>{t('home.recentActivity')}</Text>
               {recentTransactions.length > 0 ? (
                 recentTransactions.map((debt) => (
                   <View key={debt.id} style={styles.transactionItem}>
                     <View style={styles.transactionInfo}>
                       <Text style={styles.transactionTitle}>
                         {debt.initiationType === 'REQUESTED'
-                          ? 'Debt Request'
-                          : 'Debt Offer'}
+                          ? t('home.debtRequest')
+                          : t('home.debtOffer')}
                       </Text>
                       <Text style={styles.transactionAmount}>
                         {parseInt(debt.amount).toLocaleString()} RWF
@@ -266,7 +320,7 @@ console.log(totalDebtAmount)
                   </View>
                 ))
               ) : (
-                <Text style={styles.emptyText}>No recent activity</Text>
+                <Text style={styles.emptyText}>{t('home.noRecentActivity')}</Text>
               )}
             </View>
           </MotiView>
@@ -278,7 +332,7 @@ console.log(totalDebtAmount)
 
 const getStatusBadgeStyle = (
   status: string,
-  colors: typeof lightColors
+  colors: any
 ): ViewStyle => {
   switch (status) {
     case 'ACTIVE':
@@ -296,7 +350,7 @@ const getStatusBadgeStyle = (
 
 const getStatusTextStyle = (
   status: string,
-  colors: typeof lightColors
+  colors: any
 ): TextStyle => {
   switch (status) {
     case 'ACTIVE':
@@ -312,7 +366,7 @@ const getStatusTextStyle = (
   }
 };
 
-const getStyles = (colors: typeof lightColors) =>
+const getStyles = (colors: any) =>
   StyleSheet.create({
     container: {
       flex: 1,
@@ -440,5 +494,83 @@ const getStyles = (colors: typeof lightColors) =>
       color: colors.textSecondary,
       textAlign: 'center',
       padding: Spacing.lg,
+    },
+    trustabilitySection: {
+      marginHorizontal: Spacing.lg,
+      marginBottom: Spacing.lg,
+    },
+    trustabilityCard: {
+      backgroundColor: colors.card,
+      borderRadius: Spacing.md,
+      padding: Spacing.lg,
+      shadowColor: '#000',
+      shadowOffset: {
+        width: 0,
+        height: 2,
+      },
+      shadowOpacity: 0.1,
+      shadowRadius: 4,
+      elevation: 3,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    trustabilityHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginBottom: Spacing.md,
+    },
+    trustabilityTitle: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-SemiBold',
+      color: colors.text,
+      marginLeft: Spacing.sm,
+    },
+    trustabilityScore: {
+      alignItems: 'center',
+      marginBottom: Spacing.md,
+    },
+    trustabilityPercentage: {
+      fontSize: Typography.fontSize.xxl,
+      fontFamily: 'DMSans-Bold',
+      color: colors.primary,
+      marginBottom: Spacing.xs,
+    },
+    trustabilityLabel: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Medium',
+      color: colors.textSecondary,
+      opacity: 0.9,
+    },
+    trustabilityStats: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      marginBottom: Spacing.md,
+    },
+    trustabilityStat: {
+      alignItems: 'center',
+    },
+    trustabilityStatValue: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Bold',
+      color: colors.text,
+      marginTop: Spacing.xs,
+    },
+    trustabilityStatLabel: {
+      fontSize: Typography.fontSize.xs,
+      fontFamily: 'DMSans-Medium',
+      color: colors.textSecondary,
+      opacity: 0.9,
+      marginTop: Spacing.xs,
+    },
+    locationInfo: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      marginTop: Spacing.md,
+    },
+    locationText: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+      marginLeft: Spacing.xs,
     },
   });

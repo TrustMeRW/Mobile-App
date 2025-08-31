@@ -7,7 +7,6 @@ import {
   TextInputProps,
 } from 'react-native';
 import {
-  lightColors as Colors,
   Typography,
   BorderRadius,
   Spacing,
@@ -27,16 +26,16 @@ export const Input: React.FC<InputProps> = ({
   helperText,
   required,
   style,
+  editable = true,
   ...props
 }) => {
   const [isFocused, setIsFocused] = useState(false);
-  const { theme, colors } = useTheme();
-  const isDark = theme === 'dark';
+  const { colors } = useTheme();
 
   return (
     <View style={styles.container}>
       {label && (
-        <Text style={[styles.label, isDark && { color: colors.text }]}>
+        <Text style={[styles.label, { color: colors.text }]}>
           {label}
           {required && <Text style={styles.required}> *</Text>}
         </Text>
@@ -44,28 +43,32 @@ export const Input: React.FC<InputProps> = ({
       <TextInput
         style={[
           styles.input,
-          isDark && {
-            backgroundColor: colors.card,
+          {
+            backgroundColor: editable ? colors.card : colors.background,
             borderColor: isFocused ? colors.primary : colors.border,
-            color: colors.text,
+            color: editable ? colors.text : colors.textSecondary,
           },
-          isFocused && styles.inputFocused,
+          isFocused && editable && styles.inputFocused,
           error && styles.inputError,
+          !editable && styles.inputDisabled,
           style,
         ]}
-        onFocus={() => setIsFocused(true)}
+        onFocus={() => editable && setIsFocused(true)}
         onBlur={() => setIsFocused(false)}
-        placeholderTextColor={isDark ? colors.textSecondary : Colors.gray[400]}
+        placeholderTextColor={colors.textSecondary}
+        editable={editable}
+        selectTextOnFocus={editable}
+        blurOnSubmit={false}
         {...props}
       />
       {error && (
-        <Text style={[styles.errorText, isDark && { color: colors.error }]}>
+        <Text style={[styles.errorText, { color: colors.error }]}>
           {error}
         </Text>
       )}
       {helperText && !error && (
         <Text
-          style={[styles.helperText, isDark && { color: colors.textSecondary }]}
+          style={[styles.helperText, { color: colors.textSecondary }]}
         >
           {helperText}
         </Text>
@@ -76,44 +79,40 @@ export const Input: React.FC<InputProps> = ({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: Spacing.md,
   },
   label: {
     fontSize: Typography.fontSize.sm,
     fontFamily: 'DMSans-Medium',
-    color: Colors.dark,
     marginBottom: Spacing.xs,
   },
   required: {
-    color: Colors.error,
+    color: '#ef4444', // Error color
   },
   input: {
     borderWidth: 1,
-    borderColor: Colors.gray[300],
     borderRadius: BorderRadius.md,
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.md,
     fontSize: Typography.fontSize.md,
     fontFamily: 'DMSans-Regular',
-    backgroundColor: Colors.white,
     minHeight: 48,
   },
   inputFocused: {
-    borderColor: Colors.primary,
     borderWidth: 2,
   },
   inputError: {
-    borderColor: Colors.error,
+    // Error styling handled by theme colors
+  },
+  inputDisabled: {
+    opacity: 0.6,
   },
   errorText: {
     fontSize: Typography.fontSize.xs,
-    color: Colors.error,
     marginTop: Spacing.xs,
     fontFamily: 'DMSans-Regular',
   },
   helperText: {
     fontSize: Typography.fontSize.xs,
-    color: Colors.gray[500],
     marginTop: Spacing.xs,
     fontFamily: 'DMSans-Regular',
   },

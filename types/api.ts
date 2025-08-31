@@ -98,7 +98,58 @@ export interface CreateDebtDto {
 
 export interface PayDebtDto {
   amount: number;
-  paymentMethod: string;
+  debtId: string;
+}
+
+export interface TrustabilityAnalytics {
+  userId: string;
+  fullName: string;
+  trustabilityPercentage: number;
+  possiblePayments: number;
+  completedPayments: number;
+  paymentSuccessRate: number;
+  paymentPatterns: {
+    prefersInstallments: boolean;
+    installmentPaymentRate: number;
+    averageInstallments: number;
+    prefersImmediatePayment: boolean;
+    immediatePaymentRate: number;
+  };
+  recommendedDebtRanges: Array<{
+    range: string;
+    count: number;
+    paymentRate: number;
+    averagePaymentPeriod: number;
+    isRecommended: boolean;
+  }>;
+  nonRecommendedDebtRanges: Array<{
+    range: string;
+    count: number;
+    paymentRate: number;
+    averagePaymentPeriod: number;
+    isRecommended: boolean;
+  }>;
+  location: {
+    province: string;
+    district: string;
+    sector: string;
+    cell: string;
+    village: string;
+  };
+  analyzedAt: string;
+  accessInfo: {
+    subscriptionType: 'FREE' | 'PAID';
+    remainingChecks: number;
+    maxChecks: number;
+    usageRecorded: boolean;
+    message: string;
+  };
+  note: string;
+}
+
+export interface TrustabilityAnalyticsResponse {
+  message: string;
+  payload: TrustabilityAnalytics;
 }
 
 export interface Notification {

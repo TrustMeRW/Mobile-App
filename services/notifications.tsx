@@ -156,48 +156,8 @@ export const useNotifications = () => {
     await fetchNotifications(1, pagination.limit, true);
   };
 
-  const markAsRead = async (ids: string[]): Promise<boolean> => {
-    if (!ids.length) return true;
-    
-    // Optimistic update
-    setNotifications(prev => 
-      prev.map(n => 
-        ids.includes(n.id) ? { ...n, read: true } : n
-      )
-    );
-    
-    const previousUnreadCount = unreadCount;
-    const updatedUnreadCount = Math.max(0, unreadCount - ids.length);
-    setUnreadCount(updatedUnreadCount);
-    
-    try {
-      // API call - using the correct method signature
-      await apiClient.markNotificationsAsRead(ids);
-      
-      // Refresh to ensure consistency
-      await refresh();
-      
-      return true;
-    } catch (error) {
-      // Revert on error
-      setNotifications(prev => 
-        prev.map(n => 
-          ids.includes(n.id) ? { ...n, read: false } : n
-        )
-      );
-      setUnreadCount(previousUnreadCount);
-      console.error('Failed to mark notifications as read:', error);
-      return false;
-    }
-  };
-
-  const markAllAsRead = async (): Promise<boolean> => {
-    const unreadNotifications = notifications.filter(n => !n.read);
-    if (unreadNotifications.length === 0) return true;
-    
-    const unreadIds = unreadNotifications.map(n => n.id);
-    return markAsRead(unreadIds);
-  };
+  // Removed markAsRead and markAllAsRead functionality
+  // Focus on unread count instead
 
   const deleteNotification = async (id: string): Promise<boolean> => {
     try {
@@ -233,8 +193,6 @@ export const useNotifications = () => {
     pagination,
     refresh,
     loadMore,
-    markAsRead,
-    markAllAsRead,
     deleteNotification,
   };
 };

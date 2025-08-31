@@ -1,0 +1,548 @@
+{
+  "common": {
+    "welcome": "Bienvenue",
+    "next": "Suivant",
+    "previous": "Précédent",
+    "skip": "Passer",
+    "done": "Terminé",
+    "cancel": "Annuler",
+    "save": "Enregistrer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "loading": "Chargement...",
+    "error": "Erreur",
+    "success": "Succès",
+    "confirm": "Confirmer",
+    "back": "Retour",
+    "ok": "OK",
+    "close": "Fermer"
+  },
+  "logout": {
+    "title": "Se déconnecter",
+    "message": "Êtes-vous sûr de vouloir vous déconnecter de votre compte ? Vous devrez vous reconnecter pour accéder à vos données.",
+    "cancel": "Annuler",
+    "confirm": "Se déconnecter"
+  },
+  "changeCode": {
+    "input": {
+      "title": "Changer votre code",
+      "message": "Entrez votre nouveau code unique. Celui-ci remplacera votre code actuel et pourra être utilisé pour les vérifications futures.",
+      "newCodeLabel": "Nouveau code",
+      "placeholder": "Entrez le nouveau code",
+      "hint": "Le code doit contenir 4 à 6 caractères",
+      "next": "Suivant"
+    },
+    "confirm": {
+      "title": "Confirmer le nouveau code",
+      "message": "Veuillez confirmer votre nouveau code pour vous assurer qu'il est correct.",
+      "confirmCodeLabel": "Confirmer le code",
+      "placeholder": "Confirmer le nouveau code",
+      "back": "Retour",
+      "confirm": "Confirmer le code"
+    },
+    "success": {
+      "title": "Code modifié avec succès",
+      "message": "Votre code a été mis à jour avec succès. Vous pouvez maintenant utiliser votre nouveau code pour les vérifications.",
+      "close": "Fermer"
+    },
+    "error": {
+      "emptyCode": "Veuillez entrer un code",
+      "tooShort": "Le code doit contenir au moins 4 caractères",
+      "tooLong": "Le code ne doit pas dépasser 6 caractères",
+      "mismatch": "Les codes ne correspondent pas. Veuillez réessayer."
+    }
+  },
+  "editProfile": {
+    "title": "Modifier l'emplacement",
+    "sections": {
+      "personalInfo": {
+        "title": "Informations personnelles",
+        "readOnly": "Lecture seule"
+      },
+      "location": {
+        "title": "Informations de localisation",
+        "editable": "Modifiable"
+      }
+    },
+    "fields": {
+      "firstName": "Prénom",
+      "firstNamePlaceholder": "Entrez votre prénom",
+      "lastName": "Nom de famille",
+      "lastNamePlaceholder": "Entrez votre nom de famille",
+      "email": "E-mail",
+      "emailPlaceholder": "Entrez votre adresse e-mail",
+      "phoneNumber": "Numéro de téléphone",
+      "phoneNumberPlaceholder": "Entrez votre numéro de téléphone"
+    },
+    "location": {
+      "province": "Province",
+      "district": "District",
+      "sector": "Secteur",
+      "cell": "Cellule",
+      "village": "Village",
+      "selectProvince": "Sélectionner la province",
+      "selectDistrict": "Sélectionner le district",
+      "selectSector": "Sélectionner le secteur",
+      "selectCell": "Sélectionner la cellule",
+      "selectVillage": "Sélectionner le village",
+      "search": "Rechercher {{type}}...",
+      "selectProvince": "Sélectionner la Province",
+      "selectDistrict": "Sélectionner le District",
+      "selectSector": "Sélectionner le Secteur",
+      "selectCell": "Sélectionner la Cellule",
+      "selectVillage": "Sélectionner le Village"
+    },
+    "location.error": {
+      "selectProvinceFirst": {
+        "title": "Sélectionner la Province d'abord",
+        "message": "Veuillez sélectionner une province avant de sélectionner un district"
+      },
+      "selectLocationFirst": {
+        "title": "Sélectionner l'emplacement d'abord",
+        "message": "Veuillez sélectionner les emplacements parents requis d'abord"
+      },
+      "noData": {
+        "title": "Aucune donnée disponible",
+        "message": "Aucune donnée {{type}} trouvée pour l'emplacement sélectionné"
+      }
+    },
+    "validation": {
+      "error": {
+        "title": "Erreur",
+        "completeLocation": "Veuillez compléter tous les champs de localisation"
+      }
+    },
+    "confirm": {
+      "title": "Confirmer la mise à jour de l'emplacement",
+      "message": "Êtes-vous sûr de vouloir mettre à jour vos informations de localisation ?",
+      "updateButton": "Mettre à jour l'emplacement"
+    },
+    "updateButton": "Mettre à jour l'emplacement",
+    "success": {
+      "title": "Emplacement mis à jour",
+      "message": "Vos informations de localisation ont été mises à jour avec succès"
+    },
+    "error": {
+      "title": "Échec de la mise à jour",
+      "message": "Échec de la mise à jour de l'emplacement. Veuillez réessayer."
+    }
+  },
+  "changePin": {
+    "title": "Changer le code PIN/Mot de passe",
+    "info": {
+      "title": "Informations de sécurité",
+      "message": "Votre code PIN/Mot de passe est utilisé pour sécuriser votre compte et confirmer les actions importantes. Assurez-vous de choisir un code PIN/Mot de passe que vous pouvez retenir mais que d'autres ne peuvent pas facilement deviner."
+    },
+    "form": {
+      "currentPin": {
+        "title": "Code PIN/Mot de passe actuel",
+        "label": "Code PIN/Mot de passe actuel",
+        "placeholder": "Entrez le code PIN/Mot de passe actuel"
+      },
+      "newPin": {
+        "title": "Nouveau code PIN/Mot de passe",
+        "label": "Nouveau code PIN/Mot de passe",
+        "placeholder": "Entrez le nouveau code PIN/Mot de passe"
+      },
+      "confirmPin": {
+        "title": "Confirmer le nouveau code PIN/Mot de passe",
+        "label": "Confirmer le nouveau code PIN/Mot de passe",
+        "placeholder": "Confirmer le nouveau code PIN/Mot de passe"
+      },
+      "hint": {
+        "title": "Exigences du code PIN/Mot de passe",
+        "message": "• Doit contenir 4 à 6 caractères\n• Doit être différent du code PIN/Mot de passe actuel\n• Assurez-vous de pouvoir le retenir"
+      }
+    },
+    "changeButton": "Changer le code PIN/Mot de passe",
+    "success": {
+      "title": "Code PIN/Mot de passe modifié avec succès",
+      "message": "Votre code PIN/Mot de passe a été mis à jour avec succès. Vous pouvez maintenant utiliser votre nouveau code PIN/Mot de passe pour les vérifications futures.",
+      "subtitle": "Redirection vers le profil..."
+    },
+    "error": {
+      "title": "Échec du changement de code PIN/Mot de passe",
+      "message": "Échec du changement de code PIN/Mot de passe. Veuillez réessayer."
+    },
+    "validation": {
+      "error": {
+        "title": "Erreur de validation",
+        "allFieldsRequired": "Veuillez remplir tous les champs",
+        "pinTooShort": "Le nouveau code PIN/Mot de passe doit contenir au moins 4 caractères",
+        "pinTooLong": "Le nouveau code PIN/Mot de passe ne doit pas dépasser 6 caractères",
+        "pinsDoNotMatch": "Le nouveau code PIN/Mot de passe et la confirmation ne correspondent pas",
+        "samePin": "Le nouveau code PIN/Mot de passe doit être différent de l'actuel"
+      }
+    },
+    "confirm": {
+      "title": "Confirmer le changement de code PIN/Mot de passe",
+      "message": "Êtes-vous sûr de vouloir changer votre code PIN/Mot de passe ? Cette action ne peut pas être annulée.",
+      "changeButton": "Changer le code PIN/Mot de passe"
+    }
+  },
+  "navigation": {
+    "home": "Accueil",
+    "debts": "Dettes",
+    "subscriptions": "Abonnements",
+    "profile": "Profil"
+  },
+  "subscriptions": {
+    "title": "Plans d'abonnement",
+    "currentSubscription": {
+      "title": "Abonnement actuel",
+      "freeTrialActive": "Essai gratuit actif",
+      "planName": "Plan actif",
+      "status": "Statut",
+      "trialEnds": "L'essai se termine",
+      "ends": "Se termine",
+      "daysLeft": "Jours restants",
+      "amount": "Montant",
+      "startDate": "Date de début",
+      "endDate": "Date de fin",
+      "subscriptionPeriod": "Période d'abonnement"
+    },
+    "usageTracking": {
+      "title": "Utilisation ce mois-ci",
+      "debtsCreated": "Dettes créées",
+      "trustabilityChecks": "Vérifications de fiabilité",
+      "remaining": "restant"
+    },
+    "benefits": {
+      "title": "Vos avantages",
+      "trustabilityChecks": "Vérifications de fiabilité",
+      "debtsAllowed": "Dettes autorisées",
+      "devices": "Appareils"
+    },
+    "freeTrial": {
+      "info": "Votre essai gratuit est actif",
+      "message": "Votre essai gratuit est actif"
+    },
+    "upgrade": {
+      "title": "Mettez à niveau ou changez votre plan d'abonnement",
+      "choosePlan": "Choisissez le plan qui correspond le mieux à vos besoins"
+    },
+    "plan": {
+      "features": "Fonctionnalités",
+      "subscribeNow": "S'abonner maintenant",
+      "perDay": "par jour",
+      "currentPlan": "Plan actuel"
+    },
+    "help": {
+      "title": "Besoin d'aide ?",
+      "text": "Si vous avez des questions sur nos plans d'abonnement ou besoin d'assistance, veuillez contacter +250788355263 ou envoyer un e-mail à support@trustme.rw ."
+    },
+    "confirm": {
+      "title": "Confirmer l'abonnement",
+      "message": "Êtes-vous sûr de vouloir vous abonner à {{planName}} ?",
+      "subscribe": "S'abonner"
+    }
+  },
+  "onboarding": {
+    "step1": {
+      "title": "Bienvenue sur TrustMe",
+      "subtitle": "Votre plateforme de confiance pour les transactions financières sécurisées et la gestion des dettes"
+    },
+    "step2": {
+      "title": "Sécurisé et Fiable",
+      "subtitle": "Sécurité bancaire pour protéger vos informations et transactions financières"
+    },
+    "step3": {
+      "title": "Gestion Facile",
+      "subtitle": "Suivez les dettes, gérez les paiements et surveillez votre santé financière sans effort"
+    },
+    "step4": {
+      "title": "Choisissez Votre Langue",
+      "subtitle": "Sélectionnez votre langue préférée pour la meilleure expérience"
+    }
+  },
+  "auth": {
+    "login": {
+      "title": "Bon retour",
+      "subtitle": "Continuez votre voyage avec TrustMe",
+      "identifier": "Carte d'identité/Passeport/Numéro de téléphone/Email",
+      "password": "Mot de passe/PIN",
+      "forgotPassword": "Mot de passe oublié",
+      "loginButton": "Se connecter",
+      "createAccount": "Vous n'avez pas de compte ?",
+      "createAccountLink": "Créer un compte"
+    },
+    "register": {
+      "title": "Créer un compte",
+      "subtitle": "Complétez votre inscription avec TrustMe",
+      "phoneNumber": "Numéro de téléphone",
+      "idCard": "Carte d'identité",
+      "idCardSubtitle": "Prenez des photos de votre carte d'identité (Passeport/Carte d'identité nationale)",
+      "upperSection": "Section supérieure",
+      "lowerSection": "Section inférieure",
+      "selfie": "Photo selfie",
+      "selfieSubtitle": "Prenez une photo claire de vous-même",
+      "takePhoto": "Prendre une photo",
+      "createAccountButton": "Créer un compte",
+      "processing": "Traitement...",
+      "alreadyHaveAccount": "Vous avez déjà un compte ?",
+      "signIn": "Se connecter"
+    },
+    "forgotPassword": {
+      "title": "Réinitialiser le PIN",
+      "subtitle": "Oublié votre PIN ? Veuillez contacter un agent TrustMe pour réinitialiser votre PIN.",
+      "email": "Email",
+      "sendResetLink": "Envoyer le lien de réinitialisation",
+      "rememberPin": "Vous vous souvenez de votre PIN ?",
+      "signIn": "Se connecter"
+    }
+  },
+  "home": {
+    "greeting": "Bonjour, {{name}} !",
+    "subGreeting": "Voici un aperçu de vos dettes",
+    "totalDebt": "Dette totale",
+    "totalPaid": "Total payé",
+    "activeDebts": "Dettes actives",
+    "overdue": "En retard",
+    "recentActivity": "Activité récente",
+    "debtRequest": "Demande de dette",
+    "debtOffer": "Offre de dette",
+    "noRecentActivity": "Aucune activité récente",
+    "trustabilityAnalytics": "Analyses de fiabilité",
+    "trustScore": "Votre score de confiance",
+    "trustabilityScore": "Score de fiabilité",
+    "possiblePayments": "Paiements possibles",
+    "completed": "Terminé",
+    "successRate": "Taux de réussite"
+  },
+  "debts": {
+    "title": "Mes Dettes",
+    "searchPlaceholder": "Rechercher des dettes...",
+    "filters": {
+      "all": "Toutes",
+      "active": "Actives",
+      "pending": "En attente",
+      "completed": "Terminées",
+      "overdue": "En retard",
+      "paidPending": "Payées en attente"
+    },
+    "debtTypes": {
+      "requested": "Demandée",
+      "offered": "Offerte"
+    },
+    "status": {
+      "active": "Active",
+      "pending": "En attente",
+      "completed": "Terminée",
+      "overdue": "En retard",
+      "paidPendingConfirmation": "Payée en attente"
+    },
+    "partyInfo": {
+      "from": "De",
+      "to": "À",
+      "unknown": "Inconnu"
+    },
+    "progress": {
+      "paid": "payé"
+    },
+    "payment": {
+      "paid": "Payé",
+      "remaining": "Restant"
+    },
+    "dueDate": "Date d'échéance",
+    "noDueDate": "Aucune date d'échéance",
+    "overdue": "En retard",
+    "createdAt": "Créé",
+    "noDebts": "Aucune dette trouvée",
+    "noDebtsMessage": "Vous n'avez pas encore de dettes. Commencez par demander ou offrir une dette.",
+    "searchNoResults": "Essayez d'ajuster vos critères de recherche"
+  },
+  "addDebt": {
+    "title": "Ajouter une nouvelle dette",
+    "steps": {
+      "debtType": {
+        "title": "Sélectionner le type de dette",
+        "subtitle": "Choisissez comment procéder avec la dette",
+        "request": {
+          "title": "Je dois à quelqu'un",
+          "subtitle": "Vous demandez à emprunter à quelqu'un"
+        },
+        "offer": {
+          "title": "Quelqu'un me doit",
+          "subtitle": "Vous proposez de prêter à quelqu'un"
+        }
+      },
+      "products": {
+        "title": "Produits/Services",
+        "subtitle": "Ajoutez les produits ou services qui seront inclus dans cette dette",
+        "item": "Article {{number}}",
+        "name": "Nom de l'article",
+        "namePlaceholder": "Entrez le nom de l'article",
+        "description": "Description (Optionnel)",
+        "descriptionPlaceholder": "Brève description de l'article",
+        "quantity": "Quantité",
+        "quantityPlaceholder": "1",
+        "amount": "Montant (RWF)",
+        "amountPlaceholder": "0",
+        "total": "Total: RWF {{amount}}",
+        "addAnother": "Ajouter un autre article"
+      },
+      "paymentDate": {
+        "title": "Date de paiement (Optionnel)",
+        "subtitle": "Définissez une date d'échéance pour cette dette. Si non spécifiée, aucune date d'échéance ne sera définie.",
+        "selectDate": "Sélectionner une date",
+        "clearDate": "Effacer la date",
+        "paymentDue": "Paiement dû: {{date}}",
+        "overdueNote": "Cette dette sera marquée comme en retard après cette date"
+      },
+      "scanUser": {
+        "title": "Scanner le code QR de l'utilisateur",
+        "requestSubtitle": "Scannez le code QR de la personne à qui vous voulez emprunter",
+        "offerSubtitle": "Scannez le code QR de la personne à qui vous voulez prêter",
+        "scanButton": "Scanner le code QR",
+        "scanning": "Scan en cours...",
+        "manualInput": "Ou entrez le code utilisateur manuellement:",
+        "codePlaceholder": "Entrez le code utilisateur",
+        "fetchUser": "Récupérer l'utilisateur"
+      }
+    },
+    "navigation": {
+      "previous": "Précédent",
+      "next": "Suivant",
+      "proceed": "Procéder",
+      "createDebt": "Créer la dette"
+    },
+    "errors": {
+      "userNotAuthenticated": "Utilisateur non authentifié",
+      "creatingDebt": "Création de la dette..."
+    }
+  },
+  "debtDetail": {
+    "title": "Détails de la dette",
+    "status": {
+      "pending": "En attente",
+      "active": "Active",
+      "completed": "Terminée",
+      "overdue": "En retard",
+      "paidPending": "Payée en attente",
+      "rejected": "Rejetée"
+    },
+    "debtType": {
+      "requested": "Demandée",
+      "offered": "Offerte"
+    },
+    "amount": {
+      "total": "Montant total",
+      "paid": "Montant payé",
+      "remaining": "Montant restant"
+    },
+    "payment": {
+      "title": "Paiement",
+      "amount": "Montant du paiement",
+      "amountPlaceholder": "Entrez le montant",
+      "pin": "PIN pour approbation",
+      "pinPlaceholder": "Entrez votre PIN",
+      "pay": "Payer la dette",
+      "confirm": "Confirmer le paiement",
+      "approve": "Approuver la dette",
+      "reject": "Rejeter la dette"
+    },
+    "actions": {
+      "approve": "Approuver",
+      "reject": "Rejeter",
+      "pay": "Payer",
+      "confirm": "Confirmer"
+    },
+    "messages": {
+      "debtApproved": "Dette approuvée",
+      "debtApprovedMessage": "Vous avez approuvé la dette avec succès.",
+      "debtRejected": "Dette rejetée",
+      "debtRejectedMessage": "Vous avez rejeté la dette avec succès.",
+      "paymentSuccess": "Paiement réussi",
+      "paymentSuccessMessage": "Votre paiement a été traité avec succès.",
+      "paymentConfirmed": "Paiement confirmé",
+      "paymentConfirmedMessage": "Le paiement a été confirmé.",
+      "approvalFailed": "Échec de l'approbation",
+      "rejectionFailed": "Échec du rejet",
+      "paymentFailed": "Échec du paiement",
+      "confirmationFailed": "Échec de la confirmation"
+    },
+    "items": {
+      "title": "Articles",
+      "name": "Nom",
+      "description": "Description",
+      "quantity": "Quantité",
+      "amount": "Montant",
+      "total": "Total"
+    },
+    "dates": {
+      "created": "Créé",
+      "dueDate": "Date d'échéance",
+      "noDueDate": "Aucune date d'échéance définie"
+    }
+  },
+  "profile": {
+    "refresh": {
+      "success": {
+        "title": "Profil mis à jour",
+        "message": "Vos informations de profil ont été actualisées"
+      },
+      "error": {
+        "title": "Échec de l'actualisation",
+        "message": "Échec de l'actualisation des données de profil"
+      }
+    },
+    "logout": {
+      "button": "Se déconnecter",
+      "error": {
+        "title": "Échec de la déconnexion",
+        "message": "Une erreur s'est produite lors de la déconnexion. Veuillez réessayer."
+      }
+    },
+    "menu": {
+      "editProfile": "Modifier le profil",
+      "editProfileSubtitle": "Mettre à jour vos informations personnelles",
+      "changePin": "Changer le PIN",
+      "changePinSubtitle": "Mettre à jour votre PIN de sécurité",
+      "notifications": "Notifications",
+      "notificationsSubtitle": "{{count}} notification{{count, plural, one { '' } other {s} }} non lue{{count, plural, one { '' } other {s} }}",
+      "language": "Langue",
+      "languageSubtitle": "Changer la langue de l'application"
+    },
+    "qrCode": {
+      "title": "Votre code QR",
+      "subtitle": "Partagez ce code avec d'autres pour vous connecter et créer des dettes",
+      "codeLabel": "Votre code",
+      "description": "Ce code unique vous identifie dans le système Trust Me",
+      "note": "D'autres peuvent scanner votre code QR ou utiliser ce code pour se connecter avec vous",
+      "changeCode": "Changer votre code",
+      "copySuccess": {
+        "title": "Code copié",
+        "message": "Votre code a été copié dans le presse-papiers"
+      }
+    },
+    "version": "Trust Me v1.0.0"
+  },
+  "language": {
+    "english": "Anglais",
+    "kinyarwanda": "Kinyarwanda",
+    "french": "Français",
+    "selectLanguage": "Sélectionner la langue",
+    "languageDescription": "Choisissez votre langue préférée pour l'interface de l'application",
+    "settings": {
+      "title": "Paramètres de langue",
+      "infoTitle": "Choisissez votre langue",
+      "infoText": "Sélectionnez votre langue préférée pour l'interface de l'application. Cela changera la langue de tout le texte dans l'application.",
+      "selectLanguage": "Sélectionner la langue",
+      "confirmButton": "Confirmer le changement de langue"
+    },
+    "changeConfirm": {
+      "title": "Confirmer le changement de langue",
+      "message": "Êtes-vous sûr de vouloir changer la langue de l'application en {{language}} ? Cela affectera tout le texte dans l'application.",
+      "confirmText": "Changer la langue",
+      "cancelText": "Annuler"
+    },
+    "changeSuccess": {
+      "title": "Langue changée en {{language}}",
+      "message": "Votre préférence de langue a été mise à jour avec succès. L'application s'affichera maintenant dans votre langue sélectionnée."
+    },
+    "changeError": {
+      "title": "Échec du changement de langue",
+      "message": "Échec du changement de langue. Veuillez réessayer."
+    }
+  }
+}

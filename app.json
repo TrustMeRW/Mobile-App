@@ -7,10 +7,11 @@
     "icon": "./assets/images/icon.png",
     "scheme": "trustme",
     "splash": {
-      "backgroundColor": "#00000000",
+      "backgroundColor": "#080C1C",
+      "image": "./assets/images/whitelogo.png",
       "resizeMode": "cover"
     },
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,

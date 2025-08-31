@@ -10,12 +10,12 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { Spacing, Typography, BorderRadius } from '@/constants/theme';
 import { Card } from '@/components/ui/Card';
 import {
-  User,
+  User as UserIcon,
   MapPin,
   TrendingUp,
-  Clock,
-  DollarSign,
+  Shield,
   CheckCircle,
+  XCircle,
   AlertTriangle,
 } from 'lucide-react-native';
 
@@ -94,7 +94,7 @@ export default function UserTrustabilityDisplay({
       <Card style={styles.userHeaderCard}>
         <View style={styles.userHeader}>
           <View style={styles.userInfo}>
-            <User color={colors.primary} size={24} />
+            <UserIcon color={colors.primary} size={24} />
             <Text style={styles.userName}>{data.fullName}</Text>
           </View>
           <View style={styles.trustabilityScore}>
@@ -142,16 +142,28 @@ export default function UserTrustabilityDisplay({
         </View>
         <View style={styles.statsGrid}>
           <View style={styles.statItem}>
+            <View style={styles.statIconContainer}>
+              <TrendingUp color={colors.primary} size={16} />
+            </View>
             <Text style={styles.statLabel}>Total Payments</Text>
             <Text style={styles.statValue}>{data.possiblePayments}</Text>
+            <Text style={styles.statSubtext}>All time</Text>
           </View>
           <View style={styles.statItem}>
+            <View style={styles.statIconContainer}>
+              <CheckCircle color={colors.success} size={16} />
+            </View>
             <Text style={styles.statLabel}>Completed</Text>
             <Text style={styles.statValue}>{data.completedPayments}</Text>
+            <Text style={styles.statSubtext}>Successful</Text>
           </View>
           <View style={styles.statItem}>
+            <View style={styles.statIconContainer}>
+              <Shield color={colors.info} size={16} />
+            </View>
             <Text style={styles.statLabel}>Success Rate</Text>
             <Text style={styles.statValue}>{data.paymentSuccessRate}%</Text>
+            <Text style={styles.statSubtext}>Reliability</Text>
           </View>
         </View>
       </Card>
@@ -159,7 +171,7 @@ export default function UserTrustabilityDisplay({
       {/* Payment Patterns */}
       <Card style={styles.patternsCard}>
         <View style={styles.sectionHeader}>
-          <Clock color={colors.primary} size={20} />
+          <Shield color={colors.primary} size={20} />
           <Text style={styles.sectionTitle}>Payment Patterns</Text>
         </View>
         <View style={styles.patternsContent}>
@@ -254,7 +266,7 @@ export default function UserTrustabilityDisplay({
       {/* Analysis Information */}
       <Card style={styles.analysisCard}>
         <View style={styles.sectionHeader}>
-          <DollarSign color={colors.primary} size={20} />
+          <Shield color={colors.primary} size={20} />
           <Text style={styles.sectionTitle}>Analysis Information</Text>
         </View>
         <Text style={styles.analysisText}>
@@ -362,6 +374,17 @@ const getStyles = (colors: any) => StyleSheet.create({
   },
   statItem: {
     alignItems: 'center',
+    flex: 1,
+    paddingHorizontal: Spacing.sm,
+  },
+  statIconContainer: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: colors.primary + '15',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
   },
   statLabel: {
     fontSize: Typography.fontSize.sm,
@@ -373,6 +396,13 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: Typography.fontSize.lg,
     fontFamily: 'DMSans-Bold',
     color: colors.primary,
+    marginBottom: Spacing.xs,
+  },
+  statSubtext: {
+    fontSize: Typography.fontSize.xs,
+    fontFamily: 'DMSans-Regular',
+    color: colors.textSecondary,
+    textAlign: 'center',
   },
   patternsCard: {
     marginBottom: Spacing.lg,

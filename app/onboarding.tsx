@@ -6,44 +6,60 @@ import {
   FlatList,
   Dimensions,
   TouchableOpacity,
+  ScrollView,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useOnboardingTranslations, useCommonTranslations } from '@/hooks';
 import { MotiView } from 'moti';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Button } from '@/components/ui/Button';
+import { SUPPORTED_LANGUAGES, SupportedLanguage } from '@/contexts/TranslationContext';
 
 const { width } = Dimensions.get('window');
 
-const onboardingData = [
+const getOnboardingData = (onboarding: any) => [
   {
     id: '1',
-    icon: 'Welcome',
-    title: 'Welcome to TrustMe',
-    description:
-      'The simple way to track shared expenses and IOUs with friends.',
+    icon: '🏠',
+    title: onboarding.step1.title,
+    description: onboarding.step1.subtitle,
   },
   {
     id: '2',
-    icon: 'Settle',
-    title: 'Settle Up Easily',
-    description: 'Keep a running balance and settle up whenever you want.',
+    icon: '🔒',
+    title: onboarding.step2.title,
+    description: onboarding.step2.subtitle,
   },
   {
     id: '3',
-    icon: 'Notify',
-    title: 'Stay Notified',
-    description: 'Get reminders for upcoming and overdue payments.',
+    icon: '📱',
+    title: onboarding.step3.title,
+    description: onboarding.step3.subtitle,
+  },
+  {
+    id: '4',
+    icon: '🌍',
+    title: onboarding.step4.title,
+    description: onboarding.step4.subtitle,
+    isLanguageStep: true,
   },
 ];
 
 export default function OnboardingScreen() {
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [selectedLanguage, setSelectedLanguage] = useState<SupportedLanguage>('en');
   const flatListRef = useRef<FlatList>(null);
   const { colors } = useTheme();
+  const { setLanguage } = useTranslation();
+  const onboarding = useOnboardingTranslations();
+  const common = useCommonTranslations();
   const styles = getStyles(colors);
   const router = useRouter();
+
+  // Memoize onboarding data to prevent unnecessary re-renders
+  const onboardingData = useMemo(() => getOnboardingData(onboarding), [onboarding]);
 
   const handleNext = () => {
     if (currentIndex < onboardingData.length - 1) {
@@ -53,12 +69,18 @@ export default function OnboardingScreen() {
 
   const handleSkip = async () => {
     await AsyncStorage.setItem('hasSeenOnboarding', 'true');
-    router.replace('/(auth)/login');
+    await setLanguage(selectedLanguage);
+    router.replace('/(auth)');
   };
 
   const handleGetStarted = async () => {
     await AsyncStorage.setItem('hasSeenOnboarding', 'true');
-    router.replace('/(auth)/login');
+    await setLanguage(selectedLanguage);
+    router.replace('/(auth)');
+  };
+
+  const handleLanguageSelect = (language: SupportedLanguage) => {
+    setSelectedLanguage(language);
   };
 
   const renderOnboardingItem = ({ item }: { item: any }) => (
@@ -80,6 +102,50 @@ export default function OnboardingScreen() {
         <Text style={styles.title}>{item.title}</Text>
         <Text style={styles.description}>{item.description}</Text>
       </MotiView>
+
+      {/* Language Selection for step 4 */}
+      {item.isLanguageStep && (
+        <MotiView
+          from={{ opacity: 0, translateY: 30 }}
+          animate={{ opacity: 1, translateY: 0 }}
+          transition={{ type: 'timing', duration: 600, delay: 400 }}
+          style={styles.languageContainer}
+        >
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {Object.values(SUPPORTED_LANGUAGES).map((language) => (
+              <TouchableOpacity
+                key={language.code}
+                style={[
+                  styles.languageOption,
+                  selectedLanguage === language.code && styles.selectedLanguageOption,
+                ]}
+                onPress={() => handleLanguageSelect(language.code)}
+              >
+                <Text style={styles.languageFlag}>{language.flag}</Text>
+                <View style={styles.languageTextContainer}>
+                  <Text style={[
+                    styles.languageName,
+                    selectedLanguage === language.code && styles.selectedLanguageName
+                  ]}>
+                    {language.nativeName}
+                  </Text>
+                  <Text style={[
+                    styles.languageNativeName,
+                    selectedLanguage === language.code && styles.selectedLanguageNativeName
+                  ]}>
+                    {language.name}
+                  </Text>
+                </View>
+                {selectedLanguage === language.code && (
+                  <View style={styles.checkmark}>
+                    <Text style={styles.checkmarkText}>✓</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </MotiView>
+      )}
     </View>
   );
 
@@ -104,7 +170,7 @@ export default function OnboardingScreen() {
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={handleSkip}>
-          <Text style={styles.skipText}>Skip</Text>
+          <Text style={styles.skipText}>{common.skip}</Text>
         </TouchableOpacity>
       </View>
 
@@ -128,9 +194,9 @@ export default function OnboardingScreen() {
 
       <View style={styles.buttonContainer}>
         {currentIndex === onboardingData.length - 1 ? (
-          <Button title="Get Started" onPress={handleGetStarted} />
+          <Button title={common.done} onPress={handleGetStarted} />
         ) : (
-          <Button title="Next" onPress={handleNext} />
+          <Button title={common.next} onPress={handleNext} />
         )}
       </View>
     </SafeAreaView>
@@ -152,6 +218,7 @@ const getStyles = (colors: any) =>
     skipText: {
       fontSize: 16,
       color: colors.textSecondary,
+      fontFamily: 'DMSans-Medium',
     },
     slide: {
       width,
@@ -174,16 +241,73 @@ const getStyles = (colors: any) =>
     },
     title: {
       fontSize: 28,
-      fontWeight: 'bold',
+      fontFamily: 'DMSans-Bold',
       color: colors.text,
       textAlign: 'center',
       marginBottom: 15,
     },
     description: {
       fontSize: 18,
+      fontFamily: 'DMSans-Regular',
       color: colors.textSecondary,
       textAlign: 'center',
       lineHeight: 26,
+      marginBottom: 20,
+    },
+    languageContainer: {
+      width: '100%',
+      maxHeight: 300,
+    },
+    languageOption: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: 16,
+      marginVertical: 8,
+      backgroundColor: colors.card,
+      borderRadius: 12,
+      borderWidth: 2,
+      borderColor: colors.border,
+    },
+    selectedLanguageOption: {
+      borderColor: colors.primary,
+      backgroundColor: colors.primary + '10',
+    },
+    languageFlag: {
+      fontSize: 24,
+      marginRight: 16,
+    },
+    languageTextContainer: {
+      flex: 1,
+    },
+    languageName: {
+      fontSize: 18,
+      fontFamily: 'DMSans-Bold',
+      color: colors.text,
+      marginBottom: 4,
+    },
+    languageNativeName: {
+      fontSize: 14,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+    },
+    selectedLanguageName: {
+      color: colors.primary,
+    },
+    selectedLanguageNativeName: {
+      color: colors.primary,
+    },
+    checkmark: {
+      width: 24,
+      height: 24,
+      borderRadius: 12,
+      backgroundColor: colors.primary,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    checkmarkText: {
+      color: colors.white,
+      fontSize: 16,
+      fontFamily: 'DMSans-Bold',
     },
     dotsContainer: {
       flexDirection: 'row',

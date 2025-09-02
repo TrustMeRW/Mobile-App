@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,10 @@ import {
   TextInput,
   ViewStyle,
   TextStyle,
+  KeyboardAvoidingView,
+  Platform,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -141,6 +145,7 @@ export default function DebtDetailScreen() {
   const styles = getStyles(colors);
   const [paymentAmount, setPaymentAmount] = useState('');
   const [pinForApproval, setPinForApproval] = useState('');
+  const [showPin, setShowPin] = useState(false);
 
   const [debt, setDebt] = useState<ExtendedDebt | null>(null);
   const [error, setError] = useState<Error | null>(null);
@@ -254,56 +259,7 @@ export default function DebtDetailScreen() {
     },
   });
 
-  // Custom PIN Input Component
-  const PinInput = ({ 
-    label, 
-    value, 
-    onChangeText, 
-    onSubmitEditing, 
-    placeholder = "••••",
-    maxLength = 4 
-  }: {
-    label: string;
-    value: string;
-    onChangeText: (text: string) => void;
-    onSubmitEditing?: () => void;
-    placeholder?: string;
-    maxLength?: number;
-  }) => {
-    const [showPin, setShowPin] = useState(false);
-    
-    return (
-      <View style={styles.pinInputContainer}>
-        <Text style={styles.pinInputLabel}>{label}</Text>
-        <View style={styles.pinInputWrapper}>
-          <Lock color={colors.textSecondary} size={20} style={styles.pinInputIcon} />
-          <TextInput
-            value={value}
-            onChangeText={onChangeText}
-            keyboardType="numeric"
-            placeholder={placeholder}
-            secureTextEntry={!showPin}
-            maxLength={maxLength}
-            onSubmitEditing={onSubmitEditing}
-            returnKeyType="done"
-            blurOnSubmit={true}
-            style={styles.pinInputField}
-            placeholderTextColor={colors.textSecondary}
-          />
-          <TouchableOpacity
-            onPress={() => setShowPin(!showPin)}
-            style={styles.pinInputSuffix}
-          >
-            {showPin ? (
-              <EyeOff color={colors.textSecondary} size={20} />
-            ) : (
-              <Eye color={colors.textSecondary} size={20} />
-            )}
-          </TouchableOpacity>
-        </View>
-      </View>
-    );
-  };
+
 
   // Use TanStack Query for fetching debt details
   const { data: debtData, isLoading: isLoadingDebt, error: debtError } = useDebtById(id);
@@ -348,6 +304,7 @@ export default function DebtDetailScreen() {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>Debt not found</Text>
+        <Text style={styles.errorText}>{error.message}</Text>
         <Button
           title="Back to Debts"
           onPress={() => router.back()}
@@ -393,18 +350,7 @@ export default function DebtDetailScreen() {
   };
 
   const handleReject = () => {
-    Alert.alert(
-      'Reject Debt',
-      'Are you sure you want to reject this debt? This action cannot be undone.',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Reject',
-          style: 'destructive',
-          onPress: () => rejectDebtMutation.mutate(id as string),
-        },
-      ]
-    );
+    rejectDebtMutation.mutate(id as string);
   };
 
   const handleConfirmPaid = () => {
@@ -431,6 +377,15 @@ export default function DebtDetailScreen() {
     });
   };
 
+  if (!debt && !isLoadingDebt) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.errorText}>Debt not found</Text>
+        <Text style={styles.errorText}>Debt not found</Text>
+      </SafeAreaView>
+    );
+  }
+
   if (!debt) {
     return (
       <SafeAreaView style={styles.container}>
@@ -448,8 +403,6 @@ export default function DebtDetailScreen() {
     initiationType,
     payments,
   } = debt;
-  console.log("Here are the debts")
-  console.log(payments)
   const isRequester = currentUser?.id === requester.id;
   const isIssuer = currentUser?.id === issuer.id;
 
@@ -479,7 +432,21 @@ export default function DebtDetailScreen() {
         <Text style={styles.title}>Debt Details</Text>
       </View>
 
-      <ScrollView style={styles.content}>
+      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
+        <KeyboardAvoidingView 
+          style={styles.keyboardAvoidingView}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          keyboardVerticalOffset={0}
+        >
+          <ScrollView 
+            style={styles.content}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={true}
+            keyboardShouldPersistTaps="handled"
+            keyboardDismissMode="on-drag"
+            scrollEnabled={true}
+            bounces={true}
+          >
         <MotiView
           from={{ opacity: 0, translateY: 30 }}
           animate={{ opacity: 1, translateY: 0 }}
@@ -799,12 +766,31 @@ export default function DebtDetailScreen() {
                       {/* Confirm Payment Button for Issuer - Only show for first unconfirmed payment */}
                                               {isIssuer && !payment.confirmedByIssuer && isFirstUnconfirmed && (
                           <View style={styles.paymentActions}>
-                            <PinInput
-                              label="Enter PIN to confirm"
-                              value={pinForApproval}
-                              onChangeText={setPinForApproval}
-                              onSubmitEditing={() => handleConfirmPayment(payment.id)}
-                            />
+                            <View style={styles.pinInputContainer}>
+                              <Text style={styles.pinInputLabel}>Enter PIN to confirm</Text>
+                              <View style={styles.pinInputWrapper}>
+                                <Lock color={colors.textSecondary} size={20} style={styles.pinInputIcon} />
+                                <TextInput
+                                  value={pinForApproval}
+                                  onChangeText={setPinForApproval}
+                                  placeholder="••••"
+                                  secureTextEntry={!showPin}
+                              
+                                  style={styles.pinInputField}
+                                  placeholderTextColor={colors.textSecondary}
+                                />
+                                <TouchableOpacity
+                                  onPress={() => setShowPin(!showPin)}
+                                  style={styles.pinInputSuffix}
+                                >
+                                  {showPin ? (
+                                    <EyeOff color={colors.textSecondary} size={20} />
+                                  ) : (
+                                    <Eye color={colors.textSecondary} size={20} />
+                                  )}
+                                </TouchableOpacity>
+                              </View>
+                            </View>
                             <Button
                               title="Confirm Payment"
                               onPress={() => handleConfirmPayment(payment.id)}
@@ -894,12 +880,31 @@ export default function DebtDetailScreen() {
                     <Shield color={colors.info} size={20} />
                     <Text style={styles.actionSectionTitle}>Approve Debt</Text>
                   </View>
-                  <PinInput
-                    label="Enter your PIN to approve"
-                    value={pinForApproval}
-                    onChangeText={setPinForApproval}
-                    onSubmitEditing={handleApprove}
-                  />
+                  <View style={styles.pinInputContainer}>
+                    <Text style={styles.pinInputLabel}>Enter your PIN to approve</Text>
+                    <View style={styles.pinInputWrapper}>
+                      <Lock color={colors.textSecondary} size={20} style={styles.pinInputIcon} />
+                      <TextInput
+                        value={pinForApproval}
+                        onChangeText={setPinForApproval}
+                        placeholder="••••"
+                        secureTextEntry={!showPin}
+                    
+                        style={styles.pinInputField}
+                        placeholderTextColor={colors.textSecondary}
+                      />
+                      <TouchableOpacity
+                        onPress={() => setShowPin(!showPin)}
+                        style={styles.pinInputSuffix}
+                      >
+                        {showPin ? (
+                          <EyeOff color={colors.textSecondary} size={20} />
+                        ) : (
+                          <Eye color={colors.textSecondary} size={20} />
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                   <View style={styles.buttonGroup}>
                     <TouchableOpacity
                       style={[styles.actionButton, styles.rejectButton]}
@@ -927,8 +932,8 @@ export default function DebtDetailScreen() {
                         <LoadingSpinner size="small" />
                       ) : (
                         <>
-                          <CheckCircle color={colors.success} size={20} style={styles.buttonIcon} />
-                          <Text style={[styles.buttonText, { color: colors.success }]}>Approve</Text>
+                          <CheckCircle color={colors.white} size={20} style={styles.buttonIcon} />
+                          <Text style={[styles.buttonText, { color: colors.white }]}>Approve</Text>
                         </>
                       )}
                     </TouchableOpacity>
@@ -943,12 +948,31 @@ export default function DebtDetailScreen() {
                     <CheckCircle color={colors.success} size={20} />
                     <Text style={styles.actionSectionTitle}>Confirm Payment</Text>
                   </View>
-                  <PinInput
-                    label="Enter your PIN to confirm payment"
-                    value={pinForApproval}
-                    onChangeText={setPinForApproval}
-                    onSubmitEditing={handleConfirmPaid}
-                  />
+                  <View style={styles.pinInputContainer}>
+                    <Text style={styles.pinInputLabel}>Enter your PIN to confirm payment</Text>
+                    <View style={styles.pinInputWrapper}>
+                      <Lock color={colors.textSecondary} size={20} style={styles.pinInputIcon} />
+                      <TextInput
+                        value={pinForApproval}
+                        onChangeText={setPinForApproval}
+                        placeholder="••••"
+                        secureTextEntry={!showPin}
+                    
+                        style={styles.pinInputField}
+                        placeholderTextColor={colors.textSecondary}
+                      />
+                      <TouchableOpacity
+                        onPress={() => setShowPin(!showPin)}
+                        style={styles.pinInputSuffix}
+                      >
+                        {showPin ? (
+                          <EyeOff color={colors.textSecondary} size={20} />
+                        ) : (
+                          <Eye color={colors.textSecondary} size={20} />
+                        )}
+                      </TouchableOpacity>
+                    </View>
+                  </View>
                   <Button
                     title="Confirm Payment Received"
                     onPress={handleConfirmPaid}
@@ -961,7 +985,9 @@ export default function DebtDetailScreen() {
             </Card>
           )}
         </MotiView>
-      </ScrollView>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </TouchableWithoutFeedback>
     </SafeAreaView>
   );
 }
@@ -1017,9 +1043,16 @@ const getStyles = (colors: any) =>
       marginLeft: Spacing.md,
       flex: 1,
     },
+    keyboardAvoidingView: {
+      flex: 1,
+    },
     content: {
       flex: 1,
+    },
+    scrollContent: {
       padding: Spacing.lg,
+      paddingBottom: Spacing.xl,
+      flexGrow: 1,
     },
     amountCard: {
       backgroundColor: colors.card,
@@ -1235,10 +1268,22 @@ const getStyles = (colors: any) =>
       borderWidth: 1,
       borderColor: colors.error,
       flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: Spacing.md,
+      paddingHorizontal: Spacing.lg,
+      borderRadius: BorderRadius.md,
     },
     approveButton: {
       backgroundColor: colors.success,
       flex: 1,
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingVertical: Spacing.md,
+      paddingHorizontal: Spacing.lg,
+      borderRadius: BorderRadius.md,
     },
     buttonIcon: {
       marginRight: Spacing.xs,
@@ -1475,5 +1520,17 @@ const getStyles = (colors: any) =>
     pinInputSuffix: {
       paddingHorizontal: Spacing.md,
       paddingVertical: Spacing.md,
+    },
+    simplePinInput: {
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+      borderRadius: BorderRadius.md,
+      paddingVertical: Spacing.md,
+      paddingHorizontal: Spacing.md,
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Regular',
+      color: colors.text,
+      minHeight: 48,
     },
   });

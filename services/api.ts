@@ -158,7 +158,7 @@ export interface Debt {
   payments:any[];items:any[]
 }
 
-const BASE_URL = 'http://172.20.10.3:4000/api';
+const BASE_URL = 'http://192.168.1.79:4000/api';
 
 class ApiClient {
   private axiosInstance: AxiosInstance;

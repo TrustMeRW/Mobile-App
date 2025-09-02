@@ -46,7 +46,10 @@ import { Image } from 'react-native';
 
 export default function ProfileScreen() {
   const { user: currentUser } = useCurrentUser();
-  const logoutMutation = useLogout();
+  const logoutMutation = useLogout(() => {
+    // Navigate to auth screen after successful logout
+    router.replace('/(auth)');
+  });
   const changeCodeMutation = useChangeCode();
   const { colors } = useTheme();
   const { showSuccess, showError } = useToast();
@@ -90,14 +93,12 @@ export default function ProfileScreen() {
       // Get current token and logout
       const token = await TokenStorage.getAccessToken();
       if (token) {
+        setShowLogoutModal(false);
         await logoutMutation.mutateAsync(token);
-        // Navigate to auth screen after successful logout
-        router.replace('/(auth)');
       }
     } catch (error) {
       console.error('Logout error:', error);
       showError(t('profile.logout.error.title'), t('profile.logout.error.message'));
-    } finally {
       setShowLogoutModal(false);
     }
   };

@@ -3,7 +3,10 @@ import { AuthService, LoginRequest, RegisterRequest, ForgotPasswordRequest, Rese
 import { apiClient } from '@/services/api';
 import { useToast } from '@/contexts/ToastContext';
 import { TokenStorage } from '@/utils/tokenStorage';
-import { UserStorage } from '@/utils/userStorage';
+import { UserStorage, StoredUserData } from '@/utils/userStorage';
+import { useRouter } from 'expo-router';
+import { useState, useEffect } from 'react';
+import { User } from '@/types/api';
 
 export const useLogin = () => {
   const queryClient = useQueryClient();
@@ -140,7 +143,7 @@ export const useRefreshToken = () => {
   });
 };
 
-export const useLogout = () => {
+export const useLogout = (onSuccessCallback?: () => void) => {
   const queryClient = useQueryClient();
   const { showSuccess } = useToast();
   
@@ -155,6 +158,12 @@ export const useLogout = () => {
       // Clear all queries from cache
       queryClient.clear();
       showSuccess('Logged Out', 'You have been successfully logged out', 2000);
+      
+      // Call the success callback if provided
+      if (onSuccessCallback) {
+        // Use setTimeout to ensure state updates are complete
+        setTimeout(onSuccessCallback, 100);
+      }
     },
     onError: async (error) => {
       // Even if logout API fails, clear local state
@@ -188,6 +197,85 @@ export const useChangeCode = () => {
   });
 };
 
+// Main useAuth hook that provides all auth functionality
+export const useAuth = () => {
+  const [user, setUser] = useState<StoredUserData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const router = useRouter();
+
+  // Check authentication status on mount
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      try {
+        const token = await TokenStorage.getAccessToken();
+        if (token) {
+          const userData = await UserStorage.getUserData();
+          if (userData) {
+            setUser(userData);
+            setIsAuthenticated(true);
+          }
+        }
+      } catch (error) {
+        console.error('Error checking auth status:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuthStatus();
+  }, []);
+
+  const login = async (identifier: string, password: string) => {
+    try {
+      const loginMutation = useLogin();
+      const result = await loginMutation.mutateAsync({ identifier, password });
+      if (result.success) {
+        setIsAuthenticated(true);
+        return { success: true };
+      } else {
+        return { success: false, error: result.message };
+      }
+    } catch (error: any) {
+      return { success: false, error: error.message };
+    }
+  };
+
+  const logout = async () => {
+    try {
+      const token = await TokenStorage.getAccessToken();
+      if (token) {
+        const logoutMutation = useLogout(() => {
+          setIsAuthenticated(false);
+          setUser(null);
+          router.replace('/(auth)');
+        });
+        await logoutMutation.mutateAsync(token);
+      }
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Even if logout fails, clear local state
+      setIsAuthenticated(false);
+      setUser(null);
+      router.replace('/(auth)');
+    }
+  };
+
+  const getToken = async (): Promise<string | null> => {
+    return await TokenStorage.getAccessToken();
+  };
+
+  return {
+    user,
+    isLoading,
+    isAuthenticated,
+    login,
+    logout,
+    getToken,
+    setUser,
+  };
+};
+
 // Default export containing all auth hooks
 export default {
   useLogin,
@@ -199,4 +287,5 @@ export default {
   useRefreshToken,
   useLogout,
   useChangeCode,
+  useAuth,
 };

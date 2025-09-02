@@ -4,7 +4,6 @@ import {
   Text,
   StyleSheet,
   ScrollView,
-  TouchableOpacity,
 } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Spacing, Typography, BorderRadius } from '@/constants/theme';
@@ -59,14 +58,10 @@ interface UserTrustabilityData {
 
 interface UserTrustabilityDisplayProps {
   data: UserTrustabilityData;
-  onProceed: () => void;
-  onCancel: () => void;
 }
 
 export default function UserTrustabilityDisplay({
   data,
-  onProceed,
-  onCancel,
 }: UserTrustabilityDisplayProps) {
   const { colors } = useTheme();
   const styles = getStyles(colors);
@@ -94,17 +89,24 @@ export default function UserTrustabilityDisplay({
       <Card style={styles.userHeaderCard}>
         <View style={styles.userHeader}>
           <View style={styles.userInfo}>
-            <UserIcon color={colors.primary} size={24} />
-            <Text style={styles.userName}>{data.fullName}</Text>
+            <View style={styles.userAvatar}>
+              <UserIcon color={colors.white} size={28} />
+            </View>
+            <View style={styles.userDetails}>
+              <Text style={styles.userName}>{data.fullName}</Text>
+              <Text style={styles.userSubtitle}>User Profile</Text>
+            </View>
           </View>
           <View style={styles.trustabilityScore}>
             <Text style={styles.scoreLabel}>Trustability Score</Text>
-            <Text style={[
-              styles.scoreValue,
-              { color: getTrustabilityColor(data.trustabilityPercentage) }
-            ]}>
-              {data.trustabilityPercentage}%
-            </Text>
+            <View style={[styles.scoreCircle, { borderColor: getTrustabilityColor(data.trustabilityPercentage) }]}>
+              <Text style={[
+                styles.scoreValue,
+                { color: getTrustabilityColor(data.trustabilityPercentage) }
+              ]}>
+                {data.trustabilityPercentage}%
+              </Text>
+            </View>
             <Text style={[
               styles.scoreStatus,
               { color: getTrustabilityColor(data.trustabilityPercentage) }
@@ -140,30 +142,36 @@ export default function UserTrustabilityDisplay({
           <TrendingUp color={colors.primary} size={20} />
           <Text style={styles.sectionTitle}>Payment Statistics</Text>
         </View>
-        <View style={styles.statsGrid}>
+        <View style={styles.statsContainer}>
           <View style={styles.statItem}>
             <View style={styles.statIconContainer}>
-              <TrendingUp color={colors.primary} size={16} />
+              <TrendingUp color={colors.primary} size={18} />
             </View>
-            <Text style={styles.statLabel}>Total Payments</Text>
-            <Text style={styles.statValue}>{data.possiblePayments}</Text>
-            <Text style={styles.statSubtext}>All time</Text>
+            <View style={styles.statContent}>
+              <Text style={styles.statValue}>{data.possiblePayments}</Text>
+              <Text style={styles.statLabel}>Total Payments</Text>
+              <Text style={styles.statSubtext}>All time</Text>
+            </View>
           </View>
           <View style={styles.statItem}>
             <View style={styles.statIconContainer}>
-              <CheckCircle color={colors.success} size={16} />
+              <CheckCircle color={colors.success} size={18} />
             </View>
-            <Text style={styles.statLabel}>Completed</Text>
-            <Text style={styles.statValue}>{data.completedPayments}</Text>
-            <Text style={styles.statSubtext}>Successful</Text>
+            <View style={styles.statContent}>
+              <Text style={styles.statValue}>{data.completedPayments}</Text>
+              <Text style={styles.statLabel}>Completed</Text>
+              <Text style={styles.statSubtext}>Successful</Text>
+            </View>
           </View>
           <View style={styles.statItem}>
             <View style={styles.statIconContainer}>
-              <Shield color={colors.info} size={16} />
+              <Shield color={colors.info} size={18} />
             </View>
-            <Text style={styles.statLabel}>Success Rate</Text>
-            <Text style={styles.statValue}>{data.paymentSuccessRate}%</Text>
-            <Text style={styles.statSubtext}>Reliability</Text>
+            <View style={styles.statContent}>
+              <Text style={styles.statValue}>{data.paymentSuccessRate}%</Text>
+              <Text style={styles.statLabel}>Success Rate</Text>
+              <Text style={styles.statSubtext}>Reliability</Text>
+            </View>
           </View>
         </View>
       </Card>
@@ -273,16 +281,6 @@ export default function UserTrustabilityDisplay({
           Analyzed on: {formatDate(data.analyzedAt)}
         </Text>
       </Card>
-
-      {/* Action Buttons */}
-      <View style={styles.actionButtons}>
-        <TouchableOpacity style={styles.cancelButton} onPress={onCancel}>
-          <Text style={styles.cancelButtonText}>Cancel</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.proceedButton} onPress={onProceed}>
-          <Text style={styles.proceedButtonText}>Proceed</Text>
-        </TouchableOpacity>
-      </View>
     </ScrollView>
   );
 }
@@ -290,7 +288,6 @@ export default function UserTrustabilityDisplay({
 const getStyles = (colors: any) => StyleSheet.create({
   container: {
     flex: 1,
-    padding: Spacing.lg,
   },
   userHeaderCard: {
     marginBottom: Spacing.lg,
@@ -300,20 +297,37 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderColor: colors.border,
   },
   userHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: 'column',
     alignItems: 'center',
+    gap: Spacing.lg,
   },
   userInfo: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'center',
-    flex: 1,
+  },
+  userAvatar: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.md,
+  },
+  userDetails: {
+    alignItems: 'center',
   },
   userName: {
-    fontSize: Typography.fontSize.lg,
+    fontSize: Typography.fontSize.xl,
     fontFamily: 'DMSans-Bold',
     color: colors.text,
-    marginLeft: Spacing.sm,
+    textAlign: 'center',
+    marginBottom: Spacing.xs,
+  },
+  userSubtitle: {
+    fontSize: Typography.fontSize.sm,
+    fontFamily: 'DMSans-Regular',
+    color: colors.textSecondary,
   },
   trustabilityScore: {
     alignItems: 'center',
@@ -322,12 +336,21 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: Typography.fontSize.sm,
     fontFamily: 'DMSans-Medium',
     color: colors.textSecondary,
-    marginBottom: Spacing.xs,
+    marginBottom: Spacing.sm,
+  },
+  scoreCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: Spacing.sm,
+    backgroundColor: colors.background,
   },
   scoreValue: {
-    fontSize: Typography.fontSize.xl,
+    fontSize: Typography.fontSize.lg,
     fontFamily: 'DMSans-Bold',
-    marginBottom: Spacing.xs,
   },
   scoreStatus: {
     fontSize: Typography.fontSize.sm,
@@ -367,24 +390,29 @@ const getStyles = (colors: any) => StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.border,
   },
-  statsGrid: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginLeft: Spacing.xl,
+  statsContainer: {
+    flexDirection: 'column',
+    gap: Spacing.md,
   },
   statItem: {
+    flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
-    paddingHorizontal: Spacing.sm,
+    paddingVertical: Spacing.sm,
+    paddingHorizontal: Spacing.md,
+    backgroundColor: colors.background,
+    borderRadius: BorderRadius.sm,
   },
   statIconContainer: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: colors.primary + '15',
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: Spacing.sm,
+    marginRight: Spacing.md,
+  },
+  statContent: {
+    flex: 1,
   },
   statLabel: {
     fontSize: Typography.fontSize.sm,
@@ -402,7 +430,6 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontSize: Typography.fontSize.xs,
     fontFamily: 'DMSans-Regular',
     color: colors.textSecondary,
-    textAlign: 'center',
   },
   patternsCard: {
     marginBottom: Spacing.lg,
@@ -489,36 +516,5 @@ const getStyles = (colors: any) => StyleSheet.create({
     fontFamily: 'DMSans-Regular',
     color: colors.textSecondary,
     marginLeft: Spacing.xl,
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    gap: Spacing.md,
-    marginBottom: Spacing.xl,
-  },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: colors.background,
-    borderWidth: 1,
-    borderColor: colors.border,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-  },
-  cancelButtonText: {
-    fontSize: Typography.fontSize.md,
-    fontFamily: 'DMSans-Medium',
-    color: colors.text,
-  },
-  proceedButton: {
-    flex: 1,
-    backgroundColor: colors.primary,
-    paddingVertical: Spacing.md,
-    borderRadius: BorderRadius.md,
-    alignItems: 'center',
-  },
-  proceedButtonText: {
-    fontSize: Typography.fontSize.md,
-    fontFamily: 'DMSans-Medium',
-    color: colors.white,
   },
 });

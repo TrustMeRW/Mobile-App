@@ -207,7 +207,7 @@ export default function AddDebtScreen() {
       console.error('QR Code scan error:', error);
       showError(
         'QR Code Scan Failed',
-        error.message || 'Failed to fetch user data. Please try again.'
+        error.response.data.message ||  error.message || 'Failed to fetch user data. Please try again.'
       );
       setShowScanner(false);
     } finally {
@@ -261,7 +261,7 @@ export default function AddDebtScreen() {
       console.error('Manual code scan error:', error);
       showError(
         'Code Submission Failed',
-        error.message || 'Failed to fetch user data. Please try again.'
+        error.response.data.message || error.message || 'Failed to fetch user data. Please try again.'
       );
     } finally {
       setIsPendingRequest(false);
@@ -303,7 +303,11 @@ export default function AddDebtScreen() {
       return;
     }
 
-    createDebtMutation.mutate(debtForm);
+    createDebtMutation.mutate(debtForm,{
+      onError: (error) => {
+        showError('Debt not created', error.response.data.message || error.message || 'Failed to create debt');
+      }
+    });
   };
 
   const resetForm = () => {
@@ -541,8 +545,6 @@ export default function AddDebtScreen() {
           return (
             <UserTrustabilityDisplay
               data={scannedUserData}
-              onProceed={handleProceed}
-              onCancel={handleCancel}
             />
           );
         }
@@ -753,7 +755,16 @@ export default function AddDebtScreen() {
 
       {/* Navigation */}
       <View style={styles.navigation}>
-        {canGoBack() && (
+        {currentStep === 2 && scannedUserData ? (
+          <TouchableOpacity
+            style={[styles.navButton, styles.cancelButton]}
+            onPress={handleCancel}
+            activeOpacity={0.8}
+          >
+            <XCircle color={colors.error} size={20} style={styles.navButtonIcon} />
+            <Text style={[styles.navButtonText, { color: colors.error }]}>Cancel</Text>
+          </TouchableOpacity>
+        ) : canGoBack() ? (
           <TouchableOpacity
             style={[styles.navButton, styles.previousButton]}
             onPress={handlePrevious}
@@ -762,16 +773,17 @@ export default function AddDebtScreen() {
             <ChevronLeft color={colors.primary} size={20} style={styles.navButtonIcon} />
             <Text style={[styles.navButtonText, { color: colors.primary }]}>{t('addDebt.navigation.previous')}</Text>
           </TouchableOpacity>
-        )}
+        ) : null}
+        
         {currentStep === 2 && scannedUserData ? (
           <TouchableOpacity
             style={[styles.navButton, styles.proceedButton]}
-            onPress={handleNext}
+            onPress={handleProceed}
             disabled={!canProceed()}
             activeOpacity={0.8}
           >
             <CheckCircle color={colors.white} size={20} style={styles.navButtonIcon} />
-            <Text style={[styles.navButtonText, { color: colors.white }]}>{t('addDebt.navigation.proceed')}</Text>
+            <Text style={[styles.navButtonText, { color: colors.white }]}>Select User</Text>
           </TouchableOpacity>
         ) : currentStep < 3 ? (
           <TouchableOpacity
@@ -1174,6 +1186,11 @@ const getStyles = (colors: any) =>
       backgroundColor: 'transparent',
       borderWidth: 1,
       borderColor: colors.primary,
+    },
+    cancelButton: {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: colors.error,
     },
     nextButton: {
       backgroundColor: colors.primary,

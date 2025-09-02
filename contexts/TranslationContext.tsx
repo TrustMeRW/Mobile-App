@@ -96,7 +96,6 @@ export const TranslationProvider: React.FC<TranslationProviderProps> = ({ childr
   // Set new language
   const setLanguage = async (language: SupportedLanguage) => {
     try {
-      console.log(`Setting language from ${currentLanguage} to ${language}`);
       
       // Clear translation cache to ensure fresh translations
       clearTranslationCache();
@@ -107,13 +106,11 @@ export const TranslationProvider: React.FC<TranslationProviderProps> = ({ childr
       // Increment language version to force re-renders
       setLanguageVersion(prev => {
         const newVersion = prev + 1;
-        console.log(`Language version updated from ${prev} to ${newVersion}`);
         return newVersion;
       });
       
       // Save to storage
       await AsyncStorage.setItem(LANGUAGE_STORAGE_KEY, language);
-      console.log(`Language ${language} saved to storage successfully`);
     } catch (error) {
       console.error('Error setting language:', error);
     }
@@ -122,7 +119,6 @@ export const TranslationProvider: React.FC<TranslationProviderProps> = ({ childr
   // Memoized translation function to prevent unnecessary re-renders
   const t = useCallback((key: string, params?: Record<string, string | number>): string => {
     try {
-      console.log(`Translation requested for key: ${key}, language: ${currentLanguage}, version: ${languageVersion}`);
       
       // Get translation value using utility function
       const translation = getTranslationValue(currentMessages, key);
@@ -130,14 +126,10 @@ export const TranslationProvider: React.FC<TranslationProviderProps> = ({ childr
       // Handle interpolation if params are provided
       if (params) {
         const interpolated = interpolateParams(translation, params, currentLanguage);
-        console.log(`Interpolated translation for ${key}:`, interpolated);
         return interpolated;
       }
-      
-      console.log(`Translation for ${key}:`, translation);
       return translation;
     } catch (error) {
-      console.error(`Error in translation for key: ${key}`, error);
       return key; // Return key if translation fails
     }
   }, [currentMessages, currentLanguage, languageVersion]); // Include languageVersion to force updates

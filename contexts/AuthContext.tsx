@@ -1,15 +1,15 @@
 import React, { createContext, useContext, ReactNode } from 'react';
 import { useAuth } from '@/hooks/useAuth';
-import { User } from '@/types/api';
+import { StoredUserData } from '@/utils/userStorage';
 
 interface AuthContextType {
-  user: User | null;
+  user: StoredUserData | null;
   isLoading: boolean;
   isAuthenticated: boolean;
-  login: (identifier: string, pin: string) => Promise<{ success: boolean; error?: string }>;
+  login: (identifier: string, password: string) => Promise<{ success: boolean; error?: string }>;
   logout: () => Promise<void>;
   getToken: () => Promise<string | null>;
-  setUser: (user: User | null) => void;
+  setUser: (user: StoredUserData | null) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);

@@ -25,7 +25,6 @@ export const getTranslationValue = (messages: any, key: string): string => {
   // Check cache first
   if (translationCache.has(key)) {
     const cachedValue = translationCache.get(key)!;
-    console.log(`Translation cache hit for key: ${key}`, cachedValue);
     return cachedValue;
   }
 
@@ -47,13 +46,11 @@ export const getTranslationValue = (messages: any, key: string): string => {
     
     // Ensure we have a string
     if (typeof translation !== 'string') {
-      console.warn(`Translation value is not a string for key: ${key}`);
       return key;
     }
     
     // Cache the result
     translationCache.set(key, translation);
-    console.log(`Translation cached for key: ${key}`, translation);
     return translation;
   } catch (error) {
     console.error(`Error in translation for key: ${key}`, error);
@@ -132,7 +129,6 @@ export const interpolateParams = (
 export const clearTranslationCache = () => {
   const cacheSize = translationCache.size;
   translationCache.clear();
-  console.log(`Translation cache cleared. Previous size: ${cacheSize}`);
 };
 
 /**

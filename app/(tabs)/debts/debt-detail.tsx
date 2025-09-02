@@ -242,10 +242,12 @@ export default function DebtDetailScreen() {
   });
 
   const rejectPaymentMutation = useMutation({
-    mutationFn: (data: { paymentId: string }) =>
-      apiClient.rejectPayment(data.paymentId),
+    mutationFn: (data: { paymentId: string; pin: string }) =>
+      apiClient.rejectPayment(data.paymentId, data.pin),
     onSuccess: async () => {
       showSuccess('Payment Rejected', 'Payment has been rejected successfully.');
+      // Clear PIN input for next rejection
+      setPinForApproval('');
       // Manually refetch debt data
       await refetchDebtData();
       queryClient.invalidateQueries({ queryKey: ['debt', id] });
@@ -433,12 +435,9 @@ export default function DebtDetailScreen() {
       </View>
 
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <KeyboardAvoidingView 
-          style={styles.keyboardAvoidingView}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={0}
-        >
+        <View style={styles.scrollContainer}>
           <ScrollView 
+            key={`scroll-${debt?.id}-${debt?.status}`}
             style={styles.content}
             contentContainerStyle={styles.scrollContent}
             showsVerticalScrollIndicator={true}
@@ -446,6 +445,12 @@ export default function DebtDetailScreen() {
             keyboardDismissMode="on-drag"
             scrollEnabled={true}
             bounces={true}
+            nestedScrollEnabled={true}
+            removeClippedSubviews={false}
+            maintainVisibleContentPosition={{
+              minIndexForVisible: 0,
+              autoscrollToTopThreshold: 10
+            }}
           >
         <MotiView
           from={{ opacity: 0, translateY: 30 }}
@@ -807,25 +812,18 @@ export default function DebtDetailScreen() {
                           <Button
                             title="Reject Payment"
                             onPress={() => {
-                              Alert.alert(
-                                'Reject Payment',
-                                'Are you sure you want to reject this payment? This action cannot be undone.',
-                                [
-                                  { text: 'Cancel', style: 'cancel' },
-                                  {
-                                    text: 'Reject',
-                                    style: 'destructive',
-                                    onPress: () => {
-                                      const paymentId = payment.id;
-                                      rejectPaymentMutation.mutate({ paymentId: paymentId });
-                                    },
-                                  },
-                                ]
-                              );
+                              if (!pinForApproval || pinForApproval.length < 4) {
+                                showError('Invalid PIN', 'Please enter a valid 4-digit PIN.');
+                                return;
+                              }
+                              rejectPaymentMutation.mutate({ 
+                                paymentId: payment.id, 
+                                pin: pinForApproval 
+                              });
                             }}
                             loading={rejectPaymentMutation.isPending}
                             style={styles.rejectPaymentButton}
-                            disabled={rejectPaymentMutation.isPending}
+                            disabled={!pinForApproval || pinForApproval.length < 4 || rejectPaymentMutation.isPending}
                           />
                         </View>
                       )}
@@ -986,7 +984,7 @@ export default function DebtDetailScreen() {
           )}
         </MotiView>
           </ScrollView>
-        </KeyboardAvoidingView>
+        </View>
       </TouchableWithoutFeedback>
     </SafeAreaView>
   );
@@ -1043,7 +1041,7 @@ const getStyles = (colors: any) =>
       marginLeft: Spacing.md,
       flex: 1,
     },
-    keyboardAvoidingView: {
+    scrollContainer: {
       flex: 1,
     },
     content: {
@@ -1052,7 +1050,7 @@ const getStyles = (colors: any) =>
     scrollContent: {
       padding: Spacing.lg,
       paddingBottom: Spacing.xl,
-      flexGrow: 1,
+      minHeight: '100%',
     },
     amountCard: {
       backgroundColor: colors.card,

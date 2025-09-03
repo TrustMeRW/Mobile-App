@@ -1,11 +1,9 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Modal,
-  Dimensions,
   TextInput,
   KeyboardAvoidingView,
   Platform,
@@ -15,6 +13,7 @@ import { useTranslation } from '@/contexts/TranslationContext';
 import { Typography, Spacing, BorderRadius } from '@/constants/theme';
 import { Button } from './Button';
 import { QrCode, X, Eye, EyeOff, Lock, AlertTriangle, CheckCircle, XCircle } from 'lucide-react-native';
+import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 
 interface ChangeCodeModalProps {
   isVisible: boolean;
@@ -22,8 +21,6 @@ interface ChangeCodeModalProps {
   onConfirm: (pin: string) => void;
   isLoading?: boolean;
 }
-
-const { height: screenHeight } = Dimensions.get('window');
 
 export const ChangeCodeModal: React.FC<ChangeCodeModalProps> = ({
   isVisible,
@@ -33,11 +30,15 @@ export const ChangeCodeModal: React.FC<ChangeCodeModalProps> = ({
 }) => {
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const styles = getStyles(colors);
   const [pin, setPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
   const [showPin, setShowPin] = useState(false);
   const [error, setError] = useState('');
   const [step, setStep] = useState<'input' | 'confirm' | 'success'>('input');
+
+  // Bottom sheet snap points
+  const snapPoints = useMemo(() => ['70%'], []);
 
   const handleSubmit = () => {
     if (!pin.trim()) {
@@ -275,48 +276,35 @@ export const ChangeCodeModal: React.FC<ChangeCodeModalProps> = ({
     </>
   );
 
+  if (!isVisible) return null;
+
   return (
-    <Modal
-      visible={isVisible}
-      transparent
-      animationType="slide"
-      onRequestClose={handleClose}
+    <BottomSheet
+      index={0}
+      snapPoints={snapPoints}
+      onClose={handleClose}
+      enablePanDownToClose
+      backgroundStyle={{ backgroundColor: colors.card }}
+      handleIndicatorStyle={{ backgroundColor: colors.border }}
     >
       <KeyboardAvoidingView 
-        style={styles.overlay}
+        style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        <TouchableOpacity
-          style={styles.backdrop}
-          activeOpacity={1}
-          onPress={handleClose}
-        />
-        
-        <View style={[styles.modal, { backgroundColor: colors.card }]}>
+        <BottomSheetView style={styles.container}>
           {step === 'input' && renderInputStep()}
           {step === 'confirm' && renderConfirmStep()}
           {step === 'success' && renderSuccessStep()}
-        </View>
+        </BottomSheetView>
       </KeyboardAvoidingView>
-    </Modal>
+    </BottomSheet>
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
+const getStyles = (colors: any) => StyleSheet.create({
+  container: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  backdrop: {
-    flex: 1,
-  },
-  modal: {
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    paddingBottom: 40, // Safe area for bottom
-    maxHeight: screenHeight * 0.5,
   },
   header: {
     flexDirection: 'row',

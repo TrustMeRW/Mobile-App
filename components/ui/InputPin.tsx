@@ -95,7 +95,7 @@ export const InputPin: React.FC<InputPinProps> = ({
         ))}
       </TouchableOpacity>
       {(error || showRequiredError) && (
-        <Text style={themeStyles.error}>{error || 'PIN is required'}</Text>
+        <Text style={themeStyles.error}>{error || 'PIN/Password is required'}</Text>
       )}
     </View>
   );

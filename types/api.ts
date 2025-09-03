@@ -177,3 +177,104 @@ export interface PaginatedResponse<T> {
     totalPages: number;
   };
 }
+
+// Employment Types
+export interface Employment {
+  id: string;
+  employerId: string;
+  employeeId: string;
+  title: string;
+  description?: string;
+  salary?: number;
+  paymentType: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'CUSTOM_RANGE' | 'AFTER_JOB';
+  startDate?: string;
+  status: 'PENDING' | 'ACTIVE' | 'RESIGNED' | 'TERMINATED' | 'CANCELLED' | 'PENDING_FINISH' | 'FINISHED';
+  resignationStatus: 'NONE' | 'PENDING_EMPLOYEE' | 'PENDING_EMPLOYER' | 'APPROVED' | 'REJECTED';
+  isActive: boolean;
+  employer: User;
+  employee: User;
+  jobPayments?: JobPayment[];
+  reports?: EmploymentReport[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateEmploymentDto {
+  employeeId: string;
+  title: string;
+  description?: string;
+  salary?: number;
+  paymentType: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'CUSTOM_RANGE' | 'AFTER_JOB';
+  startDate?: string;
+}
+
+export interface EmploymentFilters {
+  page?: number;
+  limit?: number;
+  search?: string;
+  status?: 'PENDING' | 'ACTIVE' | 'RESIGNED' | 'TERMINATED' | 'CANCELLED' | 'PENDING_FINISH' | 'FINISHED';
+  resignationStatus?: 'NONE' | 'PENDING_EMPLOYEE' | 'PENDING_EMPLOYER' | 'APPROVED' | 'REJECTED';
+  isActive?: boolean;
+  dateFrom?: string;
+  dateTo?: string;
+}
+
+export interface JobPayment {
+  id: string;
+  employmentId: string;
+  amount: number;
+  status: 'PENDING' | 'PAID' | 'CONFIRMED' | 'REJECTED';
+  paidAt: string | null;
+  paidBy: string | null;
+  confirmedAt: string | null;
+  confirmedBy: string | null;
+  paymentNotes: string | null;
+  confirmationNotes: string | null;
+  dueDate: string;
+  createdAt: string;
+  updatedAt: string;
+  employment: {
+    id: string;
+    title: string;
+  };
+}
+
+export interface EmploymentReport {
+  id: string;
+  description: string;
+  type: 'PAYMENT_ISSUES' | 'NOT_FOLLOWING_JOB_LAWS' | 'STEALING' | 'MISSING' | 'WORK_COMPLETED';
+  status: 'PENDING' | 'APPROVED' | 'REJECTED';
+  reportDate: string;
+  createdAt: string;
+}
+
+export interface EmploymentAnalytics {
+  userId: string;
+  fullName: string;
+  totalEmployments: number;
+  completedEmployments: number;
+  averageRating: number;
+  reliabilityScore: number;
+  workHistory: Array<{
+    employmentId: string;
+    title: string;
+    employer: string;
+    duration: string;
+    rating: number;
+    completed: boolean;
+  }>;
+  skills: string[];
+  availability: {
+    isAvailable: boolean;
+    preferredWorkTypes: string[];
+    preferredPaymentTypes: string[];
+  };
+  location: {
+    province: string;
+    district: string;
+    sector: string;
+    cell: string;
+    village: string;
+  };
+  analyzedAt: string;
+}

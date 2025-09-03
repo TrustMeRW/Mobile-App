@@ -393,7 +393,7 @@ export default function RegistrationStepper() {
     { title: 'User Type', subtitle: 'Choose how you want to use the app' },
     { title: 'Personal Info', subtitle: 'Tell us about yourself' },
     { title: 'Location', subtitle: 'Where are you located?' },
-    { title: 'Security', subtitle: 'Create your PIN' },
+    { title: 'Security', subtitle: 'Create your PIN/Password' },
   ];
 
   const updateField = (field: keyof FormData, value: string) => {
@@ -534,24 +534,24 @@ export default function RegistrationStepper() {
         if (!formData.pin || !formData.confirmPin) {
           Toast.show({
             type: 'error',
-            text1: 'Missing PIN',
-            text2: 'Please enter and confirm your PIN',
+            text1: 'Missing PIN/Password',
+            text2: 'Please enter and confirm your PIN/Password',
           });
           return false;
         }
         if (formData.pin !== formData.confirmPin) {
           Toast.show({
             type: 'error',
-            text1: 'PIN Mismatch',
-            text2: 'PINs do not match',
+            text1: 'PIN/Password Mismatch',
+            text2: 'PIN/Passwords do not match',
           });
           return false;
         }
-        if (formData.pin.length < 4 || formData.pin.length > 20) {
+        if (formData.pin.length < 4) {
           Toast.show({
             type: 'error',
-            text1: 'Invalid PIN',
-            text2: 'PIN must be between 4 and 20 characters',
+            text1: 'Invalid PIN/Password',
+            text2: 'PIN/Password must be at least 4 characters long',
           });
           return false;
         }
@@ -855,19 +855,18 @@ export default function RegistrationStepper() {
             transition={{ type: 'timing', duration: 300 }}
             style={styles.stepContent}
           >
-            <Text style={styles.stepTitle}>Create Your PIN</Text>
+            <Text style={styles.stepTitle}>Create Your PIN/Password</Text>
             <Text style={styles.stepSubtitle}>
-              Secure your account with a PIN
+              Secure your account with a PIN/Password
             </Text>
 
             <View>
               <Input
-                label="PIN"
+                label="PIN/Password"
                 value={formData.pin}
                 onChangeText={(value) => updateField('pin', value)}
                 secureTextEntry={!showPin}
-                keyboardType="number-pad"
-                maxLength={20}
+
                 helperText="4-20 characters"
                 required
               />
@@ -886,12 +885,11 @@ export default function RegistrationStepper() {
 
             <View>
               <Input
-                label="Confirm PIN"
+                label="Confirm PIN/Password"
                 value={formData.confirmPin}
                 onChangeText={(value) => updateField('confirmPin', value)}
                 secureTextEntry={!showConfirmPin}
-                keyboardType="number-pad"
-                maxLength={20}
+
                 required
               />
               <TouchableOpacity

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import {
   View,
   Text,
@@ -6,110 +6,122 @@ import {
   ScrollView,
   TouchableOpacity,
   RefreshControl,
-  ViewStyle,
-  TextStyle,
+  Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { router } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Card } from '@/components/ui/Card';
 import { Input } from '@/components/ui/Input';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { DebtCardSkeleton } from '@/components/ui/DebtCardSkeleton';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useTranslation } from '@/contexts/TranslationContext';
-import { useCurrentUser, useDebts } from '@/hooks';
+import { useCurrentUser, useDebtsRequested, useDebtsOffered } from '@/hooks';
 import { Typography, Spacing } from '@/constants/theme';
-import { type Debt, type User } from '@/services/api';
+import { type Debt } from '@/services/api';
 import { MotiView } from 'moti';
-import { Search, Plus, Filter, UserIcon, Calendar } from 'lucide-react-native';
-import { ScrollView as RNScrollView } from 'react-native';
+import { 
+  Search, 
+  Plus, 
+  Filter, 
+  UserIcon, 
+  Calendar, 
+  ChevronLeft,
+  X
+} from 'lucide-react-native';
 
-type DebtWithType = Debt & {
-  type: 'requested' | 'offered';
-};
+type TabType = 'requested' | 'offered';
+
+interface DebtFilters {
+  status?: 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'COMPLETED' | 'REJECTED' | 'OVERDUE';
+  dateFrom?: string;
+  dateTo?: string;
+}
 
 export default function DebtsScreen() {
   const { colors } = useTheme();
   const { t } = useTranslation();
   const { user: currentUser } = useCurrentUser();
+  const router = useRouter();
   const styles = getStyles(colors);
+  
+  const [activeTab, setActiveTab] = useState<TabType>('requested');
   const [searchQuery, setSearchQuery] = useState('');
-  const [statusFilter, setStatusFilter] = useState<
-    | 'all'
-    | 'ACTIVE'
-    | 'PENDING'
-    | 'COMPLETED'
-    | 'OVERDUE'
-    | 'PAID_PENDING_CONFIRMATION'
-  >('all');
+  const [showFilterModal, setShowFilterModal] = useState(false);
+  const [filters, setFilters] = useState<DebtFilters>({});
 
-  const statusFilters = [
-    { key: 'all', label: t('debts.filters.all') },
-    { key: 'ACTIVE', label: t('debts.filters.active') },
-    { key: 'PENDING', label: t('debts.filters.pending') },
-    { key: 'COMPLETED', label: t('debts.filters.completed') },
-    { key: 'OVERDUE', label: t('debts.filters.overdue') },
-    { key: 'PAID_PENDING_CONFIRMATION', label: t('debts.filters.paidPending') },
-  ];
-  // Remove searchResults/searching/debouncedSearchQuery state
-
-  const {
-    data: myDebtsResponse,
-    isLoading: loadingMyDebts,
-    refetch: refetchMyDebts,
-  } = useDebts({ 
-    limit: 100,
-    includeRequested: true,
-    includeOffered: true
-  });
-
-  const myDebtsData = myDebtsResponse?.data || [];
-  const isLoading = loadingMyDebts;
-
-  const handleRefresh = async () => {
-    await refetchMyDebts();
+  // API parameters
+  const apiParams = {
+    search: searchQuery.trim() || undefined,
+    status: filters.status,
+    dateFrom: filters.dateFrom,
+    dateTo: filters.dateTo,
+    limit: 50,
+    page: 1,
   };
 
-  const allDebts: DebtWithType[] = (myDebtsData || []).map((debt: Debt) => {
-    // Determine if this is a requested or offered debt based on the current user
-    // You might need to adjust this logic based on your API response structure
-    const isRequested = debt.requester?.id === currentUser?.id;
-    return {
-      ...debt,
-      type: isRequested ? 'requested' as const : 'offered' as const,
-    };
-  });
+  // API calls
+  const {
+    data: requestedDebtsResponse,
+    isLoading: loadingRequested,
+    refetch: refetchRequested,
+  } = useDebtsRequested(apiParams);
 
-  const sortedDebts = [...allDebts].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
+  const {
+    data: offeredDebtsResponse,
+    isLoading: loadingOffered,
+    refetch: refetchOffered,
+  } = useDebtsOffered(apiParams);
 
-  // Synchronous, derived search and filter
-  const debtsToShow = sortedDebts.filter((debt) => {
-    const matchesStatus =
-      statusFilter === 'all' || debt.status === statusFilter;
-    if (!searchQuery.trim()) return matchesStatus;
-    const searchLower = searchQuery.toLowerCase();
-    const requesterName = `${debt.requester?.firstName || ''} ${
-      debt.requester?.lastName || ''
-    }`.toLowerCase();
-    const issuerName = `${debt.issuer?.firstName || ''} ${
-      debt.issuer?.lastName || ''
-    }`.toLowerCase();
-    const amountStr = debt.amount?.toString() || '';
-    const matchesSearch =
-      requesterName.includes(searchLower) ||
-      issuerName.includes(searchLower) ||
-      amountStr.includes(searchQuery);
-    return matchesSearch && matchesStatus;
-  });
+  const currentDebts = activeTab === 'requested' ? requestedDebtsResponse?.data || [] : offeredDebtsResponse?.data || [];
+  const isLoading = activeTab === 'requested' ? loadingRequested : loadingOffered;
 
-  // ...existing code...
+  const handleRefresh = async () => {
+    if (activeTab === 'requested') {
+      await refetchRequested();
+    } else {
+      await refetchOffered();
+    }
+  };
 
-  const renderDebtCard = (debt: DebtWithType) => {
+  const tabs = [
+    { key: 'requested' as TabType, label: 'Requested' },
+    { key: 'offered' as TabType, label: 'Offered' },
+  ];
+
+  const statusFilters = [
+    { key: undefined, label: 'All Status' },
+    { key: 'PENDING' as const, label: 'Pending' },
+    { key: 'ACTIVE' as const, label: 'Active' },
+    { key: 'INACTIVE' as const, label: 'Inactive' },
+    { key: 'COMPLETED' as const, label: 'Completed' },
+    { key: 'REJECTED' as const, label: 'Rejected' },
+    { key: 'OVERDUE' as const, label: 'Overdue' },
+  ];
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'ACTIVE':
+        return colors.success;
+      case 'PENDING':
+        return colors.warning;
+      case 'OVERDUE':
+        return colors.error;
+      case 'COMPLETED':
+        return colors.info;
+      case 'REJECTED':
+        return colors.error;
+      case 'INACTIVE':
+        return colors.textSecondary;
+      default:
+        return colors.textSecondary;
+    }
+  };
+
+  const renderDebtCard = (debt: Debt) => {
     const amount = parseFloat(debt.amount) || 0;
     const amountPaid = parseFloat(debt.amountPaid) || 0;
-    const otherParty = debt.type === 'requested' ? debt.issuer : debt.requester;
+    const otherParty = activeTab === 'requested' ? debt.issuer : debt.requester;
     const dueDate = debt.paymentDate ? new Date(debt.paymentDate) : null;
     const isOverdue = dueDate && dueDate < new Date() && debt.status === 'ACTIVE';
     const progressPercentage = amount > 0 ? (amountPaid / amount) * 100 : 0;
@@ -124,7 +136,7 @@ export default function DebtsScreen() {
         <TouchableOpacity
           onPress={() =>
             router.push({
-              pathname: '/(tabs)/debts/debt-detail',
+              pathname: '/(tabs)/services/debts/debt-detail',
               params: { id: debt.id },
             })
           }
@@ -136,25 +148,25 @@ export default function DebtsScreen() {
               <View style={styles.debtTypeContainer}>
                 <View style={[
                   styles.debtTypeBadge,
-                  { backgroundColor: debt.type === 'requested' ? colors.primary + '15' : colors.success + '15' }
+                  { backgroundColor: activeTab === 'requested' ? colors.primary + '15' : colors.success + '15' }
                 ]}>
                   <Text style={[
                     styles.debtTypeText,
-                    { color: debt.type === 'requested' ? colors.primary : colors.success }
+                    { color: activeTab === 'requested' ? colors.primary : colors.success }
                   ]}>
-                    {debt.type === 'requested' ? t('debts.debtTypes.requested') : t('debts.debtTypes.offered')}
+                    {activeTab === 'requested' ? 'Requested' : 'Offered'}
                   </Text>
                 </View>
                 <View
                   style={[
                     styles.statusBadge,
-                    getStatusBadgeStyle(debt.status, colors),
+                    { backgroundColor: getStatusColor(debt.status) + '20' }
                   ]}
                 >
                   <Text
                     style={[
                       styles.statusText,
-                      getStatusTextStyle(debt.status, colors),
+                      { color: getStatusColor(debt.status) }
                     ]}
                   >
                     {debt.status.replace(/_/g, ' ')}
@@ -179,7 +191,7 @@ export default function DebtsScreen() {
                   />
                 </View>
                 <Text style={styles.progressText}>
-                  {progressPercentage.toFixed(1)}% {t('debts.progress.paid')}
+                  {progressPercentage.toFixed(1)}% Paid
                 </Text>
               </View>
             )}
@@ -188,16 +200,16 @@ export default function DebtsScreen() {
             <View style={styles.partyInfo}>
               <View style={styles.partyIconContainer}>
                 <UserIcon 
-                  color={debt.type === 'requested' ? colors.primary : colors.success} 
+                  color={activeTab === 'requested' ? colors.primary : colors.success} 
                   size={16} 
                 />
               </View>
               <Text style={styles.partyText}>
-                {debt.type === 'requested' ? t('debts.partyInfo.from') : t('debts.partyInfo.to')}:{' '}
+                {activeTab === 'requested' ? 'From' : 'To'}:{' '}
                 <Text style={styles.partyName}>
                   {otherParty
                     ? `${otherParty.firstName} ${otherParty.lastName}`
-                    : t('debts.partyInfo.unknown')}
+                    : 'Unknown'}
                 </Text>
               </Text>
             </View>
@@ -211,15 +223,15 @@ export default function DebtsScreen() {
                     styles.detailText,
                     isOverdue && { color: colors.error }
                   ]}>
-                    {t('debts.dueDate')}: {dueDate.toLocaleDateString()}
-                    {isOverdue && ` (${t('debts.overdue')})`}
+                    Due: {dueDate.toLocaleDateString()}
+                    {isOverdue && ' (Overdue)'}
                   </Text>
                 </View>
               )}
               
               <View style={styles.detailItem}>
                 <Text style={styles.detailText}>
-                  {t('debts.createdAt')}: {new Date(debt.createdAt).toLocaleDateString()}
+                  Created: {new Date(debt.createdAt).toLocaleDateString()}
                 </Text>
               </View>
             </View>
@@ -228,13 +240,13 @@ export default function DebtsScreen() {
             {amountPaid > 0 && (
               <View style={styles.paymentSummary}>
                 <View style={styles.paymentRow}>
-                  <Text style={styles.paymentLabel}>{t('debts.payment.paid')}:</Text>
+                  <Text style={styles.paymentLabel}>Paid:</Text>
                   <Text style={styles.paymentAmount}>
                     RWF {amountPaid.toLocaleString()}
                   </Text>
                 </View>
                 <View style={styles.paymentRow}>
-                  <Text style={styles.paymentLabel}>{t('debts.payment.remaining')}:</Text>
+                  <Text style={styles.paymentLabel}>Remaining:</Text>
                   <Text style={styles.paymentAmount}>
                     RWF {(amount - amountPaid).toLocaleString()}
                   </Text>
@@ -266,43 +278,130 @@ export default function DebtsScreen() {
     );
   };
 
+  const renderFilterModal = () => (
+    <Modal
+      visible={showFilterModal}
+      animationType="slide"
+      presentationStyle="pageSheet"
+      onRequestClose={() => setShowFilterModal(false)}
+    >
+      <SafeAreaView style={[styles.modalContainer, { backgroundColor: colors.background }]}>
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>Filter Debts</Text>
+          <TouchableOpacity
+            onPress={() => setShowFilterModal(false)}
+            style={styles.modalCloseButton}
+          >
+            <X color={colors.text} size={24} />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView style={styles.modalContent}>
+          <View style={styles.filterSection}>
+            <Text style={styles.filterSectionTitle}>Status</Text>
+            <View style={styles.filterOptions}>
+              {statusFilters.map((filter) => (
+                <TouchableOpacity
+                  key={filter.key || 'all'}
+                  onPress={() => setFilters(prev => ({ ...prev, status: filter.key }))}
+                  style={[
+                    styles.filterOption,
+                    filters.status === filter.key && styles.filterOptionActive
+                  ]}
+                >
+                  <Text style={[
+                    styles.filterOptionText,
+                    filters.status === filter.key && styles.filterOptionTextActive
+                  ]}>
+                    {filter.label}
+                  </Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.modalActions}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.clearButton]}
+              onPress={() => {
+                setFilters({});
+                setShowFilterModal(false);
+              }}
+            >
+              <Text style={[styles.modalButtonText, { color: colors.error }]}>
+                Clear Filters
+              </Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.applyButton]}
+              onPress={() => setShowFilterModal(false)}
+            >
+              <Text style={[styles.modalButtonText, { color: colors.white }]}>
+                Apply Filters
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </SafeAreaView>
+    </Modal>
+  );
+
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
+          <ChevronLeft color={colors.text} size={24} />
+        </TouchableOpacity>
+        <Text style={styles.title}>Debts</Text>
+        <TouchableOpacity
+          onPress={() => setShowFilterModal(true)}
+          style={styles.filterButton}
+        >
+          <Filter color={colors.text} size={24} />
+        </TouchableOpacity>
+      </View>
+
+      {/* Tabs */}
+      <View style={styles.tabsContainer}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.tabsScrollContent}
+        >
+          {tabs.map((tab) => (
+            <TouchableOpacity
+              key={tab.key}
+              onPress={() => setActiveTab(tab.key)}
+              style={[
+                styles.tabButton,
+                activeTab === tab.key && styles.tabButtonActive,
+              ]}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === tab.key && styles.tabTextActive,
+                ]}
+              >
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      {/* Search */}
       <View style={styles.searchContainer}>
         <Input
-          placeholder={t('debts.searchPlaceholder')}
+          placeholder="Search debts..."
           value={searchQuery}
           onChangeText={setSearchQuery}
           style={styles.searchInputContainer}
         />
       </View>
-      <View style={styles.filterScrollWrapper}>
-        <RNScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filterContainer}
-        >
-          {statusFilters.map((filter) => (
-            <TouchableOpacity
-              key={filter.key}
-              onPress={() => setStatusFilter(filter.key as typeof statusFilter)}
-              style={[
-                styles.filterButton,
-                statusFilter === filter.key && styles.filterButtonActive,
-              ]}
-            >
-              <Text
-                style={[
-                  styles.filterText,
-                  statusFilter === filter.key && styles.filterTextActive,
-                ]}
-              >
-                {filter.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
-        </RNScrollView>
-      </View>
+
+      {/* Content */}
       <ScrollView
         style={styles.content}
         contentContainerStyle={{ paddingBottom: 100 }}
@@ -316,67 +415,36 @@ export default function DebtsScreen() {
               <DebtCardSkeleton key={index} />
             ))}
           </View>
-        ) : debtsToShow && debtsToShow.length > 0  ? (
+        ) : currentDebts && currentDebts.length > 0 ? (
           <View style={styles.debtsList}>
-            {debtsToShow.map(renderDebtCard)}
+            {currentDebts.map(renderDebtCard)}
           </View>
         ) : (
           <Card style={styles.emptyCard}>
-            <Text style={styles.emptyTitle}>{t('debts.noDebts')}</Text>
+            <Text style={styles.emptyTitle}>No Debts Found</Text>
             <Text style={styles.emptyDescription}>
-              {searchQuery
-                ? t('debts.searchNoResults')
-                : t('debts.noDebtsMessage')}
+              {searchQuery || filters.status
+                ? 'No debts match your current filters'
+                : `You don't have any ${activeTab} debts yet`}
             </Text>
           </Card>
         )}
       </ScrollView>
+
+      {/* FAB */}
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => router.push('/(tabs)/debts/add-debt')}
+        onPress={() => router.push('/(tabs)/services/debts/add-debt')}
         activeOpacity={0.8}
       >
         <Plus color={colors.white} size={28} />
       </TouchableOpacity>
+
+      {/* Filter Modal */}
+      {renderFilterModal()}
     </SafeAreaView>
   );
 }
-
-const getStatusBadgeStyle = (
-  status: string,
-  colors: any
-): ViewStyle => {
-  switch (status) {
-    case 'ACTIVE':
-      return { backgroundColor: colors.success + '20' };
-    case 'PENDING':
-      return { backgroundColor: colors.warning + '20' };
-    case 'OVERDUE':
-      return { backgroundColor: colors.error + '20' };
-    case 'COMPLETED':
-      return { backgroundColor: colors.info + '20' };
-    default:
-      return { backgroundColor: colors.background };
-  }
-};
-
-const getStatusTextStyle = (
-  status: string,
-  colors: any
-): TextStyle => {
-  switch (status) {
-    case 'ACTIVE':
-      return { color: colors.success };
-    case 'PENDING':
-      return { color: colors.warning };
-    case 'OVERDUE':
-      return { color: colors.error };
-    case 'COMPLETED':
-      return { color: colors.info };
-    default:
-      return { color: colors.textSecondary };
-  }
-};
 
 const getStyles = (colors: any) =>
   StyleSheet.create({
@@ -384,10 +452,61 @@ const getStyles = (colors: any) =>
       flex: 1,
       backgroundColor: colors.background,
     },
+    header: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingHorizontal: Spacing.lg,
+      paddingTop: Spacing.xs,
+      paddingBottom: Spacing.md,
+      backgroundColor: colors.background,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    backButton: {
+      marginRight: Spacing.md,
+    },
+    title: {
+      fontSize: Typography.fontSize.xl,
+      fontFamily: 'DMSans-Bold',
+      color: colors.text,
+      flex: 1,
+    },
+    filterButton: {
+      padding: Spacing.sm,
+    },
+    tabsContainer: {
+      backgroundColor: colors.background,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    tabsScrollContent: {
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.sm,
+    },
+    tabButton: {
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.sm,
+      marginRight: Spacing.md,
+      borderRadius: 20,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    tabButtonActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    tabText: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Medium',
+      color: colors.textSecondary,
+    },
+    tabTextActive: {
+      color: colors.white,
+    },
     searchContainer: {
       paddingHorizontal: Spacing.lg,
       marginTop: Spacing.md,
-      zIndex: 2,
       backgroundColor: colors.background,
     },
     searchInputContainer: {
@@ -396,43 +515,6 @@ const getStyles = (colors: any) =>
       borderWidth: 1,
       borderColor: colors.border,
       marginBottom: Spacing.md,
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    searchInput: {
-      borderWidth: 0,
-      fontSize: Typography.fontSize.md,
-    },
-    filterScrollWrapper: {
-      paddingHorizontal: Spacing.lg,
-      marginBottom: Spacing.md,
-      backgroundColor: colors.background,
-    },
-    filterContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 8,
-    },
-    filterButton: {
-      paddingHorizontal: Spacing.md,
-      paddingVertical: Spacing.sm,
-      marginRight: Spacing.sm,
-      borderRadius: 20,
-      backgroundColor: colors.card,
-      borderWidth: 1,
-      borderColor: colors.gray[300],
-    },
-    filterButtonActive: {
-      backgroundColor: colors.primary,
-      borderColor: colors.primary,
-    },
-    filterText: {
-      fontSize: Typography.fontSize.sm,
-      fontFamily: 'DMSans-Medium',
-      color: colors.textSecondary,
-    },
-    filterTextActive: {
-      color: colors.white,
     },
     content: {
       flex: 1,
@@ -638,5 +720,88 @@ const getStyles = (colors: any) =>
       shadowRadius: 4,
       elevation: 6,
       zIndex: 100,
+    },
+    // Modal styles
+    modalContainer: {
+      flex: 1,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingHorizontal: Spacing.lg,
+      paddingVertical: Spacing.md,
+      borderBottomWidth: 1,
+      borderBottomColor: colors.border,
+    },
+    modalTitle: {
+      fontSize: Typography.fontSize.lg,
+      fontFamily: 'DMSans-Bold',
+      color: colors.text,
+    },
+    modalCloseButton: {
+      padding: Spacing.sm,
+    },
+    modalContent: {
+      flex: 1,
+      paddingHorizontal: Spacing.lg,
+    },
+    filterSection: {
+      marginTop: Spacing.lg,
+    },
+    filterSectionTitle: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-SemiBold',
+      color: colors.text,
+      marginBottom: Spacing.md,
+    },
+    filterOptions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: Spacing.sm,
+    },
+    filterOption: {
+      paddingHorizontal: Spacing.md,
+      paddingVertical: Spacing.sm,
+      borderRadius: 20,
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    filterOptionActive: {
+      backgroundColor: colors.primary,
+      borderColor: colors.primary,
+    },
+    filterOptionText: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Medium',
+      color: colors.textSecondary,
+    },
+    filterOptionTextActive: {
+      color: colors.white,
+    },
+    modalActions: {
+      flexDirection: 'row',
+      gap: Spacing.md,
+      paddingVertical: Spacing.xl,
+      marginTop: Spacing.lg,
+    },
+    modalButton: {
+      flex: 1,
+      paddingVertical: Spacing.md,
+      borderRadius: 12,
+      alignItems: 'center',
+    },
+    clearButton: {
+      backgroundColor: colors.card,
+      borderWidth: 1,
+      borderColor: colors.error,
+    },
+    applyButton: {
+      backgroundColor: colors.primary,
+    },
+    modalButtonText: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-SemiBold',
     },
   });

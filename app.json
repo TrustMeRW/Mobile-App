@@ -23,7 +23,11 @@
         "foregroundImage": "./assets/images/icon-android.png",
         "backgroundColor": "#0044FF"
       },
-      "package": "com.trustme.app"
+      "package": "com.trustme.app",
+      "permissions": [
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "web": {
       "bundler": "metro",
@@ -43,8 +47,9 @@
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "e2aa6d0b-7227-4b33-b594-e5cad1c97f2d"
+        "projectId": "a5371dcf-b1c9-4863-83bc-a1286dfeb248"
       }
-    }
+    },
+    "owner": "yvesmugisha"
   }
 }

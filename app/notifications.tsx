@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
   markAllText: {
     fontSize: Typography.fontSize.md,
     fontFamily: 'DMSans-Bold',
-    color: '#007bff', // Changed from colors.primary to '#007bff'
+    color: '#007bff',
   },
   notificationItem: {
     backgroundColor: '#fff',
@@ -139,7 +139,7 @@ const styles = StyleSheet.create({
   },
   unreadNotification: {
     borderLeftWidth: 3,
-    borderLeftColor: '#007bff', // Changed from colors.primary to '#007bff'
+    borderLeftColor: '#007bff',
     paddingLeft: Spacing.md - 3, // Compensate for border
   },
   notificationContent: {

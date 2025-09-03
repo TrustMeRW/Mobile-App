@@ -44,7 +44,7 @@ export default function DebtTermsScreen() {
 
         <Text style={styles.sectionTitle}>5. Payment and Settlement</Text>
         <Text style={styles.paragraph}>
-          Debts should be settled on or before the due date. Late settlements may impact your trustability score. Payment confirmations may require additional verification (e.g., PIN, OTP) for security.
+          Debts should be settled on or before the due date. Late settlements may impact your trustability score. Payment confirmations may require additional verification (e.g., PIN/Password, OTP) for security.
         </Text>
 
         <Text style={styles.sectionTitle}>6. Disputes</Text>

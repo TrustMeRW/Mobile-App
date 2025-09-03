@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useMemo } from 'react';
 import {
   View,
   Text,
@@ -11,6 +11,7 @@ import {
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useTranslation } from '@/contexts/TranslationContext';
 import { useOnboardingTranslations, useCommonTranslations } from '@/hooks';
 import { MotiView } from 'moti';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -79,8 +80,10 @@ export default function OnboardingScreen() {
     router.replace('/(auth)');
   };
 
-  const handleLanguageSelect = (language: SupportedLanguage) => {
+  const handleLanguageSelect = async (language: SupportedLanguage) => {
     setSelectedLanguage(language);
+    // Immediately update the translation context
+    await setLanguage(language);
   };
 
   const renderOnboardingItem = ({ item }: { item: any }) => (

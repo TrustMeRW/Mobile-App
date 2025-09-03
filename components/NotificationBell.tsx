@@ -7,10 +7,9 @@ import {
   ViewStyle,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useQuery } from '@tanstack/react-query';
 import { Typography, Spacing } from '@/constants/theme';
 import { useTheme } from '@/contexts/ThemeContext';
-import { apiClient } from '@/services/api';
+import { useWebSocketNotifications } from '@/hooks';
 import { MotiView } from 'moti';
 import { Bell, BellRing } from 'lucide-react-native';
 
@@ -18,13 +17,7 @@ export const NotificationBell: React.FC = () => {
   const router = useRouter();
   const { colors } = useTheme();
   
-  const { data: notifications } = useQuery({
-    queryKey: ['notifications', 'unread'],
-    queryFn: () => apiClient.getNotifications({ unreadOnly: true }),
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
-
-  const unreadCount = notifications?.payload?.data?.length || 0;
+  const { unreadCount, isConnected } = useWebSocketNotifications();
   const hasUnread = unreadCount > 0;
 
   const handlePress = () => {
@@ -70,7 +63,10 @@ export const NotificationBell: React.FC = () => {
           </MotiView>
         )}
         {!hasUnread && (
-          <Bell size={24} color={colors.gray[700]} />
+          <Bell 
+            size={24} 
+            color={isConnected ? colors.white : colors.white + '80'} 
+          />
         )}
       </MotiView>
       

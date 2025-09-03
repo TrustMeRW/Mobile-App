@@ -125,7 +125,7 @@ const ToastItem: React.FC<{
           borderColor: toastStyles.borderColor,
           transform: [{ translateY }],
           opacity,
-          zIndex: 1000 + index,
+          zIndex: 99999 + index,
         },
       ]}
     >
@@ -203,8 +203,8 @@ const styles = StyleSheet.create({
     right: 0,
     paddingHorizontal: 16,
     paddingBottom: 16,
-    zIndex: 9999,
-    elevation: 9999,
+    zIndex: 99999,
+    elevation: 99999,
   },
   toast: {
     marginBottom: 8,
@@ -217,7 +217,7 @@ const styles = StyleSheet.create({
     },
     shadowOpacity: 0.25,
     shadowRadius: 3.84,
-    elevation: 5,
+    elevation: 99999,
   },
   toastContent: {
     flexDirection: 'row',

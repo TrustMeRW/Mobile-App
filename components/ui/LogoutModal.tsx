@@ -1,24 +1,21 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Modal,
-  Dimensions,
 } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
-import { useTranslation } from '@/contexts/TranslationContext';
 import { Typography, Spacing, BorderRadius } from '@/constants/theme';
 import { LogOut, X } from 'lucide-react-native';
+import { useTranslation } from '@/contexts/TranslationContext';
+import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 
 interface LogoutModalProps {
   isVisible: boolean;
   onClose: () => void;
   onConfirm: () => void;
 }
-
-const { height: screenHeight } = Dimensions.get('window');
 
 export const LogoutModal: React.FC<LogoutModalProps> = ({
   isVisible,
@@ -27,83 +24,72 @@ export const LogoutModal: React.FC<LogoutModalProps> = ({
 }) => {
   const { colors } = useTheme();
   const { t } = useTranslation();
+  const styles = getStyles(colors);
+
+  // Bottom sheet snap points
+  const snapPoints = useMemo(() => ['40%'], []);
+
+  if (!isVisible) return null;
 
   return (
-    <Modal
-      visible={isVisible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
+    <BottomSheet
+      index={0}
+      snapPoints={snapPoints}
+      onClose={onClose}
+      enablePanDownToClose
+      backgroundStyle={{ backgroundColor: colors.card }}
+      handleIndicatorStyle={{ backgroundColor: colors.border }}
     >
-      <View style={styles.overlay}>
-        <TouchableOpacity
-          style={styles.backdrop}
-          activeOpacity={1}
-          onPress={onClose}
-        />
-        
-        <View style={[styles.modal, { backgroundColor: colors.card }]}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.titleContainer}>
-              <View style={[styles.iconContainer, { backgroundColor: colors.error + '15' }]}>
-                <LogOut color={colors.error} size={24} />
-              </View>
-              <Text style={[styles.title, { color: colors.text }]}>{t('logout.title')}</Text>
+      <BottomSheetView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.titleContainer}>
+            <View style={[styles.iconContainer, { backgroundColor: colors.error + '15' }]}>
+              <LogOut color={colors.error} size={24} />
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <X color={colors.textSecondary} size={20} />
-            </TouchableOpacity>
+            <Text style={[styles.title, { color: colors.text }]}>Sign Out</Text>
           </View>
-
-          {/* Content */}
-          <View style={styles.content}>
-            <Text style={[styles.message, { color: colors.textSecondary }]}>
-              {t('logout.message')}
-            </Text>
-          </View>
-
-          {/* Buttons */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[styles.cancelButton, { borderColor: colors.border }]}
-              onPress={onClose}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>
-                {t('logout.cancel')}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.logoutButton, { backgroundColor: colors.error }]}
-              onPress={onConfirm}
-              activeOpacity={0.8}
-            >
-              <LogOut color={colors.white} size={18} />
-              <Text style={styles.logoutButtonText}>{t('logout.confirm')}</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <X color={colors.textSecondary} size={20} />
+          </TouchableOpacity>
         </View>
-      </View>
-    </Modal>
+
+        {/* Content */}
+        <View style={styles.content}>
+          <Text style={[styles.message, { color: colors.textSecondary }]}>
+            Are you sure you want to sign out of your account? You'll need to sign in again to access your data.
+          </Text>
+        </View>
+
+        {/* Buttons */}
+        <View style={styles.buttonContainer}>
+          <TouchableOpacity
+            style={[styles.cancelButton, { borderColor: colors.border }]}
+            onPress={onClose}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>
+              Cancel
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.logoutButton, { backgroundColor: colors.error }]}
+            onPress={onConfirm}
+            activeOpacity={0.8}
+          >
+            <LogOut color={colors.white} size={18} />
+            <Text style={styles.logoutButtonText}>Sign Out</Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheetView>
+    </BottomSheet>
   );
 };
 
-const styles = StyleSheet.create({
-  overlay: {
+const getStyles = (colors: any) => StyleSheet.create({
+  container: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  backdrop: {
-    flex: 1,
-  },
-  modal: {
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    paddingBottom: 40, // Safe area for bottom
-    maxHeight: screenHeight * 0.4,
   },
   header: {
     flexDirection: 'row',

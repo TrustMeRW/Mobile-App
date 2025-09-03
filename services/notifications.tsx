@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, ReactNode, ReactElement } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode, ReactElement } from 'react';
+import { useQueryClient } from '@tanstack/react-query';
 import { apiClient } from './api';
 
 export interface NotificationMetadata {
@@ -97,6 +98,10 @@ export const useNotifications = () => {
     hasMore: true,
   });
 
+  const queryClient = useQueryClient();
+
+
+
   const fetchNotifications = async (page = 1, limit = 20, isRefresh = false) => {
     if (isLoading) return;
     
@@ -156,8 +161,77 @@ export const useNotifications = () => {
     await fetchNotifications(1, pagination.limit, true);
   };
 
-  // Removed markAsRead and markAllAsRead functionality
-  // Focus on unread count instead
+  const markAsRead = async (notificationIds: string[]): Promise<boolean> => {
+    try {
+      // Mark each notification as read individually
+      await Promise.all(
+        notificationIds.map(id => apiClient.markNotificationAsRead(id))
+      );
+      
+      // Update local state
+      setNotifications(prev => 
+        prev.map(notification => 
+          notificationIds.includes(notification.id) 
+            ? { ...notification, read: true }
+            : notification
+        )
+      );
+      
+      // Update unread count
+      const markedCount = notificationIds.filter(id => 
+        notifications.find(n => n.id === id && !n.read)
+      ).length;
+      setUnreadCount(prev => Math.max(0, prev - markedCount));
+      
+      // Refetch unread count from API to ensure accuracy
+      try {
+        const unreadCountResponse = await apiClient.getUnreadNotificationCount();
+        setUnreadCount(unreadCountResponse.unreadCount);
+        
+        // Also invalidate the WebSocket unread count query to trigger a refetch
+        queryClient.invalidateQueries({ queryKey: ['unread-notification-count'] });
+      } catch (countError) {
+        console.warn('Failed to refetch unread count:', countError);
+        // Keep the local count if API call fails
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to mark notifications as read:', error);
+      return false;
+    }
+  };
+
+  const markAllAsRead = async (): Promise<boolean> => {
+    try {
+      await apiClient.markAllNotificationsAsRead();
+      
+      // Update local state
+      setNotifications(prev => 
+        prev.map(notification => ({ ...notification, read: true }))
+      );
+      
+      // Reset unread count
+      setUnreadCount(0);
+      
+      // Refetch unread count from API to ensure accuracy
+      try {
+        const unreadCountResponse = await apiClient.getUnreadNotificationCount();
+        setUnreadCount(unreadCountResponse.unreadCount);
+        
+        // Also invalidate the WebSocket unread count query to trigger a refetch
+        queryClient.invalidateQueries({ queryKey: ['unread-notification-count'] });
+      } catch (countError) {
+        console.warn('Failed to refetch unread count:', countError);
+        // Keep the local count if API call fails
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to mark all notifications as read:', error);
+      return false;
+    }
+  };
 
   const deleteNotification = async (id: string): Promise<boolean> => {
     try {
@@ -179,6 +253,22 @@ export const useNotifications = () => {
     }
   };
 
+  // Auto-mark notifications as read after 5 seconds
+  useEffect(() => {
+    if (notifications.length > 0) {
+      const unreadNotifications = notifications.filter(n => !n.read);
+      
+      if (unreadNotifications.length > 0) {
+        const timer = setTimeout(() => {
+          const unreadIds = unreadNotifications.map(n => n.id);
+          markAsRead(unreadIds);
+        }, 5000); // 5 seconds
+
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [notifications]);
+
   // Initial fetch
   useEffect(() => {
     fetchNotifications();
@@ -193,6 +283,8 @@ export const useNotifications = () => {
     pagination,
     refresh,
     loadMore,
+    markAsRead,
+    markAllAsRead,
     deleteNotification,
   };
 };

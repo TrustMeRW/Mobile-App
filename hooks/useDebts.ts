@@ -3,7 +3,8 @@ import { apiClient, type Debt, type PaginatedResponse } from '@/services/api';
 import { Toast } from 'react-native-toast-message/lib/src/Toast';
 
 export interface UseDebtsParams {
-  status?: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'PAID_PENDING_CONFIRMATION' | 'OVERDUE';
+  status?: 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'COMPLETED' | 'REJECTED' | 'OVERDUE';
+  search?: string;
   dateFrom?: string;
   dateTo?: string;
   limit?: number;

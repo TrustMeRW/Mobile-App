@@ -158,10 +158,15 @@ export interface Debt {
   payments:any[];items:any[]
 }
 
-const BASE_URL = 'http://172.20.10.3:4000/api';
+const BASE_URL = 'http://5.189.134.45:8787/api';
 
 class ApiClient {
   private axiosInstance: AxiosInstance;
+  private isRefreshing = false;
+  private failedQueue: Array<{
+    resolve: (value?: any) => void;
+    reject: (error?: any) => void;
+  }> = [];
 
   constructor() {
     this.axiosInstance = axios.create({
@@ -186,17 +191,81 @@ class ApiClient {
       }
     );
 
-    // Add response interceptor to handle errors
+    // Add response interceptor to handle errors and token refresh
     this.axiosInstance.interceptors.response.use(
       (response: AxiosResponse) => {
         console.log(`[API] ${response.config.method?.toUpperCase()} ${response.config.url} - Status: ${response.status}`, response.data);
         return response;
       },
       async (error) => {
+        const originalRequest = error.config;
+        
+        // Check if this is a JWT expired error and we haven't already tried to refresh
+        if (error.response?.status === 401 && 
+            this.isJwtExpiredError(error) && 
+            !originalRequest._retry) {
+          
+          if (this.isRefreshing) {
+            // If we're already refreshing, queue this request
+            return new Promise((resolve, reject) => {
+              this.failedQueue.push({ resolve, reject });
+            }).then(() => {
+              return this.axiosInstance(originalRequest);
+            }).catch(err => {
+              return Promise.reject(err);
+            });
+          }
+
+          originalRequest._retry = true;
+          this.isRefreshing = true;
+
+          try {
+            const refreshToken = await SecureStore.getItemAsync('refresh_token');
+            if (!refreshToken) {
+              throw new Error('No refresh token available');
+            }
+
+            // Attempt to refresh the token
+            const refreshResponse = await this.refreshAccessToken(refreshToken);
+            
+            // Store the new tokens
+            await SecureStore.setItemAsync('access_token', refreshResponse.accessToken);
+            if (refreshResponse.refreshToken) {
+              await SecureStore.setItemAsync('refresh_token', refreshResponse.refreshToken);
+            }
+
+            // Update the original request with the new token
+            originalRequest.headers.Authorization = `Bearer ${refreshResponse.accessToken}`;
+
+            // Process the failed queue
+            this.processQueue(null);
+
+            // Retry the original request
+            return this.axiosInstance(originalRequest);
+
+          } catch (refreshError) {
+            console.error('[API] Token refresh failed:', refreshError);
+            
+            // Clear stored tokens
+            await SecureStore.deleteItemAsync('access_token');
+            await SecureStore.deleteItemAsync('refresh_token');
+            
+            // Process the failed queue with error
+            this.processQueue(refreshError);
+            
+            // Redirect to login
+            router.replace('/(auth)');
+            
+            return Promise.reject(refreshError);
+          } finally {
+            this.isRefreshing = false;
+          }
+        }
+
         const errorCategory = this.categorizeError(error);
         console.error(`[API] Request failed (${errorCategory}):`, error.response?.data || error.message);
         
-        // Handle missing/invalid JWT token - only redirect for authentication-related errors
+        // Handle other authentication errors
         if (errorCategory === 'authentication') {
           console.log('[API] Redirecting to login due to authentication error');
           router.replace('/(auth)');
@@ -205,6 +274,33 @@ class ApiClient {
         return Promise.reject(error);
       }
     );
+  }
+
+  // Helper method to check if error is JWT expired
+  private isJwtExpiredError(error: any): boolean {
+    const errorMessage = error.response?.data?.message?.toLowerCase() || '';
+    const errorType = error.response?.data?.error?.toLowerCase() || '';
+    
+    return (
+      errorMessage.includes('jwt expired') ||
+      errorMessage.includes('token expired') ||
+      errorMessage.includes('access token expired') ||
+      errorType.includes('jwt expired') ||
+      errorType.includes('token expired')
+    );
+  }
+
+  // Helper method to process the failed request queue
+  private processQueue(error: any) {
+    this.failedQueue.forEach(({ resolve, reject }) => {
+      if (error) {
+        reject(error);
+      } else {
+        resolve();
+      }
+    });
+    
+    this.failedQueue = [];
   }
 
   // Helper method to clean parameters by removing undefined values
@@ -277,11 +373,25 @@ class ApiClient {
       identifier,
       pin,
     });
+    
+    // Store tokens securely
+    if (response.data.payload) {
+      await SecureStore.setItemAsync('access_token', response.data.payload.accessToken);
+      await SecureStore.setItemAsync('refresh_token', response.data.payload.refreshToken);
+    }
+    
     return response.data;
   }
 
   async register(userData: any) {
     const response = await this.axiosInstance.post<ApiResponse<{ accessToken: string; refreshToken: string; user: any }>>('/auth/register', userData);
+    
+    // Store tokens securely
+    if (response.data.payload) {
+      await SecureStore.setItemAsync('access_token', response.data.payload.accessToken);
+      await SecureStore.setItemAsync('refresh_token', response.data.payload.refreshToken);
+    }
+    
     return response.data;
   }
 
@@ -294,7 +404,80 @@ class ApiClient {
       subscriptionDetails: any;
       subscriptionSummary: any;
     }>>('/auth/profile');
-    return response.data;
+    return response.data.payload;
+  }
+
+  async getUnreadNotificationCount() {
+    const response = await this.axiosInstance.get<ApiResponse<{
+      unreadCount: number;
+    }>>('/notifications/unread-count');
+    return response.data.payload;
+  }
+
+  async getUserDashboard() {
+    const response = await this.axiosInstance.get<ApiResponse<{
+      pendingActions: {
+        pendingEmploymentActions: Array<{
+          id: string;
+          title: string;
+          employerName: string;
+          employeeName: string;
+          status: string;
+          actionRequired: string;
+          createdAt: string;
+        }>;
+        pendingDebtActions: Array<{
+          id: string;
+          amount: number;
+          requesterName: string;
+          issuerName: string;
+          status: string;
+          actionRequired: string;
+          createdAt: string;
+        }>;
+      };
+      debtsYouOwe: {
+        totalAmount: number;
+        totalAmountPaid: number;
+        remainingAmount: number;
+      };
+      debtsTheyOweYou: {
+        totalAmount: number;
+        totalAmountPaid: number;
+        remainingAmount: number;
+      };
+      employments: number;
+      employees: number;
+      jobPaymentsToPay: {
+        totalAmount: number;
+        pendingAmount: number;
+        paidNotConfirmedAmount: number;
+        confirmedAmount: number;
+      };
+      jobPaymentsToGet: {
+        totalAmount: number;
+        pendingAmount: number;
+        paidNotConfirmedAmount: number;
+        confirmedAmount: number;
+      };
+    }>>('/dashboard/user');
+    return response.data.payload;
+  }
+
+  async markNotificationAsRead(notificationId: string) {
+    const response = await this.axiosInstance.put<ApiResponse<{
+      success: boolean;
+      message: string;
+    }>>(`/notifications/${notificationId}/mark-read`);
+    return response.data.payload;
+  }
+
+  async markAllNotificationsAsRead() {
+    const response = await this.axiosInstance.post<ApiResponse<{
+      updatedCount: number;
+      message: string;
+    }>>('/notifications/mark-all-read');
+    return response.data.payload;
   }
 
   async changePin(currentPin: string, newPin: string) {
@@ -328,6 +511,22 @@ class ApiClient {
   async resetPassword(token: string, newPin: string) {
     const response = await this.axiosInstance.post<ApiResponse<{ message: string }>>('/auth/reset-password', { token, newPin });
     return response.data;
+  }
+
+  async refreshAccessToken(refreshToken: string) {
+    const response = await this.axiosInstance.post<ApiResponse<{ accessToken: string; refreshToken?: string }>>('/auth/refresh-token', {
+      refreshToken,
+    });
+    return response.data.payload;
+  }
+
+  async logout() {
+    // Clear stored tokens
+    await SecureStore.deleteItemAsync('access_token');
+    await SecureStore.deleteItemAsync('refresh_token');
+    
+    // Redirect to login
+    router.replace('/(auth)');
   }
 
   // Debt endpoints
@@ -398,9 +597,35 @@ class ApiClient {
     return response.data;
   }
 
+  // Employment Reports
+  async createEmploymentReport(id: string, data: {
+    type: 'PAYMENT_ISSUES' | 'NOT_FOLLOWING_JOB_LAWS' | 'STEALING' | 'MISSING';
+    description: string;
+  }) {
+    const response = await this.axiosInstance.post<ApiResponse<any>>(`/employment/${id}/reports`, data);
+    return response.data;
+  }
+
+  // Job Payment Actions
+  async payJobPayment(jobPaymentId: string, pin: string) {
+    const response = await this.axiosInstance.put<ApiResponse<any>>(`/employment/job-payments/${jobPaymentId}/pay`, { pin });
+    return response.data;
+  }
+
+  async confirmJobPayment(jobPaymentId: string, pin: string) {
+    const response = await this.axiosInstance.put<ApiResponse<any>>(`/employment/job-payments/${jobPaymentId}/confirm`, { pin });
+    return response.data;
+  }
+
+  async rejectJobPayment(jobPaymentId: string, pin: string) {
+    const response = await this.axiosInstance.put<ApiResponse<any>>(`/employment/job-payments/${jobPaymentId}/reject`, { pin });
+    return response.data;
+  }
+
   // Debt queries
   async getDebtsRequested(params: {
-    status?: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'PAID_PENDING_CONFIRMATION' | 'OVERDUE';
+    status?: 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'COMPLETED' | 'REJECTED' | 'OVERDUE';
+    search?: string;
     dateFrom?: string;
     dateTo?: string;
     limit?: number;
@@ -420,9 +645,10 @@ class ApiClient {
     }
 
     try {
-      const response = await this.axiosInstance.get<DebtsApiResponse>('/debt/debts-requested', {
+      const response = await this.axiosInstance.get<DebtsApiResponse>('/debt/requested', {
         params: { 
           status: params.status,
+          search: params.search,
           dateFrom: params.dateFrom,
           dateTo: params.dateTo,
           limit: params.limit || 10, 
@@ -452,7 +678,8 @@ class ApiClient {
   }
 
   async getDebtsOffered(params: {
-    status?: 'PENDING' | 'ACTIVE' | 'COMPLETED' | 'PAID_PENDING_CONFIRMATION' | 'OVERDUE';
+    status?: 'PENDING' | 'ACTIVE' | 'INACTIVE' | 'COMPLETED' | 'REJECTED' | 'OVERDUE';
+    search?: string;
     dateFrom?: string;
     dateTo?: string;
     limit?: number;
@@ -472,9 +699,10 @@ class ApiClient {
     }
 
     try {
-      const response = await this.axiosInstance.get<DebtsApiResponse>('/debt/debts-offered', {
+      const response = await this.axiosInstance.get<DebtsApiResponse>('/debt/offered', {
         params: { 
           status: params.status,
+          search: params.search,
           dateFrom: params.dateFrom,
           dateTo: params.dateTo,
           limit: params.limit || 10, 
@@ -735,6 +963,109 @@ class ApiClient {
     const response = await this.axiosInstance.post<ApiResponse<any>>('/subscriptions/subscribe', {
       planId,
     });
+    return response.data;
+  }
+
+  // Employment API
+  async getEmploymentsAsEmployer(filters?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+    resignationStatus?: string;
+    isActive?: boolean;
+    dateFrom?: string;
+    dateTo?: string;
+  }) {
+    const response = await this.axiosInstance.get<ApiResponse<PaginatedResponse<any>>>(
+      '/employment/as-employer',
+      { params: filters }
+    );
+    return response.data;
+  }
+
+  async getEmploymentsAsEmployee(filters?: {
+    page?: number;
+    limit?: number;
+    search?: string;
+    status?: string;
+    resignationStatus?: string;
+    isActive?: boolean;
+    dateFrom?: string;
+    dateTo?: string;
+  }) {
+    const response = await this.axiosInstance.get<ApiResponse<PaginatedResponse<any>>>(
+      '/employment/as-employee',
+      { params: filters }
+    );
+    return response.data;
+  }
+
+  async getEmploymentById(id: string) {
+    const response = await this.axiosInstance.get<ApiResponse<any>>(`/employment/${id}`);
+    return response.data;
+  }
+
+  async createEmployment(data: {
+    employeeId: string;
+    title: string;
+    description?: string;
+    salary?: number;
+    paymentType: 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'CUSTOM_RANGE' | 'AFTER_JOB';
+    startDate?: string;
+  }) {
+    const response = await this.axiosInstance.post<ApiResponse<any>>('/employment', data);
+    return response.data;
+  }
+
+  async getEmploymentPublicReports(userCode: string) {
+    const response = await this.axiosInstance.get<ApiResponse<any>>(`/employment/public-reports/${userCode}`);
+    return response.data;
+  }
+
+  async getEmploymentAnalytics(userCode: string) {
+    const response = await this.axiosInstance.get<ApiResponse<any>>(`/employment/analytics/${userCode}`);
+    return response.data;
+  }
+
+  // Employment Actions
+  async approveEmployment(id: string, pin: string) {
+    const response = await this.axiosInstance.put<ApiResponse<any>>(`/employment/${id}/approve`, { pin });
+    return response.data;
+  }
+
+  async rejectEmployment(id: string, pin: string) {
+    const response = await this.axiosInstance.put<ApiResponse<any>>(`/employment/${id}/reject`, { pin });
+    return response.data;
+  }
+
+  async resignEmployment(id: string, pin: string) {
+    const response = await this.axiosInstance.put<ApiResponse<any>>(`/employment/${id}/resign`, { pin });
+    return response.data;
+  }
+
+  async confirmResignation(id: string, pin: string) {
+    const response = await this.axiosInstance.put<ApiResponse<any>>(`/employment/${id}/confirm-resignation`, { pin });
+    return response.data;
+  }
+
+  async rejectResignation(id: string, pin: string) {
+    const response = await this.axiosInstance.put<ApiResponse<any>>(`/employment/${id}/reject-resignation`, { pin });
+    return response.data;
+  }
+
+  async finishEmployment(id: string, pin: string) {
+    const response = await this.axiosInstance.put<ApiResponse<any>>(`/employment/${id}/finish`, { pin });
+    return response.data;
+  }
+
+  async confirmFinish(id: string, pin: string) {
+    const response = await this.axiosInstance.put<ApiResponse<any>>(`/employment/${id}/confirm-finish`, { pin });
+    return response.data;
+  }
+
+  async rejectFinish(id: string, pin: string) {
+    const response = await this.axiosInstance.put<ApiResponse<any>>(`/employment/${id}/reject-finish`, { pin });
     return response.data;
   }
 }

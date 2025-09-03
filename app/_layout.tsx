@@ -89,9 +89,15 @@ export default function RootLayout() {
   if (showOnboarding) {
     console.log('Showing onboarding screen');
     return (
-      <ThemeProvider>
-        <OnboardingScreen />
-      </ThemeProvider>
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <QueryClientProvider client={queryClient}>
+          <ThemeProvider>
+            <TranslationProvider>
+              <OnboardingScreen />
+            </TranslationProvider>
+          </ThemeProvider>
+        </QueryClientProvider>
+      </GestureHandlerRootView>
     );
   }
 

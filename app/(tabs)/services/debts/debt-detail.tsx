@@ -11,9 +11,8 @@ import {
   TextStyle,
   KeyboardAvoidingView,
   Platform,
-  TouchableWithoutFeedback,
-  Keyboard,
 } from 'react-native';
+import BottomSheet, { BottomSheetView, BottomSheetTextInput } from '@gorhom/bottom-sheet';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -146,6 +145,18 @@ export default function DebtDetailScreen() {
   const [paymentAmount, setPaymentAmount] = useState('');
   const [pinForApproval, setPinForApproval] = useState('');
   const [showPin, setShowPin] = useState(false);
+  
+  // PIN Modal state
+  const [showPinModal, setShowPinModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<{
+    type: string;
+    title: string;
+    description: string;
+    paymentId?: string;
+  } | null>(null);
+  
+  // Bottom sheet ref
+  const pinBottomSheetRef = useRef<BottomSheet>(null);
 
   const [debt, setDebt] = useState<ExtendedDebt | null>(null);
   const [error, setError] = useState<Error | null>(null);
@@ -339,16 +350,75 @@ export default function DebtDetailScreen() {
     payDebtMutation.mutate({ debtId: id, amount: paymentAmount });
   };
 
-  const handleApprove = () => {
-    if (!pinForApproval || pinForApproval.length < 4) {
-      showError('Invalid PIN', 'Please enter your 4-6 digit PIN');
+  // Show PIN modal for action
+  const showPinModalForAction = (type: string, title: string, description: string, paymentId?: string) => {
+    setPendingAction({ type, title, description, paymentId });
+    setShowPinModal(true);
+    setPinForApproval('');
+    setShowPin(false);
+    pinBottomSheetRef.current?.expand();
+  };
+
+  // Execute the pending action
+  const executeAction = async () => {
+    if (!pendingAction || !pinForApproval.trim()) {
+      showError('Invalid Input', 'Please enter your PIN/Password');
       return;
     }
 
-    approveDebtMutation.mutate({
-      debtId: id,
-      pin: pinForApproval,
-    });
+    try {
+      let mutation;
+      let successMessage;
+
+      switch (pendingAction.type) {
+        case 'approve':
+          mutation = approveDebtMutation;
+          successMessage = 'Debt approved successfully';
+          await mutation.mutateAsync({
+            debtId: id,
+            pin: pinForApproval.trim(),
+          });
+          break;
+        case 'confirmPayment':
+          mutation = confirmPaymentMutation;
+          successMessage = 'Payment confirmed successfully';
+          await mutation.mutateAsync({
+            paymentId: pendingAction.paymentId!,
+            pin: pinForApproval.trim(),
+          });
+          break;
+        case 'rejectPayment':
+          mutation = rejectPaymentMutation;
+          successMessage = 'Payment rejected successfully';
+          await mutation.mutateAsync({
+            paymentId: pendingAction.paymentId!,
+            pin: pinForApproval.trim(),
+          });
+          break;
+        case 'confirmDebtPayment':
+          mutation = confirmDebtPaymentMutation;
+          successMessage = 'Payment confirmed successfully';
+          await mutation.mutateAsync({
+            debtId: id,
+            pin: pinForApproval.trim(),
+          });
+          break;
+        default:
+          throw new Error('Unknown action type');
+      }
+
+      showSuccess('Success', successMessage);
+      setShowPinModal(false);
+      setPendingAction(null);
+      setPinForApproval('');
+      pinBottomSheetRef.current?.close();
+    } catch (error: any) {
+      showError('Action Failed', error.response?.data?.message || error.message || 'Failed to perform action');
+    }
+  };
+
+  const handleApprove = () => {
+    showPinModalForAction('approve', 'Approve Debt', 'Enter your PIN/Password to approve this debt');
   };
 
   const handleReject = () => {
@@ -356,27 +426,15 @@ export default function DebtDetailScreen() {
   };
 
   const handleConfirmPaid = () => {
-    if (!pinForApproval || pinForApproval.length < 4) {
-      showError('Invalid PIN', 'Please enter a valid 4-digit PIN.');
-      return;
-    }
-
-    confirmDebtPaymentMutation.mutate({
-      debtId: id,
-      pin: pinForApproval,
-    });
+    showPinModalForAction('confirmDebtPayment', 'Confirm Payment', 'Enter your PIN/Password to confirm payment received');
   };
 
   const handleConfirmPayment = (paymentId: string) => {
-    if (!pinForApproval || pinForApproval.length < 4) {
-      showError('Invalid PIN', 'Please enter a valid 4-digit PIN.');
-      return;
-    }
+    showPinModalForAction('confirmPayment', 'Confirm Payment', 'Enter your PIN/Password to confirm this payment', paymentId);
+  };
 
-    confirmPaymentMutation.mutate({
-      paymentId: paymentId,
-      pin: pinForApproval,
-    });
+  const handleRejectPayment = (paymentId: string) => {
+    showPinModalForAction('rejectPayment', 'Reject Payment', 'Enter your PIN/Password to reject this payment', paymentId);
   };
 
   if (!debt && !isLoadingDebt) {
@@ -434,24 +492,23 @@ export default function DebtDetailScreen() {
         <Text style={styles.title}>Debt Details</Text>
       </View>
 
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <View style={styles.scrollContainer}>
-          <ScrollView 
-            key={`scroll-${debt?.id}-${debt?.status}`}
-            style={styles.content}
-            contentContainerStyle={styles.scrollContent}
-            showsVerticalScrollIndicator={true}
-            keyboardShouldPersistTaps="handled"
-            keyboardDismissMode="on-drag"
-            scrollEnabled={true}
-            bounces={true}
-            nestedScrollEnabled={true}
-            removeClippedSubviews={false}
-            maintainVisibleContentPosition={{
-              minIndexForVisible: 0,
-              autoscrollToTopThreshold: 10
-            }}
-          >
+      <View style={styles.scrollContainer}>
+        <ScrollView 
+          key={`scroll-${debt?.id}-${debt?.status}`}
+          style={styles.content}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={true}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          scrollEnabled={true}
+          bounces={true}
+          nestedScrollEnabled={true}
+          removeClippedSubviews={false}
+          maintainVisibleContentPosition={{
+            minIndexForVisible: 0,
+            autoscrollToTopThreshold: 10
+          }}
+        >
         <MotiView
           from={{ opacity: 0, translateY: 30 }}
           animate={{ opacity: 1, translateY: 0 }}
@@ -769,61 +826,25 @@ export default function DebtDetailScreen() {
                       </View>
                       
                       {/* Confirm Payment Button for Issuer - Only show for first unconfirmed payment */}
-                                              {isIssuer && !payment.confirmedByIssuer && isFirstUnconfirmed && (
-                          <View style={styles.paymentActions}>
-                            <View style={styles.pinInputContainer}>
-                              <Text style={styles.pinInputLabel}>Enter PIN to confirm</Text>
-                              <View style={styles.pinInputWrapper}>
-                                <Lock color={colors.textSecondary} size={20} style={styles.pinInputIcon} />
-                                <TextInput
-                                  value={pinForApproval}
-                                  onChangeText={setPinForApproval}
-                                  placeholder="••••"
-                                  secureTextEntry={!showPin}
-                              
-                                  style={styles.pinInputField}
-                                  placeholderTextColor={colors.textSecondary}
-                                />
-                                <TouchableOpacity
-                                  onPress={() => setShowPin(!showPin)}
-                                  style={styles.pinInputSuffix}
-                                >
-                                  {showPin ? (
-                                    <EyeOff color={colors.textSecondary} size={20} />
-                                  ) : (
-                                    <Eye color={colors.textSecondary} size={20} />
-                                  )}
-                                </TouchableOpacity>
-                              </View>
-                            </View>
-                            <Button
-                              title="Confirm Payment"
-                              onPress={() => handleConfirmPayment(payment.id)}
-                              loading={confirmPaymentMutation.isPending}
-                              style={styles.confirmPaymentButton}
-                              disabled={!pinForApproval || pinForApproval.length < 4}
-                            />
-                          </View>
-                        )}
+                      {isIssuer && !payment.confirmedByIssuer && isFirstUnconfirmed && (
+                        <View style={styles.paymentActions}>
+                          <Button
+                            title="Confirm Payment"
+                            onPress={() => handleConfirmPayment(payment.id)}
+                            loading={confirmPaymentMutation.isPending}
+                            style={styles.confirmPaymentButton}
+                          />
+                        </View>
+                      )}
 
                       {/* Reject Payment Button for Issuer - Only show for first unconfirmed payment */}
                       {isIssuer && !payment.confirmedByIssuer && isFirstUnconfirmed && (
                         <View style={styles.paymentActions}>
                           <Button
                             title="Reject Payment"
-                            onPress={() => {
-                              if (!pinForApproval || pinForApproval.length < 4) {
-                                showError('Invalid PIN', 'Please enter a valid 4-digit PIN.');
-                                return;
-                              }
-                              rejectPaymentMutation.mutate({ 
-                                paymentId: payment.id, 
-                                pin: pinForApproval 
-                              });
-                            }}
+                            onPress={() => handleRejectPayment(payment.id)}
                             loading={rejectPaymentMutation.isPending}
                             style={styles.rejectPaymentButton}
-                            disabled={!pinForApproval || pinForApproval.length < 4 || rejectPaymentMutation.isPending}
                           />
                         </View>
                       )}
@@ -851,7 +872,7 @@ export default function DebtDetailScreen() {
                     label="Payment Amount"
                     value={paymentAmount}
                     onChangeText={setPaymentAmount}
-                    keyboardType="numeric"
+
                     placeholder={`Max: ${debt ? (() => {
                       const confirmedPaymentsTotal = payments
                         ?.filter(p => p.confirmedByIssuer)
@@ -878,31 +899,7 @@ export default function DebtDetailScreen() {
                     <Shield color={colors.info} size={20} />
                     <Text style={styles.actionSectionTitle}>Approve Debt</Text>
                   </View>
-                  <View style={styles.pinInputContainer}>
-                    <Text style={styles.pinInputLabel}>Enter your PIN to approve</Text>
-                    <View style={styles.pinInputWrapper}>
-                      <Lock color={colors.textSecondary} size={20} style={styles.pinInputIcon} />
-                      <TextInput
-                        value={pinForApproval}
-                        onChangeText={setPinForApproval}
-                        placeholder="••••"
-                        secureTextEntry={!showPin}
-                    
-                        style={styles.pinInputField}
-                        placeholderTextColor={colors.textSecondary}
-                      />
-                      <TouchableOpacity
-                        onPress={() => setShowPin(!showPin)}
-                        style={styles.pinInputSuffix}
-                      >
-                        {showPin ? (
-                          <EyeOff color={colors.textSecondary} size={20} />
-                        ) : (
-                          <Eye color={colors.textSecondary} size={20} />
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  </View>
+
                   <View style={styles.buttonGroup}>
                     <TouchableOpacity
                       style={[styles.actionButton, styles.rejectButton]}
@@ -923,7 +920,7 @@ export default function DebtDetailScreen() {
                     <TouchableOpacity
                       style={[styles.actionButton, styles.approveButton]}
                       onPress={handleApprove}
-                      disabled={!pinForApproval || pinForApproval.length < 4 || approveDebtMutation.isPending}
+                      disabled={approveDebtMutation.isPending}
                       activeOpacity={0.8}
                     >
                       {approveDebtMutation.isPending ? (
@@ -946,46 +943,88 @@ export default function DebtDetailScreen() {
                     <CheckCircle color={colors.success} size={20} />
                     <Text style={styles.actionSectionTitle}>Confirm Payment</Text>
                   </View>
-                  <View style={styles.pinInputContainer}>
-                    <Text style={styles.pinInputLabel}>Enter your PIN to confirm payment</Text>
-                    <View style={styles.pinInputWrapper}>
-                      <Lock color={colors.textSecondary} size={20} style={styles.pinInputIcon} />
-                      <TextInput
-                        value={pinForApproval}
-                        onChangeText={setPinForApproval}
-                        placeholder="••••"
-                        secureTextEntry={!showPin}
-                    
-                        style={styles.pinInputField}
-                        placeholderTextColor={colors.textSecondary}
-                      />
-                      <TouchableOpacity
-                        onPress={() => setShowPin(!showPin)}
-                        style={styles.pinInputSuffix}
-                      >
-                        {showPin ? (
-                          <EyeOff color={colors.textSecondary} size={20} />
-                        ) : (
-                          <Eye color={colors.textSecondary} size={20} />
-                        )}
-                      </TouchableOpacity>
-                    </View>
-                  </View>
                   <Button
                     title="Confirm Payment Received"
                     onPress={handleConfirmPaid}
                     loading={confirmDebtPaymentMutation.isPending}
                     style={styles.actionButton}
-                    disabled={!pinForApproval || pinForApproval.length < 4}
                   />
                 </View>
               )}
             </Card>
           )}
         </MotiView>
-          </ScrollView>
-        </View>
-      </TouchableWithoutFeedback>
+        </ScrollView>
+      </View>
+
+      {/* PIN Input Bottom Sheet */}
+      <BottomSheet
+        ref={pinBottomSheetRef}
+        index={-1}
+        snapPoints={['50%']}
+        enablePanDownToClose
+        onClose={() => setShowPinModal(false)}
+        backgroundStyle={{ backgroundColor: colors.background }}
+        handleIndicatorStyle={{ backgroundColor: colors.border }}
+      >
+        <BottomSheetView style={styles.bottomSheetContent}>
+          <View style={styles.modalHeader}>
+            <Text style={styles.modalTitle}>{pendingAction?.title}</Text>
+            <TouchableOpacity
+              onPress={() => pinBottomSheetRef.current?.close()}
+              style={styles.modalCloseButton}
+            >
+              <XCircle color={colors.textSecondary} size={24} />
+            </TouchableOpacity>
+          </View>
+
+          <Text style={styles.modalDescription}>{pendingAction?.description}</Text>
+
+          <View style={styles.pinInputContainer}>
+            <Text style={styles.pinInputLabel}>PIN/Password</Text>
+            <View style={styles.pinInputWrapper}>
+              <Lock color={colors.textSecondary} size={20} style={styles.pinInputIcon} />
+              <BottomSheetTextInput
+                value={pinForApproval}
+                onChangeText={setPinForApproval}
+                placeholder="••••"
+                secureTextEntry={!showPin}
+                style={styles.pinInputField}
+                placeholderTextColor={colors.textSecondary}
+              />
+              <TouchableOpacity
+                onPress={() => setShowPin(!showPin)}
+                style={styles.pinInputSuffix}
+              >
+                {showPin ? (
+                  <EyeOff color={colors.textSecondary} size={20} />
+                ) : (
+                  <Eye color={colors.textSecondary} size={20} />
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          <View style={styles.modalActions}>
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonSecondary]}
+              onPress={() => pinBottomSheetRef.current?.close()}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.modalButtonText, { color: colors.textSecondary }]}>Cancel</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.modalButton, styles.modalButtonPrimary]}
+              onPress={executeAction}
+              disabled={!pinForApproval.trim() || pinForApproval.length < 4}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.modalButtonText, { color: colors.white }]}>Confirm</Text>
+            </TouchableOpacity>
+          </View>
+        </BottomSheetView>
+      </BottomSheet>
     </SafeAreaView>
   );
 }
@@ -1530,5 +1569,59 @@ const getStyles = (colors: any) =>
       fontFamily: 'DMSans-Regular',
       color: colors.text,
       minHeight: 48,
+    },
+    // Modal styles
+    bottomSheetContent: {
+      flex: 1,
+      paddingHorizontal: Spacing.lg,
+      paddingTop: Spacing.lg,
+    },
+    modalHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: Spacing.md,
+    },
+    modalTitle: {
+      fontSize: Typography.fontSize.lg,
+      fontFamily: 'DMSans-Bold',
+      color: colors.text,
+      flex: 1,
+    },
+    modalCloseButton: {
+      padding: Spacing.sm,
+    },
+    modalDescription: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+      marginBottom: Spacing.lg,
+      lineHeight: 22,
+    },
+    modalActions: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      marginTop: Spacing.lg,
+      gap: Spacing.md,
+    },
+    modalButton: {
+      flex: 1,
+      paddingVertical: Spacing.md,
+      paddingHorizontal: Spacing.lg,
+      borderRadius: BorderRadius.md,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    modalButtonSecondary: {
+      backgroundColor: 'transparent',
+      borderWidth: 1,
+      borderColor: colors.border,
+    },
+    modalButtonPrimary: {
+      backgroundColor: colors.primary,
+    },
+    modalButtonText: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-SemiBold',
     },
   });

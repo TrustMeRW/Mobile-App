@@ -44,6 +44,7 @@ import {
   CheckCircle,
   XCircle,
   AlertTriangle,
+  FileText,
 } from 'lucide-react-native';
 import QRCodeScanner from '@/components/QRCodeScanner';
 import UserTrustabilityDisplay from '@/components/UserTrustabilityDisplay';
@@ -123,8 +124,9 @@ export default function AddDebtScreen() {
     items: [{ name: '', description: '', quantity: 1, amount: 0 }],
     dueDate: null,
     selectedUser: null,
-    intiationType: 'REQUEST',
+    intiationType: 'OFFERING',
   });
+  const [termsAccepted, setTermsAccepted] = useState(false);
 
   // Safety check for user
   if (!currentUser) {
@@ -147,7 +149,7 @@ export default function AddDebtScreen() {
   }, [createDebtMutation.isSuccess, router]);
 
   const handleNext = () => {
-    if (currentStep < 3) {
+    if (currentStep < 4) {
       setCurrentStep(currentStep + 1);
     }
   };
@@ -158,9 +160,7 @@ export default function AddDebtScreen() {
     }
   };
 
-  const handleDebtTypeChange = (type: 'REQUEST' | 'offer') => {
-    setDebtForm(prev => ({ ...prev, intiationType: type }));
-  };
+
 
   const addItem = () => {
     setDebtForm(prev => ({
@@ -202,7 +202,7 @@ export default function AddDebtScreen() {
       const response = await apiClient.getUserTrustabilityAnalyticsByCode(code);
       setScannedUserData(response.payload);
       setShowScanner(false);
-      setCurrentStep(2); // Move to user display step
+      setCurrentStep(1); // Move to user profile step
     } catch (error: any) {
       console.error('QR Code scan error:', error);
       showError(
@@ -225,7 +225,7 @@ export default function AddDebtScreen() {
           trustabilityPercentage: scannedUserData.trustabilityPercentage,
         },
       }));
-      setCurrentStep(3); // Move to review step
+      setCurrentStep(2); // Move to debt details step
     }
   };
 
@@ -256,7 +256,7 @@ export default function AddDebtScreen() {
       const response = await apiClient.getUserTrustabilityAnalyticsByCode(manualUserCode.trim());
       setScannedUserData(response.payload);
       setManualUserCode('');
-      setCurrentStep(2); // Move to user display step
+      setCurrentStep(1); // Move to user profile step
     } catch (error: any) {
       console.error('Manual code scan error:', error);
       showError(
@@ -315,8 +315,9 @@ export default function AddDebtScreen() {
       items: [{ name: '', description: '', quantity: 1, amount: 0 }],
       dueDate: null,
       selectedUser: null,
-      intiationType: 'REQUEST',
+      intiationType: 'OFFERING',
     });
+    setTermsAccepted(false);
     setCurrentStep(0);
     setScannedUserData(null);
     setManualUserCode('');
@@ -329,65 +330,72 @@ export default function AddDebtScreen() {
       case 0:
         return (
           <Card style={styles.stepCard}>
-              <View style={styles.stepHeader}>
-                <Package color={colors.primary} size={24} />
-                <Text style={styles.stepTitle}>{t('addDebt.steps.debtType.title')}</Text>
-              </View>
-              <Text style={styles.stepSubtext}>
-                {t('addDebt.steps.debtType.subtitle')}
+            <View style={styles.stepHeader}>
+              <QrCode color={colors.primary} size={24} />
+              <Text style={styles.stepTitle}>Scan User QR Code</Text>
+            </View>
+            <Text style={styles.stepSubtext}>
+              Scan the QR code of the user you want to create a debt with
+            </Text>
+            
+            <TouchableOpacity
+              style={[
+                styles.scanButton,
+                isPendingRequest && styles.scanButtonDisabled
+              ]}
+              onPress={() => setShowScanner(true)}
+              disabled={isPendingRequest}
+              activeOpacity={0.8}
+            >
+              {isPendingRequest ? (
+                <LoadingSpinner size="small" color={colors.white} />
+              ) : (
+                <QrCode color={colors.white} size={24} />
+              )}
+              <Text style={styles.scanButtonText}>
+                {isPendingRequest ? 'Scanning...' : 'Scan QR Code'}
               </Text>
-
-              <View style={styles.debtTypeOptions}>
+            </TouchableOpacity>
+            
+            <View style={styles.manualInputSection}>
+              <Text style={styles.manualInputLabel}>Or enter user code manually</Text>
+              <View style={styles.manualInputContainer}>
+                <Input
+                  placeholder="Enter user code"
+                  value={manualUserCode}
+                  onChangeText={(text) => setManualUserCode(text.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
+                  style={styles.manualInput}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  keyboardType="default"
+                />
                 <TouchableOpacity
                   style={[
-                    styles.debtTypeOption,
-                    debtForm.intiationType === 'REQUEST' && styles.debtTypeOptionActive
+                    styles.manualSubmitButton,
+                    isPendingRequest && styles.manualSubmitButtonDisabled
                   ]}
-                  onPress={() => handleDebtTypeChange('REQUEST')}
+                  onPress={handleManualCodeSubmit}
+                  disabled={!manualUserCode.trim() || isPendingRequest}
+                  activeOpacity={0.8}
                 >
-                  <View style={styles.debtTypeContent}>
-                    <Text style={[
-                      styles.debtTypeTitle,
-                      debtForm.intiationType === 'REQUEST' && styles.debtTypeTitleActive
-                    ]}>
-                      {t('addDebt.steps.debtType.request.title')}
-                    </Text>
-                    <Text style={[
-                      styles.debtTypeSubtext,
-                      debtForm.intiationType === 'REQUEST' && styles.debtTypeSubtextActive
-                    ]}>
-                      {t('addDebt.steps.debtType.request.subtitle')}
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[
-                    styles.debtTypeOption,
-                    debtForm.intiationType === 'offer' && styles.debtTypeOptionActive
-                  ]}
-                  onPress={() => handleDebtTypeChange('offer')}
-                >
-                  <View style={styles.debtTypeContent}>
-                    <Text style={[
-                      styles.debtTypeTitle,
-                      debtForm.intiationType === 'offer' && styles.debtTypeTitleActive
-                    ]}>
-                      {t('addDebt.steps.debtType.offer.title')}
-                    </Text>
-                    <Text style={[
-                      styles.debtTypeSubtext,
-                      debtForm.intiationType === 'offer' && styles.debtTypeSubtextActive
-                    ]}>
-                      {t('addDebt.steps.debtType.offer.subtitle')}
-                    </Text>
-                  </View>
+                  <Search color={colors.white} size={20} />
                 </TouchableOpacity>
               </View>
-            </Card>
+            </View>
+          </Card>
         );
 
       case 1:
+        if (scannedUserData) {
+          return (
+            <UserTrustabilityDisplay
+              data={scannedUserData}
+            />
+          );
+        }
+        return null;
+
+      case 2:
         return (
           <View>
             <Card style={styles.stepCard}>
@@ -526,7 +534,7 @@ export default function AddDebtScreen() {
               </View>
             )}
 
-            {/* Date Picker - Only rendered in step 1 */}
+            {/* Date Picker - Only rendered in step 2 */}
             {showDatePicker && (
               <DateTimePicker
                 value={debtForm.dueDate || new Date()}
@@ -540,80 +548,84 @@ export default function AddDebtScreen() {
         </View>
         );
 
-      case 2:
-        if (scannedUserData) {
-          return (
-            <UserTrustabilityDisplay
-              data={scannedUserData}
-            />
-          );
-        }
+      case 3:
         return (
           <Card style={styles.stepCard}>
-              <View style={styles.stepHeader}>
-                <QrCode color={colors.primary} size={24} />
-                <Text style={styles.stepTitle}>{t('addDebt.steps.scanUser.title')}</Text>
-              </View>
-              <Text style={styles.stepSubtext}>
-                {debtForm.intiationType === 'REQUEST'
-                  ? t('addDebt.steps.scanUser.requestSubtitle')
-                  : t('addDebt.steps.scanUser.offerSubtitle')
-                }
+            <View style={styles.stepHeader}>
+              <FileText color={colors.primary} size={24} />
+              <Text style={styles.stepTitle}>Terms & Conditions</Text>
+            </View>
+            <Text style={styles.stepSubtext}>
+              Please read and accept the terms and conditions for creating this debt
+            </Text>
+
+            <ScrollView style={styles.termsContainer} showsVerticalScrollIndicator={false}>
+              <Text style={styles.termsTitle}>Debt Creation Terms & Conditions</Text>
+              
+              <Text style={styles.termsSectionTitle}>1. Debt Agreement</Text>
+              <Text style={styles.termsText}>
+                By creating this debt, you agree to lend the specified amount to the selected user. 
+                This creates a legally binding agreement between both parties.
               </Text>
+
+              <Text style={styles.termsSectionTitle}>2. Payment Terms</Text>
+              <Text style={styles.termsText}>
+                The borrower agrees to repay the debt according to the agreed terms. 
+                If a due date is specified, payment should be made by that date. 
+                Late payments may incur additional charges as agreed upon.
+              </Text>
+
+              <Text style={styles.termsSectionTitle}>3. TrustME Platform</Text>
+              <Text style={styles.termsText}>
+                TrustME acts as a platform to facilitate debt creation and tracking. 
+                We are not responsible for the actual debt repayment or any disputes between parties.
+              </Text>
+
+              <Text style={styles.termsSectionTitle}>4. Dispute Resolution</Text>
+              <Text style={styles.termsText}>
+                Any disputes regarding this debt should be resolved between the parties involved. 
+                TrustME may provide mediation services but is not obligated to do so.
+              </Text>
+
+              <Text style={styles.termsSectionTitle}>5. Data Privacy</Text>
+              <Text style={styles.termsText}>
+                Your personal and financial information will be handled according to our privacy policy. 
+                Debt information may be shared with relevant parties for verification purposes.
+              </Text>
+
+              <Text style={styles.termsSectionTitle}>6. Legal Compliance</Text>
+              <Text style={styles.termsText}>
+                All parties must comply with local laws and regulations regarding lending and borrowing. 
+                TrustME reserves the right to suspend accounts that violate these terms.
+              </Text>
+            </ScrollView>
+
+            <View style={styles.termsAcceptance}>
               <TouchableOpacity
-                style={[
-                  styles.scanButton,
-                  isPendingRequest && styles.scanButtonDisabled
-                ]}
-                onPress={() => setShowScanner(true)}
-                disabled={isPendingRequest}
-                activeOpacity={0.8}
+                style={styles.checkboxContainer}
+                onPress={() => setTermsAccepted(!termsAccepted)}
+                activeOpacity={0.7}
               >
-                {isPendingRequest ? (
-                  <LoadingSpinner size="small" color={colors.white} />
-                ) : (
-                  <QrCode color={colors.white} size={24} />
-                )}
-                <Text style={styles.scanButtonText}>
-                  {isPendingRequest ? t('addDebt.steps.scanUser.scanning') : t('addDebt.steps.scanUser.scanButton')}
+                <View style={[
+                  styles.checkbox,
+                  termsAccepted && styles.checkboxChecked,
+                  { borderColor: termsAccepted ? colors.primary : colors.border }
+                ]}>
+                  {termsAccepted && (
+                    <CheckCircle color={colors.primary} size={16} />
+                  )}
+                </View>
+                <Text style={[styles.checkboxLabel, { color: colors.text }]}>
+                  I have read and agree to the terms and conditions
                 </Text>
               </TouchableOpacity>
-              
-              {/* Manual Input Section */}
-              <View style={styles.manualInputSection}>
-                <Text style={styles.manualInputLabel}>{t('addDebt.steps.scanUser.manualInput')}</Text>
-                <View style={styles.manualInputContainer}>
-                  <Input
-                    placeholder={t('addDebt.steps.scanUser.codePlaceholder')}
-                    value={manualUserCode}
-                    onChangeText={setManualUserCode}
-                    style={styles.manualInput}
-                  />
-                  <TouchableOpacity
-                    style={[
-                      styles.manualSubmitButton,
-                      isPendingRequest && styles.manualSubmitButtonDisabled
-                    ]}
-                    onPress={handleManualCodeSubmit}
-                    disabled={!manualUserCode.trim() || isPendingRequest}
-                    activeOpacity={0.8}
-                  >
-                    {isPendingRequest ? (
-                      <LoadingSpinner size="small" color={colors.white} />
-                    ) : (
-                      <Text style={styles.manualSubmitButtonText}>{t('addDebt.steps.scanUser.fetchUser')}</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              </View>
-              
-              <Text style={styles.scanInstructions}>
-                Point your camera at the user's QR code to scan and view their trustability analytics
-              </Text>
-            </Card>
+            </View>
+          </Card>
         );
 
-      case 3:
+
+
+      case 4:
         return (
           <Card style={styles.stepCard}>
               <View style={styles.stepHeader}>
@@ -626,14 +638,9 @@ export default function AddDebtScreen() {
 
               <View style={styles.reviewSection}>
                 <Text style={styles.reviewTitle}>Debt Type</Text>
-                <Text style={styles.reviewValue}>
-                  {debtForm.intiationType === 'REQUEST' ? 'I Owe Someone' : 'Someone Owes Me'}
-                </Text>
+                <Text style={styles.reviewValue}>Someone Owes Me</Text>
                 <Text style={styles.reviewDescription}>
-                  {debtForm.intiationType === 'REQUEST' 
-                    ? 'You are requesting to borrow from this person'
-                    : 'You are offering to lend to this person'
-                  }
+                  You are offering to lend to this person
                 </Text>
               </View>
 
@@ -685,12 +692,14 @@ export default function AddDebtScreen() {
   const getStepTitle = () => {
     switch (currentStep) {
       case 0:
-        return 'Select Debt Type';
+        return 'Scan QR Code';
       case 1:
-        return 'Add Products/Services';
+        return 'User Profile';
       case 2:
-        return 'Scan User';
+        return 'Debt Details';
       case 3:
+        return 'Terms & Conditions';
+      case 4:
         return 'Review & Confirm';
       default:
         return '';
@@ -700,13 +709,15 @@ export default function AddDebtScreen() {
   const canProceed = () => {
     switch (currentStep) {
       case 0:
-        return debtForm.intiationType !== null;
+        return scannedUserData !== null; // QR scan step - can proceed when user is selected
       case 1:
-        return debtForm.items.every(item => item.name && item.amount > 0);
+        return scannedUserData !== null; // User profile step - can proceed when user data is available
       case 2:
-        return scannedUserData !== null;
+        return debtForm.items.every(item => item.name && item.amount > 0); // Items step
       case 3:
-        return debtForm.selectedUser !== null;
+        return termsAccepted; // Terms step - can proceed when terms are accepted
+      case 4:
+        return true; // Review step - always can proceed
       default:
         return false;
     }
@@ -755,7 +766,7 @@ export default function AddDebtScreen() {
 
       {/* Navigation */}
       <View style={styles.navigation}>
-        {currentStep === 2 && scannedUserData ? (
+        {currentStep === 1 && scannedUserData ? (
           <TouchableOpacity
             style={[styles.navButton, styles.cancelButton]}
             onPress={handleCancel}
@@ -775,7 +786,7 @@ export default function AddDebtScreen() {
           </TouchableOpacity>
         ) : null}
         
-        {currentStep === 2 && scannedUserData ? (
+        {currentStep === 1 && scannedUserData ? (
           <TouchableOpacity
             style={[styles.navButton, styles.proceedButton]}
             onPress={handleProceed}
@@ -785,7 +796,7 @@ export default function AddDebtScreen() {
             <CheckCircle color={colors.white} size={20} style={styles.navButtonIcon} />
             <Text style={[styles.navButtonText, { color: colors.white }]}>Select User</Text>
           </TouchableOpacity>
-        ) : currentStep < 3 ? (
+        ) : currentStep < 4 ? (
           <TouchableOpacity
             style={[styles.navButton, styles.nextButton]}
             onPress={handleNext}
@@ -1357,5 +1368,59 @@ const getStyles = (colors: any) =>
       color: colors.textSecondary,
       marginBottom: Spacing.xs,
       paddingHorizontal: Spacing.sm,
+    },
+    // Terms and Conditions Styles
+    termsContainer: {
+      maxHeight: 300,
+      marginBottom: Spacing.lg,
+      paddingHorizontal: Spacing.sm,
+    },
+    termsTitle: {
+      fontSize: Typography.fontSize.lg,
+      fontFamily: 'DMSans-Bold',
+      color: colors.text,
+      marginBottom: Spacing.md,
+      textAlign: 'center',
+    },
+    termsSectionTitle: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-SemiBold',
+      color: colors.text,
+      marginTop: Spacing.md,
+      marginBottom: Spacing.sm,
+    },
+    termsText: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+      lineHeight: 20,
+      marginBottom: Spacing.sm,
+    },
+    termsAcceptance: {
+      marginTop: Spacing.lg,
+      paddingHorizontal: Spacing.sm,
+    },
+    checkboxContainer: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      paddingVertical: Spacing.sm,
+    },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderRadius: 4,
+      borderWidth: 2,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginRight: Spacing.sm,
+    },
+    checkboxChecked: {
+      backgroundColor: colors.primary + '10',
+    },
+    checkboxLabel: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Medium',
+      flex: 1,
+      lineHeight: 20,
     },
   });

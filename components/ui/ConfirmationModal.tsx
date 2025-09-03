@@ -1,15 +1,14 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  Modal,
-  Dimensions,
 } from 'react-native';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Typography, Spacing, BorderRadius } from '@/constants/theme';
 import { CheckCircle, X } from 'lucide-react-native';
+import BottomSheet, { BottomSheetView } from '@gorhom/bottom-sheet';
 
 interface ConfirmationModalProps {
   isVisible: boolean;
@@ -22,8 +21,6 @@ interface ConfirmationModalProps {
   icon?: React.ReactNode;
   iconColor?: string;
 }
-
-const { height: screenHeight } = Dimensions.get('window');
 
 export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   isVisible,
@@ -38,87 +35,74 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 }) => {
   const { colors } = useTheme();
 
+  // Bottom sheet snap points
+  const snapPoints = useMemo(() => ['40%'], []);
+
+  if (!isVisible) return null;
+
   return (
-    <Modal
-      visible={isVisible}
-      transparent
-      animationType="slide"
-      onRequestClose={onClose}
+    <BottomSheet
+      index={0}
+      snapPoints={snapPoints}
+      onClose={onClose}
+      enablePanDownToClose
+      backgroundStyle={{ backgroundColor: colors.card }}
+      handleIndicatorStyle={{ backgroundColor: colors.border }}
     >
-      <View style={styles.overlay}>
-        <TouchableOpacity
-          style={styles.backdrop}
-          activeOpacity={1}
-          onPress={onClose}
-        />
-        
-        <View style={[styles.modal, { backgroundColor: colors.card }]}>
-          {/* Header */}
-          <View style={styles.header}>
-            <View style={styles.titleContainer}>
-              {icon && (
-                <View style={[
-                  styles.iconContainer, 
-                  { backgroundColor: (iconColor || colors.primary) + '15' }
-                ]}>
-                  {icon}
-                </View>
-              )}
-              <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <X color={colors.textSecondary} size={20} />
-            </TouchableOpacity>
+      <BottomSheetView style={styles.container}>
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={styles.titleContainer}>
+            {icon && (
+              <View style={[styles.iconContainer, { backgroundColor: (iconColor || colors.primary) + '15' }]}>
+                {icon}
+              </View>
+            )}
+            <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
           </View>
-
-          {/* Content */}
-          <View style={styles.content}>
-            <Text style={[styles.message, { color: colors.textSecondary }]}>
-              {message}
-            </Text>
-          </View>
-
-          {/* Buttons */}
-          <View style={styles.buttonContainer}>
-            <TouchableOpacity
-              style={[styles.cancelButton, { borderColor: colors.border }]}
-              onPress={onClose}
-              activeOpacity={0.8}
-            >
-              <Text style={[styles.cancelButtonText, { color: colors.textSecondary }]}>
-                {cancelText}
-              </Text>
-            </TouchableOpacity>
-            
-            <TouchableOpacity
-              style={[styles.confirmButton, { backgroundColor: colors.primary }]}
-              onPress={onConfirm}
-              activeOpacity={0.8}
-            >
-              <CheckCircle color={colors.white} size={18} />
-              <Text style={styles.confirmButtonText}>{confirmText}</Text>
-            </TouchableOpacity>
-          </View>
+          <TouchableOpacity onPress={onClose} style={styles.closeButton}>
+            <X color={colors.textSecondary} size={20} />
+          </TouchableOpacity>
         </View>
-      </View>
-    </Modal>
+
+        {/* Content */}
+        <View style={styles.content}>
+          <Text style={[styles.message, { color: colors.textSecondary }]}>
+            {message}
+          </Text>
+        </View>
+
+        {/* Actions */}
+        <View style={styles.actions}>
+          <TouchableOpacity
+            style={[styles.actionButton, styles.cancelButton, { borderColor: colors.border }]}
+            onPress={onClose}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.actionButtonText, { color: colors.textSecondary }]}>
+              {cancelText}
+            </Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={[styles.actionButton, styles.confirmButton, { backgroundColor: colors.primary }]}
+            onPress={onConfirm}
+            activeOpacity={0.8}
+          >
+            <CheckCircle color={colors.white} size={18} />
+            <Text style={[styles.actionButtonText, { color: colors.white }]}>
+              {confirmText}
+            </Text>
+          </TouchableOpacity>
+        </View>
+      </BottomSheetView>
+    </BottomSheet>
   );
 };
 
 const styles = StyleSheet.create({
-  overlay: {
+  container: {
     flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-  },
-  backdrop: {
-    flex: 1,
-  },
-  modal: {
-    borderTopLeftRadius: BorderRadius.xl,
-    borderTopRightRadius: BorderRadius.xl,
-    paddingBottom: 40, // Safe area for bottom
-    maxHeight: screenHeight * 0.5,
   },
   header: {
     flexDirection: 'row',
@@ -161,26 +145,13 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     textAlign: 'center',
   },
-  buttonContainer: {
+  actions: {
     flexDirection: 'row',
     paddingHorizontal: Spacing.lg,
     paddingTop: Spacing.md,
     gap: Spacing.md,
   },
-  cancelButton: {
-    flex: 1,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    borderRadius: BorderRadius.lg,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  cancelButtonText: {
-    fontSize: Typography.fontSize.md,
-    fontFamily: 'DMSans-SemiBold',
-  },
-  confirmButton: {
+  actionButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
@@ -188,11 +159,18 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.lg,
     borderRadius: BorderRadius.lg,
-    gap: Spacing.sm,
+    minHeight: 48,
+    gap: Spacing.xs,
   },
-  confirmButtonText: {
+  cancelButton: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+  },
+  confirmButton: {
+    // backgroundColor set dynamically
+  },
+  actionButtonText: {
     fontSize: Typography.fontSize.md,
     fontFamily: 'DMSans-SemiBold',
-    color: 'white',
   },
 });

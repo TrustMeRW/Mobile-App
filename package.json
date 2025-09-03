@@ -13,6 +13,7 @@
   "dependencies": {
     "@expo-google-fonts/dm-sans": "^0.4.1",
     "@expo/vector-icons": "^14.1.0",
+    "@gorhom/bottom-sheet": "^5.2.4",
     "@lucide/lab": "^0.1.2",
     "@react-native-async-storage/async-storage": "2.1.2",
     "@react-native-clipboard/clipboard": "^1.16.3",
@@ -56,6 +57,7 @@
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "^0.20.0",
     "react-native-webview": "13.13.5",
+    "socket.io-client": "^4.8.1",
     "zod": "^4.0.17"
   },
   "devDependencies": {

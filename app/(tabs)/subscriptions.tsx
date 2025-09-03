@@ -126,17 +126,22 @@ export default function SubscriptionsScreen() {
   const { user } = useCurrentUser();
   const styles = getStyles(colors);
   const [expandedPlan, setExpandedPlan] = useState<string | null>(null);
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [selectedPlan, setSelectedPlan] = useState<SubscriptionPlan | null>(null);
   const queryClient = useQueryClient();
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [showPaymentModal, setShowPaymentModal] = useState(false);
 
   // Fetch user profile with subscription data
-  const { data: userProfile, isLoading: profileLoading } = useQuery({
+  const { data: userProfile, isLoading: profileLoading, error: profileError } = useQuery({
     queryKey: ['user-profile'],
     queryFn: () => apiClient.getProfile(),
     enabled: !!user,
   });
+
+  // Debug logging for the query
+  console.log('Query loading:', profileLoading);
+  console.log('Query error:', profileError);
+  console.log('User from hook:', user);
 
   const { data: subscriptionPlans, isLoading: plansLoading, error } = useQuery({
     queryKey: ['subscription-plans'],
@@ -207,9 +212,21 @@ export default function SubscriptionsScreen() {
     );
   }
 
-  const profile = userProfile?.payload;
-  const hasActiveSubscription = profile?.subscriptionSummary?.hasActiveSubscription;
+  // Debug logging - check the full response structure
+  console.log('Full userProfile response:', userProfile);
+  
+  // Now the API returns the payload directly
+  const profile = userProfile;
+  const hasActiveSubscription = profile?.subscriptionSummary?.hasActiveSubscription || 
+                               profile?.currentSubscription?.status === 'ACTIVE' ||
+                               profile?.subscriptionDetails?.isActive;
   const isFreeTrial = profile?.subscriptionSummary?.isFreeTrial;
+
+  // Debug logging
+  console.log('Profile data:', profile);
+  console.log('Has active subscription:', hasActiveSubscription);
+  console.log('Subscription summary:', profile?.subscriptionSummary);
+  console.log('Current subscription:', profile?.currentSubscription);
 
   // Format dates for display
   const formatDate = (dateString: string) => {
@@ -236,7 +253,7 @@ export default function SubscriptionsScreen() {
           animate={{ opacity: 1, translateY: 0 }}
           transition={{ type: 'timing', duration: 600 }}
         >
-          {hasActiveSubscription && (
+          {(hasActiveSubscription || profile?.currentSubscription) && (
             <MotiView
               from={{ opacity: 0, translateY: 20 }}
               animate={{ opacity: 1, translateY: 0 }}
@@ -249,16 +266,25 @@ export default function SubscriptionsScreen() {
                   ) : (
                     <Crown color={colors.primary} size={24} />
                   )}
-                  <Text style={styles.currentSubscriptionTitle}>
-                    {isFreeTrial ? t('subscriptions.currentSubscription.freeTrialActive') : t('subscriptions.currentSubscription.title')}
-                  </Text>
+                  <View style={styles.currentSubscriptionTitleContainer}>
+                    <Text style={styles.currentSubscriptionTitle}>
+                      {isFreeTrial ? t('subscriptions.currentSubscription.freeTrialActive') : t('subscriptions.currentSubscription.title')}
+                    </Text>
+                    <Text style={styles.currentSubscriptionName}>
+                      {profile?.subscriptionFeatures?.planName || 
+                       profile?.currentSubscription?.paymentMetadata?.planName ||
+                       profile?.currentSubscription?.__plan__?.name ||
+                       t('subscriptions.currentSubscription.planName')}
+                    </Text>
+                  </View>
                 </View>
                 
-                {!isFreeTrial && (
-                  <Text style={styles.currentSubscriptionName}>
-                    {profile?.subscriptionFeatures?.planName || t('subscriptions.currentSubscription.planName')}
-                  </Text>
-                )}
+                {/* Plan Description */}
+                <Text style={styles.currentSubscriptionDescription}>
+                  {profile?.subscriptionFeatures?.planDescription || 
+                   profile?.currentSubscription?.paymentMetadata?.planDescription || 
+                   'No description available'}
+                </Text>
                 
                 {/* Subscription Period Section */}
                 <View style={styles.subscriptionPeriodSection}>
@@ -315,35 +341,78 @@ export default function SubscriptionsScreen() {
                     <Text style={styles.currentSubscriptionValue}>
                       {isFreeTrial 
                         ? `${profile?.subscriptionDetails?.daysRemaining || 0} days`
-                        : `RWF ${profile?.subscriptionFeatures?.planAmount || 0}`
+                        : `RWF ${profile?.subscriptionFeatures?.planAmount || 
+                             profile?.currentSubscription?.amountPaid ||
+                             profile?.currentSubscription?.__plan__?.amount || 0}`
                       }
                     </Text>
                   </View>
                 </View>
                 
+                {/* Plan Features */}
+                <View style={styles.planFeaturesSection}>
+                  <Text style={styles.planFeaturesTitle}>Plan Features:</Text>
+                  <View style={styles.planFeaturesGrid}>
+                    <View style={styles.planFeatureItem}>
+                      <Text style={styles.planFeatureLabel}>Max Debts:</Text>
+                      <Text style={styles.planFeatureValue}>
+                        {profile?.subscriptionFeatures?.maxDebtsAllowed || 
+                         profile?.currentSubscription?.paymentMetadata?.features?.maxDebtsAllowed ||
+                         profile?.currentSubscription?.__plan__?.features?.maxDebtsAllowed || 0}
+                      </Text>
+                    </View>
+                    
+                    <View style={styles.planFeatureItem}>
+                      <Text style={styles.planFeatureLabel}>Trustability Checks:</Text>
+                      <Text style={styles.planFeatureValue}>
+                        {profile?.subscriptionFeatures?.maxTrustabilityChecks || 
+                         profile?.currentSubscription?.paymentMetadata?.features?.maxTrustabilityChecks ||
+                         profile?.currentSubscription?.__plan__?.features?.maxTrustabilityChecks || 0}
+                      </Text>
+                    </View>
+                    
+                    <View style={styles.planFeatureItem}>
+                      <Text style={styles.planFeatureLabel}>Max Devices:</Text>
+                      <Text style={styles.planFeatureValue}>
+                        {profile?.subscriptionFeatures?.maxDevices || 
+                         profile?.currentSubscription?.paymentMetadata?.features?.maxDevices ||
+                         profile?.currentSubscription?.__plan__?.features?.maxDevices || 0}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
                 {/* Usage Tracking */}
                 {profile?.currentSubscription?.usageTracking && (
                   <View style={styles.usageTrackingSection}>
-                    <Text style={styles.usageTrackingTitle}>{t('subscriptions.usageTracking.title')}:</Text>
+                    <Text style={styles.usageTrackingTitle}>Current Usage:</Text>
                     <View style={styles.usageTrackingGrid}>
                       <View style={styles.usageTrackingItem}>
-                        <Text style={styles.usageTrackingLabel}>{t('subscriptions.usageTracking.debtsCreated')}:</Text>
-                        <Text style={styles.usageTrackingValue}>
-                          {profile.currentSubscription.usageTracking.debtsCreated}
-                        </Text>
-                        <Text style={styles.usageTrackingRemaining}>
-                          {profile.currentSubscription.usageTracking.remainingDebtsAllowed} {t('subscriptions.usageTracking.remaining')}
-                        </Text>
+                        <Text style={styles.usageTrackingLabel}>Debts Created:</Text>
+                        <View style={styles.usageTrackingValueContainer}>
+                          <Text style={styles.usageTrackingValue}>
+                            {profile.currentSubscription.usageTracking.debtsCreated}
+                          </Text>
+                          <Text style={styles.usageTrackingRemaining}>
+                            / {profile?.subscriptionFeatures?.maxDebtsAllowed || 
+                                profile?.currentSubscription?.paymentMetadata?.features?.maxDebtsAllowed ||
+                                profile?.currentSubscription?.__plan__?.features?.maxDebtsAllowed || 0} allowed
+                          </Text>
+                        </View>
                       </View>
                       
                       <View style={styles.usageTrackingItem}>
-                        <Text style={styles.usageTrackingLabel}>{t('subscriptions.usageTracking.trustabilityChecks')}:</Text>
-                        <Text style={styles.usageTrackingValue}>
-                          {profile.currentSubscription.usageTracking.trustabilityChecksUsed}
-                        </Text>
-                        <Text style={styles.usageTrackingRemaining}>
-                          {profile.currentSubscription.usageTracking.remainingTrustabilityChecks} {t('subscriptions.usageTracking.remaining')}
-                        </Text>
+                        <Text style={styles.usageTrackingLabel}>Trustability Checks:</Text>
+                        <View style={styles.usageTrackingValueContainer}>
+                          <Text style={styles.usageTrackingValue}>
+                            {profile.currentSubscription.usageTracking.trustabilityChecksUsed}
+                          </Text>
+                          <Text style={styles.usageTrackingRemaining}>
+                            / {profile?.subscriptionFeatures?.maxTrustabilityChecks || 
+                                profile?.currentSubscription?.paymentMetadata?.features?.maxTrustabilityChecks ||
+                                profile?.currentSubscription?.__plan__?.features?.maxTrustabilityChecks || 0} allowed
+                          </Text>
+                        </View>
                       </View>
                     </View>
                   </View>
@@ -355,19 +424,25 @@ export default function SubscriptionsScreen() {
                     <View style={styles.currentSubscriptionFeatureItem}>
                       <Check color={colors.success} size={16} />
                       <Text style={styles.currentSubscriptionFeatureText}>
-                        {profile?.subscriptionFeatures?.maxTrustabilityChecks || 0} {t('subscriptions.benefits.trustabilityChecks')}
+                        {profile?.subscriptionFeatures?.maxTrustabilityChecks || 
+                         profile?.currentSubscription?.paymentMetadata?.features?.maxTrustabilityChecks ||
+                         profile?.currentSubscription?.__plan__?.features?.maxTrustabilityChecks || 0} {t('subscriptions.benefits.trustabilityChecks')}
                       </Text>
                     </View>
                     <View style={styles.currentSubscriptionFeatureItem}>
                       <Check color={colors.success} size={16} />
                       <Text style={styles.currentSubscriptionFeatureText}>
-                        {profile?.subscriptionFeatures?.maxDebtsAllowed || 0} {t('subscriptions.benefits.debtsAllowed')}
+                        {profile?.subscriptionFeatures?.maxDebtsAllowed || 
+                         profile?.currentSubscription?.paymentMetadata?.features?.maxDebtsAllowed ||
+                         profile?.currentSubscription?.__plan__?.features?.maxDebtsAllowed || 0} {t('subscriptions.benefits.debtsAllowed')}
                       </Text>
                     </View>
                     <View style={styles.currentSubscriptionFeatureItem}>
                       <Check color={colors.success} size={16} />
                       <Text style={styles.currentSubscriptionFeatureText}>
-                        {profile?.subscriptionFeatures?.maxDevices || 0} {t('subscriptions.benefits.devices')}
+                        {profile?.subscriptionFeatures?.maxDevices || 
+                         profile?.currentSubscription?.paymentMetadata?.features?.maxDevices ||
+                         profile?.currentSubscription?.__plan__?.features?.maxDevices || 0} {t('subscriptions.benefits.devices')}
                       </Text>
                     </View>
                   </View>
@@ -511,7 +586,7 @@ const getStyles = (colors: any) =>
     header: {
       flexDirection: 'row',
       alignItems: 'center',
-      paddingHorizontal: Spacing.lg,
+      paddingHorizontal: Spacing.md,
       paddingVertical: Spacing.md,
     },
     title: {
@@ -522,7 +597,7 @@ const getStyles = (colors: any) =>
     },
     content: {
       flex: 1,
-      paddingHorizontal: Spacing.lg,
+      paddingHorizontal: Spacing.md,
     },
     subtitle: {
       fontSize: Typography.fontSize.md,
@@ -857,17 +932,20 @@ const getStyles = (colors: any) =>
       marginBottom: Spacing.sm,
     },
     subscriptionPeriodGrid: {
-      flexDirection: 'row',
-      justifyContent: 'space-around',
+      flexDirection: 'column',
       gap: Spacing.sm,
     },
     subscriptionPeriodItem: {
       flexDirection: 'row',
       alignItems: 'center',
-      marginBottom: Spacing.sm,
+      paddingVertical: Spacing.sm,
+      paddingHorizontal: Spacing.md,
+      backgroundColor: colors.surface,
+      borderRadius: 8,
     },
     subscriptionPeriodContent: {
       marginLeft: Spacing.sm,
+      flex: 1,
     },
     subscriptionPeriodLabel: {
       fontSize: Typography.fontSize.md,
@@ -893,5 +971,53 @@ const getStyles = (colors: any) =>
       fontFamily: 'DMSans-Regular',
       color: colors.textSecondary,
       marginLeft: Spacing.sm,
+    },
+    // New styles for enhanced subscription display
+    currentSubscriptionTitleContainer: {
+      flex: 1,
+      marginLeft: Spacing.md,
+    },
+    currentSubscriptionDescription: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Regular',
+      color: colors.textSecondary,
+      marginTop: Spacing.sm,
+      lineHeight: 20,
+    },
+    planFeaturesSection: {
+      marginTop: Spacing.lg,
+      paddingTop: Spacing.lg,
+      borderTopWidth: 1,
+      borderTopColor: colors.border,
+    },
+    planFeaturesTitle: {
+      fontSize: Typography.fontSize.md,
+      fontFamily: 'DMSans-Medium',
+      color: colors.text,
+      marginBottom: Spacing.sm,
+    },
+    planFeaturesGrid: {
+      flexDirection: 'row',
+      justifyContent: 'space-around',
+      gap: Spacing.sm,
+    },
+    planFeatureItem: {
+      alignItems: 'center',
+      flex: 1,
+    },
+    planFeatureLabel: {
+      fontSize: Typography.fontSize.sm,
+      fontFamily: 'DMSans-Medium',
+      color: colors.textSecondary,
+      marginBottom: Spacing.xs,
+      textAlign: 'center',
+    },
+    planFeatureValue: {
+      fontSize: Typography.fontSize.lg,
+      fontFamily: 'DMSans-Bold',
+      color: colors.primary,
+    },
+    usageTrackingValueContainer: {
+      alignItems: 'center',
     },
   });

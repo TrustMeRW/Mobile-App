@@ -136,20 +136,20 @@ export default function ProfileScreen() {
     {
       icon: <Bell color={colors.textSecondary} size={20} />,
       title: t('profile.menu.notifications'),
-      subtitle: t('profile.menu.notificationsSubtitle', { count: unreadCount }),
+      // subtitle: t('profile.menu.notificationsSubtitle'u),
       onPress: () => {
         // Navigate to notifications screen
         router.push('/notifications');
       },
     },
-    {
-      icon: <Globe color={colors.textSecondary} size={20} />,
-      title: t('profile.menu.language'),
-      subtitle: t('profile.menu.languageSubtitle'),
-      onPress: () => {
-        router.push('/language-settings');
-      },
-    },
+    // {
+    //   icon: <Globe color={colors.textSecondary} size={20} />,
+    //   title: t('profile.menu.language'),
+    //   subtitle: t('profile.menu.languageSubtitle'),
+    //   onPress: () => {
+    //     router.push('/language-settings');
+    //   },
+    // },
   ];
 
   return (
@@ -252,13 +252,13 @@ export default function ProfileScreen() {
                   {t('profile.qrCode.note')}
                 </Text>
                 
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   style={styles.changeCodeButton}
                   onPress={() => setShowChangeCodeModal(true)}
                 >
                   <QrCode color={colors.primary} size={16} />
                   <Text style={styles.changeCodeButtonText}>{t('profile.qrCode.changeCode')}</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
               </View>
             </View>
           </Card>

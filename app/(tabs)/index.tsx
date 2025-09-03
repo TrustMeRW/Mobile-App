@@ -196,7 +196,6 @@ export default function HomeScreen() {
               </View>
               <View>
                 <Text style={styles.greeting}>Hello {user?.firstName || 'User'} 👋</Text>
-                <Text style={styles.subGreeting}>Lorem ipsum dolor amet simun</Text>
               </View>
             </View>
             <View style={styles.notificationContainer}>
@@ -206,7 +205,7 @@ export default function HomeScreen() {
                   <Text style={styles.notificationBadgeText}>
                     {unreadCount > 9 ? '9+' : unreadCount}
                   </Text>
-                </View>
+                </View> 
               )}
             </View>
           </SafeAreaView>
@@ -214,7 +213,7 @@ export default function HomeScreen() {
 
         {/* Quick Actions */}
         <View style={styles.quickActionsSection}>
-          <Text style={styles.sectionTitle}>Quick actions</Text>
+          <Text style={styles.quickActionsTitle}>Quick actions</Text>
           <View style={styles.quickActions}>
             <TouchableOpacity 
               style={styles.quickActionButton}
@@ -606,6 +605,12 @@ const getStyles = (colors: any) =>
       backgroundColor: '#253882',
       paddingHorizontal: Spacing.lg,
       paddingBottom: Spacing.lg,
+    },
+    quickActionsTitle: {
+      fontSize: Typography.fontSize.lg,
+      fontFamily: 'DMSans-SemiBold',
+      color: colors.white,
+      marginBottom: Spacing.md,
     },
     sectionTitle: {
       fontSize: Typography.fontSize.lg,

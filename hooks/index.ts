@@ -68,3 +68,6 @@ export {
 // Translation hooks
 export { useOnboardingTranslations } from './useOnboardingTranslations';
 export { useCommonTranslations } from './useCommonTranslations';
+
+// Expo Updates hook
+export { useExpoUpdates } from './useExpoUpdates';

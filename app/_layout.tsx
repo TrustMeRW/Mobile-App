@@ -26,6 +26,7 @@ import * as SplashScreen from 'expo-splash-screen';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NotificationProvider } from '@/services/notifications';
+import UpdateManager from '@/components/UpdateManager';
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -109,26 +110,29 @@ export default function RootLayout() {
           <TranslationProvider>
             <NotificationProvider>
               <ToastProvider>
-                <Stack screenOptions={{ headerShown: false }}>
-                  <Stack.Screen name="index" />
-                  <Stack.Screen name="(auth)" />
-                  <Stack.Screen
-                    name="(tabs)"
-                    options={{
-                      headerRight: () => null,
-                    }}
-                  />
-                  <Stack.Screen name="onboarding" />
-                  <Stack.Screen
-                    name="notifications"
-                    options={{
-                      headerShown: true,
-                      title: 'Notifications',
-                      headerBackTitle: 'Back',
-                    }}
-                  />
-                  <Stack.Screen name="+not-found" />
-                </Stack>
+                <View style={{ flex: 1 }}>
+                  {/* <UpdateManager /> */}
+                  <Stack screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="index" />
+                    <Stack.Screen name="(auth)" />
+                    <Stack.Screen
+                      name="(tabs)"
+                      options={{
+                        headerRight: () => null,
+                      }}
+                    />
+                    <Stack.Screen name="onboarding" />
+                    <Stack.Screen
+                      name="notifications"
+                      options={{
+                        headerShown: true,
+                        title: 'Notifications',
+                        headerBackTitle: 'Back',
+                      }}
+                    />
+                    <Stack.Screen name="+not-found" />
+                  </Stack>
+                </View>
                 <StatusBar style="auto" />
               </ToastProvider>
             </NotificationProvider>

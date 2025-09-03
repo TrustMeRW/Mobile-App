@@ -26,7 +26,6 @@ import * as SplashScreen from 'expo-splash-screen';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { NotificationProvider } from '@/services/notifications';
-import UpdateManager from '@/components/UpdateManager';
 
 // Prevent splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();

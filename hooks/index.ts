@@ -69,5 +69,4 @@ export {
 export { useOnboardingTranslations } from './useOnboardingTranslations';
 export { useCommonTranslations } from './useCommonTranslations';
 
-// Expo Updates hook
-export { useExpoUpdates } from './useExpoUpdates';
+
